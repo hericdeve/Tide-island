@@ -105,6 +105,7 @@ private:
         QDBusMessage message;
     };
 
+    bool isCallerAuthorized();
     void ensureAgentRegistered();
     void unregisterAgent();
     void setRegisteredState(bool registered);

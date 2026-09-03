@@ -12,6 +12,7 @@
 #include <QJsonObject>
 #include <QJsonParseError>
 #include <QStandardPaths>
+#include <QCoreApplication>
 #include <libudev.h>
 
 namespace {
@@ -533,26 +534,20 @@ void SysBackend::setLyricsClientActive(const QString &clientId, bool active) {
 
 QString SysBackend::findLyricsBackendExecutable() const {
     const QString homeDir = QDir::homePath();
-    const QString quickshellConfigDir = homeDir + "/.config/quickshell";
+    const QString appDir = QCoreApplication::applicationDirPath();
+    const QString quickshellConfigDir = homeDir + QStringLiteral("/.config/quickshell");
     const QString envPath = qEnvironmentVariable("QUICKSHELL_LYRICS_BACKEND");
-    const QString pathExecutable = QStandardPaths::findExecutable("lyricsmpris");
-    QStringList candidates = {
+    const QString pathExecutable = QStandardPaths::findExecutable(QStringLiteral("lyricsmpris"));
+
+    const QStringList candidates = {
         envPath,
+        appDir + QStringLiteral("/lyricsmpris"),
+        appDir + QStringLiteral("/bin/lyricsmpris"),
         QStringLiteral("/usr/share/tide-island/bin/lyricsmpris"),
-        quickshellConfigDir + "/bin/lyricsmpris",
-        homeDir + "/.local/bin/lyricsmpris",
+        quickshellConfigDir + QStringLiteral("/tide-island/bin/lyricsmpris"),
+        homeDir + QStringLiteral("/.local/bin/lyricsmpris"),
         pathExecutable
     };
-
-    QDirIterator configIterator(
-        quickshellConfigDir,
-        QDir::Dirs | QDir::NoDotAndDotDot,
-        QDirIterator::NoIteratorFlags
-    );
-    while (configIterator.hasNext()) {
-        const QString configDirPath = configIterator.next();
-        candidates.insert(1, configDirPath + "/bin/lyricsmpris");
-    }
 
     for (const QString &candidate : candidates) {
         if (candidate.isEmpty()) continue;

@@ -583,6 +583,8 @@ bool Backend::save(const QVariantMap &userConfig){
         return false;
     }
 
+    QFile::setPermissions(m_userConfigPath, QFileDevice::ReadOwner | QFileDevice::WriteOwner);
+
     setUserConfig(userConfig);
     setErrorString(QString());
     return true;
@@ -816,6 +818,8 @@ bool Backend::saveApplicationLauncherFavorites(const QVariantList &favoriteIds){
             .arg(configInfo.absoluteFilePath(), file.errorString()));
         return false;
     }
+
+    QFile::setPermissions(configInfo.absoluteFilePath(), QFileDevice::ReadOwner | QFileDevice::WriteOwner);
 
     setErrorString(QString());
     return true;

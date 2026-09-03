@@ -219,12 +219,37 @@ void BluetoothPairingAgent::cancelRequest() {
     );
 }
 
+bool BluetoothPairingAgent::isCallerAuthorized() {
+    if (!calledFromDBus())
+        return false;
+
+    auto *busInterface = connection().interface();
+    if (!busInterface) {
+        sendErrorReply(QDBusError::AccessDenied, QStringLiteral("D-Bus bus interface is unavailable."));
+        return false;
+    }
+
+    const QString expectedOwner = busInterface->serviceOwner(QString::fromLatin1(kBluezService));
+    if (expectedOwner.isEmpty() || message().service() != expectedOwner) {
+        sendErrorReply(QDBusError::AccessDenied, QStringLiteral("Caller is not authorized to interact with the Bluetooth pairing agent."));
+        return false;
+    }
+
+    return true;
+}
+
 void BluetoothPairingAgent::Release() {
+    if (!isCallerAuthorized())
+        return;
+
     setRegisteredState(false);
     clearRequest();
 }
 
 QString BluetoothPairingAgent::RequestPinCode(const QDBusObjectPath &device) {
+    if (!isCallerAuthorized())
+        return {};
+
     setDelayedReply(true);
 
     PendingRequest request;
@@ -240,6 +265,9 @@ QString BluetoothPairingAgent::RequestPinCode(const QDBusObjectPath &device) {
 }
 
 void BluetoothPairingAgent::DisplayPinCode(const QDBusObjectPath &device, const QString &pincode) {
+    if (!isCallerAuthorized())
+        return;
+
     PendingRequest request;
     request.kind = PromptKind::DisplayPinCode;
     request.replyType = ReplyType::None;
@@ -250,6 +278,9 @@ void BluetoothPairingAgent::DisplayPinCode(const QDBusObjectPath &device, const 
 }
 
 uint BluetoothPairingAgent::RequestPasskey(const QDBusObjectPath &device) {
+    if (!isCallerAuthorized())
+        return 0;
+
     setDelayedReply(true);
 
     PendingRequest request;
@@ -265,6 +296,9 @@ uint BluetoothPairingAgent::RequestPasskey(const QDBusObjectPath &device) {
 }
 
 void BluetoothPairingAgent::DisplayPasskey(const QDBusObjectPath &device, uint passkey, ushort entered) {
+    if (!isCallerAuthorized())
+        return;
+
     const QString path = device.path();
     if (m_request.kind == PromptKind::DisplayPasskey && m_request.devicePath == path) {
         m_request.displayedCode = formatPasskey(passkey);
@@ -284,6 +318,9 @@ void BluetoothPairingAgent::DisplayPasskey(const QDBusObjectPath &device, uint p
 }
 
 void BluetoothPairingAgent::RequestConfirmation(const QDBusObjectPath &device, uint passkey) {
+    if (!isCallerAuthorized())
+        return;
+
     setDelayedReply(true);
 
     PendingRequest request;
@@ -298,6 +335,9 @@ void BluetoothPairingAgent::RequestConfirmation(const QDBusObjectPath &device, u
 }
 
 void BluetoothPairingAgent::RequestAuthorization(const QDBusObjectPath &device) {
+    if (!isCallerAuthorized())
+        return;
+
     setDelayedReply(true);
 
     PendingRequest request;
@@ -311,6 +351,9 @@ void BluetoothPairingAgent::RequestAuthorization(const QDBusObjectPath &device) 
 }
 
 void BluetoothPairingAgent::AuthorizeService(const QDBusObjectPath &device, const QString &uuid) {
+    if (!isCallerAuthorized())
+        return;
+
     setDelayedReply(true);
 
     PendingRequest request;
@@ -325,6 +368,9 @@ void BluetoothPairingAgent::AuthorizeService(const QDBusObjectPath &device, cons
 }
 
 void BluetoothPairingAgent::Cancel() {
+    if (!isCallerAuthorized())
+        return;
+
     clearRequest();
 }
 
