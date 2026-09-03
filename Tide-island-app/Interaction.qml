@@ -17,6 +17,10 @@ PagePanel {
         { "label": "Music Player", "value": 1 },
         { "label": "Control Center", "value": 2 }
     ]
+    readonly property var playerPaneRestoreOptions: [
+        { "label": "Home", "value": 0 },
+        { "label": "Remember Last", "value": 1 }
+    ]
 
     property int revision: 0
 
@@ -162,6 +166,17 @@ PagePanel {
 
     function setAutoExpandOnTrackChange(enabled) {
         ConfigStore.setValue("disableAutoExpandOnTrackChange", !enabled)
+        ConfigStore.save()
+        revision += 1
+    }
+
+    function playerRememberLastPane() {
+        revision
+        return boolValue("playerRememberLastPane", false)
+    }
+
+    function setPlayerRememberLastPane(remember) {
+        ConfigStore.setValue("playerRememberLastPane", remember)
         ConfigStore.save()
         revision += 1
     }
@@ -369,8 +384,17 @@ PagePanel {
                     anchors.leftMargin: 18
                     anchors.right: parent.right
                     anchors.rightMargin: 18
+                    spacing: 15
 
                     AutoExpandTrackRow {
+                        width: parent.width
+                    }
+
+                    SplitLine {
+                        width: parent.width
+                    }
+
+                    PlayerPaneRestoreRow {
                         width: parent.width
                     }
                 }
@@ -509,6 +533,48 @@ PagePanel {
 
             onToggled: function(checked) {
                 root.setAutoExpandOnTrackChange(checked)
+            }
+        }
+    }
+
+    component PlayerPaneRestoreRow: Item {
+        id: row
+
+        height: 49
+
+        Text {
+            id: rowTitle
+
+            text: "Expanded Pane"
+            anchors.left: parent.left
+            anchors.top: parent.top
+            color: Theme.textColor
+            font.family: Theme.textFontFamily
+            font.pixelSize: 18
+        }
+
+        Text {
+            text: "Return to Home or remember the last opened pane"
+            anchors.left: rowTitle.left
+            anchors.top: rowTitle.bottom
+            anchors.topMargin: 5
+            width: Math.max(80, parent.width - paneGroup.width - 28)
+            color: Theme.subtleTextColor
+            elide: Text.ElideRight
+            font.family: Theme.textFontFamily
+            font.pixelSize: 14
+        }
+
+        ButtonGroup {
+            id: paneGroup
+
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            options: root.playerPaneRestoreOptions
+            selectedValue: root.playerRememberLastPane() ? 1 : 0
+
+            onSelected: function(value) {
+                root.setPlayerRememberLastPane(value === 1)
             }
         }
     }

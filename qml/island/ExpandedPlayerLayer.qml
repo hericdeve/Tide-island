@@ -13,12 +13,14 @@ Item {
     signal keyboardFocusRequested()
     signal keyboardFocusReleased()
     signal previousRequested()
+    signal pageChanged(int page)
     signal timerToggleRequested(int hours, int minutes)
     signal timerResetRequested()
     signal timerDurationRequested(int hours, int minutes)
 
     readonly property var userConfig: UserConfig
 
+    property int initialPage: 0
     property bool showCondition: false
     property string currentArtUrl: ""
     property string currentTrack: ""
@@ -102,6 +104,7 @@ Item {
         currentPage = pendingPage;
         pendingPage = -1;
         pageProgress = currentPage;
+        root.pageChanged(currentPage);
         updateKeyboardFocusForPage();
     }
 
@@ -121,6 +124,13 @@ Item {
 
     function openTimerPage() {
         showPage(1);
+    }
+
+    Component.onCompleted: {
+        if (initialPage > 0) {
+            currentPage = initialPage;
+            pageProgress = initialPage;
+        }
     }
 
     anchors.fill: parent
@@ -206,8 +216,10 @@ Item {
         if (!showCondition) {
             pendingPage = -1;
             pageSettleAnimation.stop();
-            currentPage = 0;
-            pageProgress = 0;
+            if (!userConfig.playerRememberLastPane) {
+                currentPage = 0;
+                pageProgress = 0;
+            }
         }
         updateKeyboardFocusForPage();
     }
@@ -339,8 +351,11 @@ Item {
                     root.pageProgress = root.currentPage;
             }
 
+            // Pane 0: Home (Music player)
+            readonly property alias musicPage: homePage
+
             Item {
-                id: musicPage
+                id: homePage
 
                 width: viewport.width
                 height: viewport.height

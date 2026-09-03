@@ -909,6 +909,7 @@ PanelWindow {
         property bool hoverExpandedActive: false
         property bool expandedPlayerKeyboardFocusRequested: false
         property bool openTimerPageWhenExpanded: false
+        property int rememberedPlayerPage: 0
         property int timerSelectedHours: 0
         property int timerSelectedMinutes: 5
         property int timerTotalSeconds: 300
@@ -2445,12 +2446,19 @@ PanelWindow {
                             && item && item.openTimerPage) {
                         item.openTimerPage();
                         islandContainer.openTimerPageWhenExpanded = false;
+                    } else if (userConfig.playerRememberLastPane && islandContainer.rememberedPlayerPage > 0 && item && item.showPage) {
+                        item.showPage(islandContainer.rememberedPlayerPage);
                     }
                     root.focusExpandedPlayer();
                 }
 
                 sourceComponent: Component {
                     ExpandedPlayerLayer {
+                        initialPage: (userConfig.playerRememberLastPane && !islandContainer.openTimerPageWhenExpanded)
+                            ? islandContainer.rememberedPlayerPage : 0
+                        onPageChanged: function(page) {
+                            islandContainer.rememberedPlayerPage = page;
+                        }
                         currentArtUrl: islandContainer.currentArtUrl
                         currentTrack: islandContainer.currentTrack
                         currentArtist: islandContainer.currentArtist
