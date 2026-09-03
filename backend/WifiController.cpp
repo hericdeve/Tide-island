@@ -239,6 +239,9 @@ public:
 
 public slots:
     void Release() {
+        if (!isCallerAuthorized())
+            return;
+
         if (!m_controller)
             return;
 
@@ -247,10 +250,14 @@ public slots:
     }
 
     QString RequestPassphrase(const QDBusObjectPath &network) {
+        if (!isCallerAuthorized())
+            return {};
         return takePasswordOrReplyWithError(network.path());
     }
 
     QString RequestPrivateKeyPassphrase(const QDBusObjectPath &) {
+        if (!isCallerAuthorized())
+            return {};
         sendErrorReply(
             QString::fromLatin1(kIwdAgentCanceledError),
             QStringLiteral("Private key passphrases are not supported in this panel.")
@@ -259,6 +266,8 @@ public slots:
     }
 
     IwdUserNameAndPassword RequestUserNameAndPassword(const QDBusObjectPath &) {
+        if (!isCallerAuthorized())
+            return {};
         sendErrorReply(
             QString::fromLatin1(kIwdAgentCanceledError),
             QStringLiteral("Enterprise Wi-Fi networks that need a user name must be provisioned first.")
@@ -267,13 +276,36 @@ public slots:
     }
 
     QString RequestUserPassword(const QDBusObjectPath &network, const QString &) {
+        if (!isCallerAuthorized())
+            return {};
         return takePasswordOrReplyWithError(network.path());
     }
 
     void Cancel(const QString &) {
+        if (!isCallerAuthorized())
+            return;
     }
 
 private:
+    bool isCallerAuthorized() {
+        if (!calledFromDBus())
+            return false;
+
+        auto *busInterface = connection().interface();
+        if (!busInterface) {
+            sendErrorReply(QDBusError::AccessDenied, QStringLiteral("D-Bus bus interface is unavailable."));
+            return false;
+        }
+
+        const QString expectedOwner = busInterface->serviceOwner(QString::fromLatin1(kIwdService));
+        if (expectedOwner.isEmpty() || message().service() != expectedOwner) {
+            sendErrorReply(QDBusError::AccessDenied, QStringLiteral("Caller is not authorized to interact with the Wi-Fi agent."));
+            return false;
+        }
+
+        return true;
+    }
+
     QString takePasswordOrReplyWithError(const QString &networkPath) {
         if (!m_controller) {
             sendErrorReply(
