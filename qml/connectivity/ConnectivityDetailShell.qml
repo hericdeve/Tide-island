@@ -57,6 +57,13 @@ Item {
     visible: mounted || opacity > 0.001
     z: 3
 
+    readonly property bool hovered: detailHoverHandler.hovered
+
+    HoverHandler {
+        id: detailHoverHandler
+        enabled: shell.mounted && shell.visible
+    }
+
     onOpenChanged: startPanelAnimation(open)
 
     NumberAnimation {

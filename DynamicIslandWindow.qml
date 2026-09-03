@@ -207,6 +207,17 @@ PanelWindow {
     }
     readonly property real baseExclusiveZone: userConfig.islandExclusiveZone
     readonly property bool hoverExpandEnabled: configuredHoverExpandAction > 0
+    readonly property bool islandPointerInside: {
+        if (capsuleHoverHandler.hovered)
+            return true;
+        if (wifiConnectivityDetailShell.mounted && wifiConnectivityDetailShell.hovered)
+            return true;
+        if (bluetoothConnectivityDetailShell.mounted && bluetoothConnectivityDetailShell.hovered)
+            return true;
+        if (powerConnectivityDetailShell.mounted && powerConnectivityDetailShell.hovered)
+            return true;
+        return false;
+    }
     readonly property bool topGestureInputActive: !root.overviewVisible && islandContainer.canShowSideSwipe
     readonly property bool autoHideRuntimeEnabled: !shellRootController
         || shellRootController.islandAutoHideRuntimeEnabled === undefined
@@ -1807,7 +1818,7 @@ PanelWindow {
             interval: 350
             repeat: false
             onTriggered: {
-                if (!capsuleMouseArea.containsMouse) return;
+                if (!root.islandPointerInside) return;
                 if (!root.hoverExpandEnabled) return;
 
                 const current = islandContainer.islandState;
@@ -1825,10 +1836,12 @@ PanelWindow {
         }
         Timer {
             id: hoverCollapseDelayTimer
-            interval: 250
+            interval: 350
             repeat: false
             onTriggered: {
-                if (capsuleMouseArea.containsMouse) return;
+                if (root.islandPointerInside) return;
+                if (root.anyConnectivityDetailMounted) return;
+                if (controlCenterLoader.item && controlCenterLoader.item.activeInteraction) return;
                 if (!islandContainer.hoverExpandedActive) return;
                 islandContainer.hoverExpandedActive = false;
                 islandContainer.smartRestoreState();
@@ -2033,6 +2046,33 @@ PanelWindow {
             }
 
 
+            HoverHandler {
+                id: capsuleHoverHandler
+                enabled: root.hoverExpandEnabled || root.autoHideEnabled
+
+                onHoveredChanged: {
+                    if (hovered) {
+                        if (root.autoHideEnabled) {
+                            root.autoHidePointerInside = true;
+                            root.showAutoHiddenIsland();
+                        }
+                        if (root.hoverExpandEnabled) {
+                            hoverCollapseDelayTimer.stop();
+                            hoverExpandDelayTimer.restart();
+                        }
+                    } else {
+                        if (root.autoHideEnabled) {
+                            root.autoHidePointerInside = false;
+                            root.scheduleAutoHide();
+                        }
+                        if (root.hoverExpandEnabled) {
+                            hoverExpandDelayTimer.stop();
+                            hoverCollapseDelayTimer.restart();
+                        }
+                    }
+                }
+            }
+
             MouseArea {
                 id: capsuleMouseArea
                 anchors.fill: parent
@@ -2040,7 +2080,7 @@ PanelWindow {
                 enabled: !root.overviewVisible && twoFingerTouchArea.touchPoints.length < 2
                 acceptedButtons: root.dynamicIslandAcceptedButtons
                 preventStealing: true
-                hoverEnabled: root.hoverExpandEnabled || root.autoHideEnabled
+                hoverEnabled: false
                 property real swipeStartX: 0
                 property real swipeStartY: 0
                 property real swipeStartProgress: 0
@@ -2057,26 +2097,6 @@ PanelWindow {
                     interval: 180
                     repeat: false
                     onTriggered: capsuleMouseArea.suppressNextClick = false
-                }
-
-                onEntered: {
-                    if (root.autoHideEnabled) {
-                        root.autoHidePointerInside = true;
-                        root.showAutoHiddenIsland();
-                    }
-                    if (root.hoverExpandEnabled) {
-                        hoverCollapseDelayTimer.stop();
-                        hoverExpandDelayTimer.restart();
-                    }
-                }
-
-                onExited: {
-                    if (root.autoHideEnabled) {
-                        root.autoHidePointerInside = false;
-                        root.scheduleAutoHide();
-                    }
-                    if (root.hoverExpandEnabled)
-                        hoverCollapseDelayTimer.restart();
                 }
 
                 onPressed: (mouse) => {

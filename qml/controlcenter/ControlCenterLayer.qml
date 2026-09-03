@@ -56,6 +56,13 @@ Item {
     property bool bluetoothPanelOpen: false
     property bool powerPanelOpen: false
     property bool powerViewActive: false
+    readonly property bool activeInteraction: volumeCard.pressed
+        || brightnessCard.pressed
+        || batteryDrawerDragging
+        || batteryModeSliderDragging
+        || wifiPanelOpen
+        || bluetoothPanelOpen
+        || powerPanelOpen
     property bool batteryDrawerOpen: false
     property bool batteryDrawerDragging: false
     property real batteryDrawerProgress: 0

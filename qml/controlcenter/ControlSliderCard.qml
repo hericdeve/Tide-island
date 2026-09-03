@@ -30,6 +30,30 @@ Rectangle {
     color: StyleTokens.clearBlack
     clip: true
 
+    WheelHandler {
+        id: cardWheelHandler
+        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+        orientation: Qt.Vertical
+        onWheel: function(event) {
+            root.interactionStarted();
+            const step = 0.04;
+            const delta = event.angleDelta.y !== 0 ? event.angleDelta.y : event.angleDelta.x;
+            if (delta > 0) {
+                root.valueMoved(root.clamp01(root.value + step));
+            } else if (delta < 0) {
+                root.valueMoved(root.clamp01(root.value - step));
+            }
+            wheelCommitTimer.restart();
+        }
+    }
+
+    Timer {
+        id: wheelCommitTimer
+        interval: 180
+        repeat: false
+        onTriggered: root.commitRequested()
+    }
+
     MatteSurface {
         anchors.fill: parent
         radius: root.radius
@@ -120,6 +144,18 @@ Rectangle {
                 }
                 onReleased: root.commitRequested()
                 onCanceled: root.cancelRequested()
+                onWheel: function(wheel) {
+                    root.interactionStarted();
+                    const step = 0.04;
+                    const delta = wheel.angleDelta.y !== 0 ? wheel.angleDelta.y : wheel.angleDelta.x;
+                    if (delta > 0) {
+                        root.valueMoved(root.clamp01(root.value + step));
+                    } else if (delta < 0) {
+                        root.valueMoved(root.clamp01(root.value - step));
+                    }
+                    wheelCommitTimer.restart();
+                    wheel.accepted = true;
+                }
             }
         }
     }
