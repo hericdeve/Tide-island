@@ -132,7 +132,77 @@ Item {
         event.accepted = true;
     }
 
+    property bool isWheelSwiping: false
+    property real wheelAccumulatedDelta: 0
+    property real wheelStartProgress: 0
+
+    Timer {
+        id: wheelSettleTimer
+        interval: 160
+        repeat: false
+        onTriggered: {
+            if (!root.isWheelSwiping || viewport.width <= 0)
+                return;
+
+            root.isWheelSwiping = false;
+            const progress = root.clampedPageProgress;
+            let targetPage = root.currentPage;
+
+            if (root.currentPage === 0) {
+                if (progress > 0.22 || root.wheelAccumulatedDelta > 40)
+                    targetPage = 1;
+            } else {
+                if (progress < 0.78 || root.wheelAccumulatedDelta < -40)
+                    targetPage = 0;
+            }
+
+            root.settlePage(targetPage);
+        }
+    }
+
+    function handleHorizontalWheel(wheel) {
+        if (viewport.width <= 0)
+            return;
+
+        const pX = wheel.pixelDelta ? wheel.pixelDelta.x : 0;
+        const pY = wheel.pixelDelta ? wheel.pixelDelta.y : 0;
+        const aX = wheel.angleDelta ? wheel.angleDelta.x : 0;
+        const aY = wheel.angleDelta ? wheel.angleDelta.y : 0;
+
+        let deltaX = 0;
+        if (pX !== 0) {
+            deltaX = pX;
+        } else if (aX !== 0) {
+            deltaX = aX * 0.75;
+        }
+
+        const effectiveY = Math.abs(pY !== 0 ? pY : aY);
+        if (Math.abs(deltaX) < 1 && effectiveY > 4)
+            return;
+
+        if (Math.abs(deltaX) < 0.5)
+            return;
+
+        if (!isWheelSwiping) {
+            isWheelSwiping = true;
+            pageSettleAnimation.stop();
+            pendingPage = -1;
+            wheelStartProgress = clampedPageProgress;
+            wheelAccumulatedDelta = 0;
+            pageStrip.interactive = true;
+        }
+
+        wheelAccumulatedDelta += deltaX;
+        root.pageProgress = Math.max(0, Math.min(1, wheelStartProgress + wheelAccumulatedDelta / root.pageSlideDistance));
+
+        wheelSettleTimer.restart();
+        if (wheel.accepted !== undefined)
+            wheel.accepted = true;
+    }
+
     onShowConditionChanged: {
+        wheelSettleTimer.stop();
+        isWheelSwiping = false;
         if (!showCondition) {
             pendingPage = -1;
             pageSettleAnimation.stop();
@@ -185,6 +255,15 @@ Item {
         anchors.fill: parent
         clip: true
 
+        WheelHandler {
+            id: horizontalWheelHandler
+            target: null
+            acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+            onWheel: function(event) {
+                root.handleHorizontalWheel(event);
+            }
+        }
+
         MouseArea {
             id: pageSwipeArea
 
@@ -199,6 +278,8 @@ Item {
             property bool moved: false
 
             onPressed: (mouse) => {
+                wheelSettleTimer.stop();
+                root.isWheelSwiping = false;
                 root.pendingPage = -1;
                 pageSettleAnimation.stop();
                 startX = mouse.x;
@@ -238,6 +319,9 @@ Item {
 
             onCanceled: root.settlePage(startPage)
             onClicked: if (!moved) root.backgroundClicked()
+            onWheel: (wheel) => {
+                root.handleHorizontalWheel(wheel);
+            }
         }
 
         Item {
