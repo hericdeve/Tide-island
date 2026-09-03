@@ -149,10 +149,10 @@ Item {
             let targetPage = root.currentPage;
 
             if (root.currentPage === 0) {
-                if (progress > 0.22 || root.wheelAccumulatedDelta > 40)
+                if (progress > 0.22 || root.wheelAccumulatedDelta > 120)
                     targetPage = 1;
             } else {
-                if (progress < 0.78 || root.wheelAccumulatedDelta < -40)
+                if (progress < 0.78 || root.wheelAccumulatedDelta < -120)
                     targetPage = 0;
             }
 
