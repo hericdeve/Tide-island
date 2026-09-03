@@ -142,11 +142,6 @@ QString UserConfigBackend::defaultWallpaperPath() const
     return m_defaultWallpaperPath;
 }
 
-QString UserConfigBackend::defaultTlpSudoPassword() const
-{
-    return m_defaultTlpSudoPassword;
-}
-
 QString UserConfigBackend::wallpaperPath() const
 {
     return m_wallpaperPath;
@@ -240,11 +235,6 @@ QString UserConfigBackend::timeFontFamily() const
 QString UserConfigBackend::clockFormat() const
 {
     return m_clockFormat;
-}
-
-QString UserConfigBackend::tlpSudoPassword() const
-{
-    return m_tlpSudoPassword;
 }
 
 QString UserConfigBackend::tlpPermissionMode() const
@@ -362,16 +352,6 @@ void UserConfigBackend::setDefaultWallpaperPath(const QString &path)
     loadConfig();
 }
 
-void UserConfigBackend::setDefaultTlpSudoPassword(const QString &password)
-{
-    if (m_defaultTlpSudoPassword == password)
-        return;
-
-    m_defaultTlpSudoPassword = password;
-    emit defaultTlpSudoPasswordChanged();
-    loadConfig();
-}
-
 int UserConfigBackend::mouseButton(const QVariant &button) const
 {
     bool ok = false;
@@ -471,8 +451,11 @@ void UserConfigBackend::loadConfig()
     updateField(this, m_timeFontFamily, jsonString(configObject, QLatin1String("timeFontFamily"), QStringLiteral("Sans Serif")), &UserConfigBackend::timeFontFamilyChanged);
     const QString configuredClockFormat = jsonString(configObject, QLatin1String("clockFormat"), QStringLiteral("12"));
     updateField(this, m_clockFormat, configuredClockFormat == QLatin1String("24") ? QStringLiteral("24") : QStringLiteral("12"), &UserConfigBackend::clockFormatChanged);
-    updateField(this, m_tlpSudoPassword, jsonString(configObject, QLatin1String("tlpSudoPassword"), m_defaultTlpSudoPassword), &UserConfigBackend::tlpSudoPasswordChanged);
-    updateField(this, m_tlpPermissionMode, jsonString(configObject, QLatin1String("tlpPermissionMode"), QStringLiteral("skip")), &UserConfigBackend::tlpPermissionModeChanged);
+    const QString configuredTlpMode = jsonString(configObject, QLatin1String("tlpPermissionMode"), QStringLiteral("skip")).trimmed().toLower();
+    const QString normalizedTlpMode = (configuredTlpMode == QLatin1String("skip") || configuredTlpMode.isEmpty())
+        ? QStringLiteral("skip")
+        : QStringLiteral("polkit");
+    updateField(this, m_tlpPermissionMode, normalizedTlpMode, &UserConfigBackend::tlpPermissionModeChanged);
     updateField(this, m_workspaceOverviewWindowDragButton, jsonInt(configObject, QLatin1String("workspaceOverviewWindowDragButton"), 1), &UserConfigBackend::workspaceOverviewWindowDragButtonChanged);
     updateField(this, m_dynamicIslandPrimaryButton, jsonInt(configObject, QLatin1String("dynamicIslandPrimaryButton"), 1), &UserConfigBackend::dynamicIslandPrimaryButtonChanged);
     updateField(this, m_dynamicIslandPrimaryAction, jsonString(configObject, QLatin1String("dynamicIslandPrimaryAction"), QStringLiteral("toggleExpandedPlayer")), &UserConfigBackend::dynamicIslandPrimaryActionChanged);

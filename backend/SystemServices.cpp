@@ -964,7 +964,7 @@ void SystemServices::requestTlpState() {
         });
 }
 
-void SystemServices::setTlpMode(const QString &mode, const QString &sudoPassword, bool promptForPassword) {
+void SystemServices::setTlpMode(const QString &mode) {
     static const QSet<QString> allowedModes = {
         QStringLiteral("power-saver"),
         QStringLiteral("balanced"),
@@ -977,7 +977,8 @@ void SystemServices::setTlpMode(const QString &mode, const QString &sudoPassword
         return;
     }
 
-    if (findExecutable(QStringLiteral("tlp")).isEmpty()) {
+    const QString tlpExecutable = findExecutable(QStringLiteral("tlp"));
+    if (tlpExecutable.isEmpty()) {
         emit tlpSetFinished(false, 127, QString(), QStringLiteral("TLP is not installed."));
         return;
     }
@@ -988,79 +989,28 @@ void SystemServices::setTlpMode(const QString &mode, const QString &sudoPassword
         m_tlpSetter = nullptr;
     }
 
-#ifdef Q_OS_UNIX
-    if (::getuid() != 0
-        && promptForPassword
-        && !findExecutable(QStringLiteral("zenity")).isEmpty()
-        && !findExecutable(QStringLiteral("sudo")).isEmpty()) {
-        const int promptGeneration = ++m_tlpCommandGeneration;
-        m_tlpSetter = startCommand(
-            QStringLiteral("zenity"),
-            {
-                QStringLiteral("--password"),
-                QStringLiteral("--title=Tide Island"),
-                QStringLiteral("--text=Enter your sudo password to change the TLP profile."),
-            },
-            0,
-            [this, normalizedMode, promptGeneration](const CommandResult &result) {
-                if (promptGeneration != m_tlpCommandGeneration)
-                    return;
-
-                m_tlpSetter = nullptr;
-                if (result.exitCode != 0 || result.exitStatus != QProcess::NormalExit) {
-                    emit tlpSetFinished(false, result.exitCode, QString(), QStringLiteral("Authentication canceled."));
-                    return;
-                }
-
-                QString password = QString::fromUtf8(result.stdoutData);
-                while (password.endsWith(QLatin1Char('\n')) || password.endsWith(QLatin1Char('\r')))
-                    password.chop(1);
-                if (password.isEmpty()) {
-                    emit tlpSetFinished(false, 126, QString(), QStringLiteral("A sudo password is required."));
-                    return;
-                }
-
-                setTlpMode(normalizedMode, password, false);
-            });
-        return;
-    }
-#endif
-
     QString program;
     QStringList arguments;
-    QByteArray stdinData;
 
 #ifdef Q_OS_UNIX
     if (::getuid() == 0) {
-        program = QStringLiteral("tlp");
+        program = tlpExecutable;
         arguments = {normalizedMode};
     } else
 #endif
     {
-        const QString password = sudoPassword.trimmed();
-        if (password.isEmpty() && !findExecutable(QStringLiteral("pkexec")).isEmpty()) {
-            program = QStringLiteral("pkexec");
-            arguments = {QStringLiteral("tlp"), normalizedMode};
-        } else if (password.isEmpty()) {
-            if (findExecutable(QStringLiteral("sudo")).isEmpty()) {
-                emit tlpSetFinished(false, 126, QString(), QStringLiteral("pkexec or sudo is not installed."));
-                return;
-            }
-            program = QStringLiteral("sudo");
-            arguments = {QStringLiteral("-n"), QStringLiteral("tlp"), normalizedMode};
-        } else {
-            if (findExecutable(QStringLiteral("sudo")).isEmpty()) {
-                emit tlpSetFinished(false, 126, QString(), QStringLiteral("sudo is not installed."));
-                return;
-            }
-            program = QStringLiteral("sudo");
-            arguments = {QStringLiteral("-S"), QStringLiteral("-p"), QString(), QStringLiteral("tlp"), normalizedMode};
-            stdinData = (password + QLatin1Char('\n')).toUtf8();
+        const QString pkexecExecutable = findExecutable(QStringLiteral("pkexec"));
+        if (pkexecExecutable.isEmpty()) {
+            emit tlpSetFinished(false, 126, QString(), QStringLiteral("pkexec is not installed. Install polkit to switch TLP profiles."));
+            return;
         }
+
+        program = pkexecExecutable;
+        arguments = {tlpExecutable, normalizedMode};
     }
 
     const int commandGeneration = ++m_tlpCommandGeneration;
-    m_tlpSetter = startCommand(program, arguments, 10000,
+    m_tlpSetter = startCommand(program, arguments, 60000,
         [this, program, commandGeneration](const CommandResult &result) {
             if (commandGeneration != m_tlpCommandGeneration)
                 return;
@@ -1071,8 +1021,7 @@ void SystemServices::setTlpMode(const QString &mode, const QString &sudoPassword
             emit tlpSetFinished(errorText.isEmpty(), result.exitCode, output, errorText);
             if (errorText.isEmpty())
                 requestTlpState();
-        },
-        stdinData);
+        });
 }
 
 void SystemServices::cancelTlpApply() {

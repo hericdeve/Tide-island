@@ -229,7 +229,7 @@ apt_install_dependencies() {
     libudev-dev libdrm-dev libwayland-dev wayland-protocols
     libgbm-dev vulkan-headers libjemalloc-dev libcli11-dev spirv-tools
     wireplumber pulseaudio-utils brightnessctl dbus upower bluez
-    policykit-1 zenity network-manager
+    policykit-1 network-manager
   )
 
   log "Installing Debian/Ubuntu build and runtime dependencies"
@@ -265,7 +265,7 @@ dnf_install_dependencies() {
     systemd-devel libdrm-devel wayland-devel wayland-protocols-devel
     mesa-libgbm-devel vulkan-headers jemalloc-devel cli11-devel spirv-tools-devel
     wireplumber pulseaudio-utils brightnessctl dbus-daemon upower bluez bluez-tools
-    polkit zenity NetworkManager
+    polkit NetworkManager
   )
 
   log "Installing Fedora/RHEL build and runtime dependencies"
@@ -298,7 +298,7 @@ zypper_install_dependencies() {
     systemd-devel libdrm-devel wayland-devel wayland-protocols-devel
     Mesa-libgbm-devel vulkan-headers libjemalloc-devel cli11-devel spirv-tools-devel
     wireplumber pulseaudio-utils brightnessctl dbus-1 upower bluez
-    polkit zenity NetworkManager
+    polkit NetworkManager
   )
 
   log "Installing openSUSE build and runtime dependencies"

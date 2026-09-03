@@ -14,7 +14,6 @@ class UserConfigBackend final : public QObject {
     Q_PROPERTY(QString userConfigPath READ userConfigPath CONSTANT FINAL)
     Q_PROPERTY(QString configError READ configError NOTIFY configErrorChanged FINAL)
     Q_PROPERTY(QString defaultWallpaperPath READ defaultWallpaperPath WRITE setDefaultWallpaperPath NOTIFY defaultWallpaperPathChanged FINAL)
-    Q_PROPERTY(QString defaultTlpSudoPassword READ defaultTlpSudoPassword WRITE setDefaultTlpSudoPassword NOTIFY defaultTlpSudoPasswordChanged FINAL)
 
     Q_PROPERTY(QString wallpaperPath READ wallpaperPath NOTIFY wallpaperPathChanged FINAL)
     Q_PROPERTY(QString wallpaperLibraryPath READ wallpaperLibraryPath NOTIFY wallpaperLibraryPathChanged FINAL)
@@ -35,7 +34,6 @@ class UserConfigBackend final : public QObject {
     Q_PROPERTY(QString heroFontFamily READ heroFontFamily NOTIFY heroFontFamilyChanged FINAL)
     Q_PROPERTY(QString timeFontFamily READ timeFontFamily NOTIFY timeFontFamilyChanged FINAL)
     Q_PROPERTY(QString clockFormat READ clockFormat NOTIFY clockFormatChanged FINAL)
-    Q_PROPERTY(QString tlpSudoPassword READ tlpSudoPassword NOTIFY tlpSudoPasswordChanged FINAL)
     Q_PROPERTY(QString tlpPermissionMode READ tlpPermissionMode NOTIFY tlpPermissionModeChanged FINAL)
 
     Q_PROPERTY(int workspaceOverviewWindowDragButton READ workspaceOverviewWindowDragButton NOTIFY workspaceOverviewWindowDragButtonChanged FINAL)
@@ -67,7 +65,6 @@ public:
     QString userConfigPath() const;
     QString configError() const;
     QString defaultWallpaperPath() const;
-    QString defaultTlpSudoPassword() const;
     QString wallpaperPath() const;
     QString wallpaperLibraryPath() const;
     bool wallpaperPywalEnabled() const;
@@ -87,7 +84,6 @@ public:
     QString heroFontFamily() const;
     QString timeFontFamily() const;
     QString clockFormat() const;
-    QString tlpSudoPassword() const;
     QString tlpPermissionMode() const;
     int workspaceOverviewWindowDragButton() const;
     int dynamicIslandPrimaryButton() const;
@@ -110,7 +106,6 @@ public:
     int titleFontSize() const;
     int iconFontSize() const;
     void setDefaultWallpaperPath(const QString &path);
-    void setDefaultTlpSudoPassword(const QString &password);
 
     Q_INVOKABLE int mouseButton(const QVariant &button) const;
     Q_INVOKABLE int mouseButtonsMask(const QVariant &buttons) const;
@@ -119,7 +114,6 @@ public:
 signals:
     void configErrorChanged();
     void defaultWallpaperPathChanged();
-    void defaultTlpSudoPasswordChanged();
     void wallpaperPathChanged();
     void wallpaperLibraryPathChanged();
     void wallpaperPywalEnabledChanged();
@@ -139,7 +133,6 @@ signals:
     void heroFontFamilyChanged();
     void timeFontFamilyChanged();
     void clockFormatChanged();
-    void tlpSudoPasswordChanged();
     void tlpPermissionModeChanged();
     void workspaceOverviewWindowDragButtonChanged();
     void dynamicIslandPrimaryButtonChanged();
@@ -171,7 +164,6 @@ private:
     QString m_userConfigPath;
     QString m_configError;
     QString m_defaultWallpaperPath;
-    QString m_defaultTlpSudoPassword;
     QString m_wallpaperPath;
     QString m_wallpaperLibraryPath;
     bool m_wallpaperPywalEnabled = false;
@@ -191,7 +183,6 @@ private:
     QString m_heroFontFamily = QStringLiteral("Sans Serif");
     QString m_timeFontFamily = QStringLiteral("Sans Serif");
     QString m_clockFormat = QStringLiteral("12");
-    QString m_tlpSudoPassword;
     QString m_tlpPermissionMode = QStringLiteral("skip");
     int m_workspaceOverviewWindowDragButton = 1;
     int m_dynamicIslandPrimaryButton = 1;

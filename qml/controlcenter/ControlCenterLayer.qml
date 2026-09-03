@@ -279,21 +279,12 @@ Item {
     function classifyBatteryModeFailure(exitCode) {
         const details = trimString(batteryModeLastCommandOutput).toLowerCase();
 
-        if (details.indexOf("sorry, try again") >= 0 || details.indexOf("incorrect password attempt") >= 0)
-            return "The configured sudo password did not work.";
         if (details.indexOf("pkexec") >= 0 && details.indexOf("not installed") >= 0)
-            return "Install pkexec or set tlpSudoPassword in userconfig.json.";
-        if (details.indexOf("sudo is not installed") >= 0)
-            return "sudo is not installed.";
-        if (details.indexOf("sudo:") >= 0 && details.indexOf("password") >= 0) {
-            if (trimString(userConfig.tlpPermissionMode) === "ask")
-                return "Install pkexec or set tlpSudoPassword in userconfig.json.";
-            return "sudo needs a password; set tlpSudoPassword in userconfig.json.";
-        }
-        if (details.indexOf("sudo:") >= 0 && details.indexOf("no new privileges") >= 0)
-            return "sudo is blocked by the current process security flags.";
-        if (details.indexOf("sudo:") >= 0 && details.indexOf("a terminal is required") >= 0)
-            return "sudo needs a real terminal, but the panel could not open one.";
+            return "Install pkexec or polkit to switch TLP profiles.";
+        if (details.indexOf("dismissed") >= 0 || details.indexOf("canceled") >= 0 || details.indexOf("cancelled") >= 0)
+            return "Authentication was canceled.";
+        if (details.indexOf("not authorized") >= 0 || details.indexOf("authorization failed") >= 0)
+            return "Authentication failed.";
         if (details.indexOf("missing root privilege") >= 0)
             return "TLP needs admin permission.";
         if (details.indexOf("command not found") >= 0 || details.indexOf("not found") >= 0) {
@@ -304,7 +295,7 @@ Item {
         if (exitCode === 127)
             return "TLP is not installed.";
         if (exitCode === 126)
-            return "Install pkexec or set tlpSudoPassword in userconfig.json.";
+            return "Authentication was canceled or not authorized.";
         return "TLP could not apply that mode.";
     }
 
@@ -358,11 +349,7 @@ Item {
         batteryModeInfoMessage = "Applying " + batteryModeLabel(nextIndex) + "...";
         setBatteryModeVisualIndex(nextIndex, true);
         batteryModeLastCommandOutput = "";
-        const permissionMode = trimString(userConfig.tlpPermissionMode);
-        const sudoPassword = permissionMode === "password"
-            ? trimString(userConfig.tlpSudoPassword)
-            : "";
-        SystemServices.setTlpMode(batteryModeCommand(nextIndex), sudoPassword, permissionMode === "ask");
+        SystemServices.setTlpMode(batteryModeCommand(nextIndex));
     }
 
     function finishBatteryModeApply(success, exitCode, output, errorString) {

@@ -293,3 +293,6 @@ install(FILES tide-island.desktop DESTINATION ${CMAKE_INSTALL_DATADIR}/applicati
 
 # Install systemd user service
 install(FILES tide-island.service DESTINATION lib/systemd/user)
+
+# Install polkit policy for TLP
+install(FILES com.tideisland.tlp.policy DESTINATION ${CMAKE_INSTALL_DATADIR}/polkit-1/actions)
