@@ -1914,11 +1914,11 @@ PanelWindow {
                 case "split":
                     return islandContainer.splitCapsuleWidth;
                 case "long_capsule":
-                    return 220;
+                    return userConfig.boringNotchEnabled ? userConfig.notchClosedWidth : 220;
                 case "custom":
-                    return islandContainer.customCapsuleWidth;
+                    return userConfig.boringNotchEnabled ? userConfig.notchClosedWidth : islandContainer.customCapsuleWidth;
                 case "lyrics":
-                    return islandContainer.lyricsCapsuleWidth;
+                    return userConfig.boringNotchEnabled ? userConfig.notchClosedWidth : islandContainer.lyricsCapsuleWidth;
                 case "control_center":
                     return 420;
                 case "notification_center":
@@ -1939,7 +1939,7 @@ PanelWindow {
                     );
                 default:
                     return userConfig.boringNotchEnabled
-                        ? (islandContainer.currentTrack !== "" ? Math.max(userConfig.notchClosedWidth, 220) : userConfig.notchClosedWidth)
+                        ? (islandContainer.currentTrack !== "" ? Math.round(userConfig.notchClosedWidth + 2 * Math.max(0, userConfig.notchClosedHeight - 12) + 20) : userConfig.notchClosedWidth)
                         : userConfig.islandWidth;
                 }
             }

@@ -5,9 +5,10 @@ Item {
 
     property bool isBlinking: false
     property real lookOffsetX: 0
+    readonly property real faceScale: parent ? Math.max(0.75, Math.min(2.5, parent.height / 32.0)) : 1.0
 
-    width: 32
-    height: 20
+    width: Math.round(32 * faceScale)
+    height: Math.round(20 * faceScale)
 
     Timer {
         id: blinkTimer
@@ -38,18 +39,19 @@ Item {
 
     Column {
         anchors.centerIn: parent
-        spacing: 3
+        spacing: Math.max(2, Math.round(3 * root.faceScale))
 
         // Eyes
         Row {
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.horizontalCenterOffset: root.lookOffsetX
-            spacing: 5
+            spacing: Math.max(3, Math.round(5 * root.faceScale))
 
             Rectangle {
-                width: 4
-                height: root.isBlinking ? 1 : 4
-                radius: 2
+                readonly property real eyeSize: Math.max(3, Math.round(4 * root.faceScale))
+                width: eyeSize
+                height: root.isBlinking ? 1 : eyeSize
+                radius: eyeSize / 2
                 color: "white"
                 anchors.verticalCenter: parent.verticalCenter
 
@@ -59,9 +61,10 @@ Item {
             }
 
             Rectangle {
-                width: 4
-                height: root.isBlinking ? 1 : 4
-                radius: 2
+                readonly property real eyeSize: Math.max(3, Math.round(4 * root.faceScale))
+                width: eyeSize
+                height: root.isBlinking ? 1 : eyeSize
+                radius: eyeSize / 2
                 color: "white"
                 anchors.verticalCenter: parent.verticalCenter
 
@@ -74,9 +77,9 @@ Item {
         // Tiny nose
         Rectangle {
             anchors.horizontalCenter: parent.horizontalCenter
-            width: 2.5
-            height: 3
-            radius: 1.2
+            width: Math.max(2, Math.round(2.5 * root.faceScale))
+            height: Math.max(2.5, Math.round(3 * root.faceScale))
+            radius: width / 2
             color: "white"
         }
 
@@ -84,8 +87,8 @@ Item {
         Canvas {
             id: smileCanvas
             anchors.horizontalCenter: parent.horizontalCenter
-            width: 14
-            height: 7
+            width: Math.max(10, Math.round(14 * root.faceScale))
+            height: Math.max(5, Math.round(7 * root.faceScale))
             antialiasing: true
 
             onPaint: {
@@ -94,7 +97,7 @@ Item {
                 ctx.beginPath();
                 ctx.moveTo(1, 2);
                 ctx.quadraticCurveTo(width / 2, height, width - 1, 2);
-                ctx.lineWidth = 1.6;
+                ctx.lineWidth = Math.max(1.2, 1.6 * root.faceScale);
                 ctx.lineCap = "round";
                 ctx.strokeStyle = "white";
                 ctx.stroke();

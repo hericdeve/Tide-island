@@ -329,6 +329,16 @@ PagePanel {
 
                     SplitLine { width: parent.width }
 
+                    ToggleRow {
+                        title: "Album Art Glow Effect"
+                        description: "Show blurred ambient lighting glow behind album art during playback"
+                        keyName: "mediaLightingEffectEnabled"
+                        fallbackState: true
+                        width: parent.width
+                    }
+
+                    SplitLine { width: parent.width }
+
                     ExcludedPlayersRow {
                         width: parent.width
                     }

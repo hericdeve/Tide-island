@@ -12,6 +12,7 @@ Item {
     property string iconFontFamily: "Sans Serif"
     property string textFontFamily: "Sans Serif"
     property real visualizerPhase: 0
+    readonly property real scaleFactor: parent ? Math.max(0.75, Math.min(2.5, parent.height / 32.0)) : 1.0
 
     function barLevel(index) {
         if (cavaLevels && cavaLevels.length > index) {
@@ -40,18 +41,19 @@ Item {
         }
     }
 
-    // Left: Mini Album Art (18x18, rounded 4px)
+    // Left: Mini Album Art (Scales with notchClosedHeight)
     Item {
         id: miniAlbumArt
         anchors.left: parent.left
-        anchors.leftMargin: 10
+        anchors.leftMargin: Math.round(10 * root.scaleFactor)
         anchors.verticalCenter: parent.verticalCenter
-        width: 18
-        height: 18
+        property real artSize: Math.max(16, Math.min(parent ? parent.height - 8 : 26, Math.round(18 * root.scaleFactor)))
+        width: artSize
+        height: artSize
 
         Rectangle {
             anchors.fill: parent
-            radius: 4
+            radius: Math.max(3, Math.round(miniAlbumArt.artSize * 0.22))
             color: "#1c1c1e"
             clip: true
 
@@ -60,7 +62,7 @@ Item {
                 source: root.currentArtUrl
                 fillMode: Image.PreserveAspectCrop
                 visible: source.toString() !== ""
-                sourceSize: Qt.size(36, 36)
+                sourceSize: Qt.size(miniAlbumArt.artSize * 2, miniAlbumArt.artSize * 2)
                 smooth: true
             }
 
@@ -69,33 +71,36 @@ Item {
                 text: "󰎆"
                 color: "#8e8e93"
                 font.family: root.iconFontFamily
-                font.pixelSize: 11
+                font.pixelSize: Math.round(11 * root.scaleFactor)
                 visible: !root.currentArtUrl || root.currentArtUrl === ""
             }
         }
     }
 
-    // Right: Mini 4-bar Spectrogram (16x12)
+    // Right: Mini 4-bar Spectrogram (Scales with notchClosedHeight)
     Item {
         id: miniVisualizer
         anchors.right: parent.right
-        anchors.rightMargin: 10
+        anchors.rightMargin: Math.round(10 * root.scaleFactor)
         anchors.verticalCenter: parent.verticalCenter
-        width: 16
-        height: 12
+        property real visualizerHeight: Math.max(10, Math.min(parent ? parent.height - 10 : 16, Math.round(12 * root.scaleFactor)))
+        property real visualizerWidth: Math.round(16 * root.scaleFactor)
+        width: visualizerWidth
+        height: visualizerHeight
 
         Row {
             anchors.centerIn: parent
             height: parent.height
-            spacing: 2
+            spacing: Math.max(1.5, Math.round(2 * root.scaleFactor))
 
             Repeater {
                 model: 4
 
                 Rectangle {
-                    width: 2.5
-                    height: Math.max(2.5, parent.height * root.barLevel(index))
-                    radius: 1.2
+                    readonly property real barWidth: Math.max(2, Math.round(2.5 * root.scaleFactor))
+                    width: barWidth
+                    height: Math.max(barWidth, parent.height * root.barLevel(index))
+                    radius: barWidth / 2
                     color: root.isPlaying ? "#b56cff" : "#5f4b72"
                     anchors.bottom: parent.bottom
 
@@ -111,9 +116,9 @@ Item {
     Text {
         id: trackText
         anchors.left: miniAlbumArt.right
-        anchors.leftMargin: 8
+        anchors.leftMargin: Math.round(8 * root.scaleFactor)
         anchors.right: miniVisualizer.left
-        anchors.rightMargin: 8
+        anchors.rightMargin: Math.round(8 * root.scaleFactor)
         anchors.verticalCenter: parent.verticalCenter
         text: {
             if (root.currentTrack === "") return "Not Playing";
@@ -122,7 +127,7 @@ Item {
             return root.currentTrack;
         }
         color: "white"
-        font.pixelSize: 11
+        font.pixelSize: Math.round(11 * root.scaleFactor)
         font.family: root.textFontFamily
         font.weight: Font.DemiBold
         font.letterSpacing: -0.15

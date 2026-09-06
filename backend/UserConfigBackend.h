@@ -61,6 +61,7 @@ class UserConfigBackend final : public QObject {
     Q_PROPERTY(int notchBottomCornerRadius READ notchBottomCornerRadius NOTIFY notchBottomCornerRadiusChanged FINAL)
     Q_PROPERTY(int notchHoverOpenDelayMs READ notchHoverOpenDelayMs NOTIFY notchHoverOpenDelayMsChanged FINAL)
     Q_PROPERTY(int notchHoverCloseDelayMs READ notchHoverCloseDelayMs NOTIFY notchHoverCloseDelayMsChanged FINAL)
+    Q_PROPERTY(bool mediaLightingEffectEnabled READ mediaLightingEffectEnabled NOTIFY mediaLightingEffectEnabledChanged FINAL)
 
     Q_PROPERTY(QString islandLayer READ islandLayer NOTIFY islandLayerChanged FINAL)
     Q_PROPERTY(int islandWidth READ islandWidth NOTIFY islandWidthChanged FINAL)
@@ -123,6 +124,7 @@ public:
     int notchBottomCornerRadius() const;
     int notchHoverOpenDelayMs() const;
     int notchHoverCloseDelayMs() const;
+    bool mediaLightingEffectEnabled() const;
     QString islandLayer() const;
     int islandWidth() const;
     int islandHeight() const;
@@ -186,6 +188,7 @@ signals:
     void notchBottomCornerRadiusChanged();
     void notchHoverOpenDelayMsChanged();
     void notchHoverCloseDelayMsChanged();
+    void mediaLightingEffectEnabledChanged();
     void islandLayerChanged();
     void islandWidthChanged();
     void islandHeightChanged();
@@ -250,6 +253,7 @@ private:
     int m_notchBottomCornerRadius = 14;
     int m_notchHoverOpenDelayMs = 300;
     int m_notchHoverCloseDelayMs = 100;
+    bool m_mediaLightingEffectEnabled = true;
     QString m_islandLayer = QStringLiteral("top");
     int m_islandWidth = 140;
     int m_islandBackgroundOpacity = 60;

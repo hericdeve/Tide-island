@@ -616,7 +616,7 @@ Item {
                                     blurEnabled: true
                                     blur: 0.8
                                     blurMax: 24
-                                    opacity: root.isPlaying && currentArtUrl !== "" ? 0.65 : 0.0
+                                    opacity: userConfig.mediaLightingEffectEnabled && root.isPlaying && currentArtUrl !== "" ? 0.65 : 0.0
                                     visible: opacity > 0.001
 
                                     Behavior on opacity {
