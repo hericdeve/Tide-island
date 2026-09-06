@@ -215,6 +215,8 @@ qt_add_qml_module(IslandBackend
         backend/WifiController.cpp
         backend/WifiNetworkModel.h
         backend/WifiNetworkModel.cpp
+        backend/CalendarBackend.h
+        backend/CalendarBackend.cpp
 )
 
 # The QML plugin is installed below lib/qt6/qml/IslandBackend while its backing

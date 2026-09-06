@@ -51,6 +51,7 @@ Item {
     property real pageProgress: 0
     readonly property real clampedPageProgress: Math.max(0, Math.min(1, pageProgress))
     readonly property real pageSlideDistance: Math.max(1, viewport.width + 24)
+    readonly property real uiScale: Math.max(0.85, Math.min(1.35, (userConfig.notchOpenHeight / 190.0) * (userConfig.bodyFontSize / 16.0)))
 
     readonly property bool isPlaying: activePlayer && activePlayer.playbackState === MprisPlaybackState.Playing
 
@@ -408,8 +409,11 @@ Item {
 
                 Column {
                     anchors.fill: parent
-                    anchors.margins: userConfig.boringNotchEnabled ? 16 : 20
-                    spacing: userConfig.boringNotchEnabled ? 10 : 14
+                    anchors.topMargin: userConfig.boringNotchEnabled ? 10 : 20
+                    anchors.bottomMargin: userConfig.boringNotchEnabled ? 10 : 20
+                    anchors.leftMargin: userConfig.boringNotchEnabled ? 16 : 20
+                    anchors.rightMargin: userConfig.boringNotchEnabled ? 16 : 20
+                    spacing: userConfig.boringNotchEnabled ? 8 : 14
 
                     Item {
                         id: notchHeader
@@ -591,27 +595,27 @@ Item {
                         Row {
                             id: musicPlayerSection
                             width: (calendarTile.visible || webcamTile.visible)
-                                ? parent.width - 190 - parent.spacing * 2
+                                ? Math.max(180, parent.width - calendarTile.width - 1 - parent.spacing * 2)
                                 : parent.width
                             height: parent.height
                             spacing: userConfig.boringNotchEnabled ? 14 : 14
                             clip: true
 
-                            // Left: Larger Album Art (106x106) with lighting effect
+                            // Left: Full-height Album Art / Media Banner with lighting effect
                             Item {
                                 id: albumArtWrapper
-                                width: userConfig.boringNotchEnabled ? 106 : 60
-                                height: userConfig.boringNotchEnabled ? 106 : 60
+                                width: userConfig.boringNotchEnabled ? Math.max(60, parent.height - 4) : 60
+                                height: userConfig.boringNotchEnabled ? Math.max(60, parent.height - 4) : 60
                                 anchors.verticalCenter: parent.verticalCenter
 
                                 MultiEffect {
                                     anchors.centerIn: parent
-                                    width: parent.width * 1.45
-                                    height: parent.height * 1.45
+                                    width: parent.width * 1.35
+                                    height: parent.height * 1.35
                                     source: albumArtImage
                                     blurEnabled: true
                                     blur: 0.8
-                                    blurMax: 20
+                                    blurMax: 24
                                     opacity: root.isPlaying && currentArtUrl !== "" ? 0.65 : 0.0
                                     visible: opacity > 0.001
 
@@ -622,7 +626,7 @@ Item {
 
                                 ClippingRectangle {
                                     anchors.fill: parent
-                                    radius: userConfig.boringNotchEnabled ? 15 : 10
+                                    radius: userConfig.boringNotchEnabled ? 16 : 10
                                     color: "#2c2c2e"
                                     antialiasing: true
 
@@ -632,7 +636,7 @@ Item {
                                         source: currentArtUrl
                                         fillMode: Image.PreserveAspectCrop
                                         visible: source.toString() !== ""
-                                        sourceSize: Qt.size(180, 180)
+                                        sourceSize: Qt.size(240, 240)
                                         smooth: true
                                         onStatusChanged: {
                                             if (status === Image.Ready)
@@ -672,24 +676,30 @@ Item {
                                         text: "󰎆"
                                         color: "#8e8e93"
                                         font.family: root.iconFontFamily
-                                        font.pixelSize: userConfig.boringNotchEnabled ? 36 : 24
+                                        font.pixelSize: userConfig.boringNotchEnabled ? 44 : 24
                                         visible: !root.currentArtUrl || root.currentArtUrl === ""
                                     }
                                 }
                             }
 
-                            // Right: Controls column
-                            Column {
-                                id: musicControlsColumn
+                            // Right: Controls area (anchored top-to-bottom)
+                            Item {
+                                id: musicControlsArea
                                 width: Math.max(0, parent.width - albumArtWrapper.width - parent.spacing)
+                                height: parent.height
                                 anchors.verticalCenter: parent.verticalCenter
-                                spacing: userConfig.boringNotchEnabled ? 4 : 8
                                 clip: true
 
-                                // Track title, artist, live lyrics & mini visualizer
+                                // Top: Track title, artist, live lyrics & mini visualizer
                                 Item {
-                                    width: parent.width
-                                    height: songInfoCol.implicitHeight
+                                    id: songInfoArea
+                                    anchors.top: parent.top
+                                    anchors.topMargin: userConfig.boringNotchEnabled ? 2 : 4
+                                    anchors.left: parent.left
+                                    anchors.right: parent.right
+                                    anchors.bottom: scrubberArea.top
+                                    anchors.bottomMargin: userConfig.boringNotchEnabled ? 6 : 8
+                                    clip: true
 
                                     Column {
                                         id: songInfoCol
@@ -701,7 +711,7 @@ Item {
                                         Text {
                                             text: currentTrack !== "" ? currentTrack : "Not Playing"
                                             color: "white"
-                                            font.pixelSize: userConfig.boringNotchEnabled ? 13 : userConfig.bodyFontSize
+                                            font.pixelSize: userConfig.boringNotchEnabled ? Math.round(13 * root.uiScale) : userConfig.bodyFontSize
                                             font.family: textFontFamily
                                             font.weight: Font.Bold
                                             font.letterSpacing: -0.2
@@ -713,7 +723,7 @@ Item {
                                         Text {
                                             text: currentArtist
                                             color: "#8e8e93"
-                                            font.pixelSize: userConfig.boringNotchEnabled ? 11 : userConfig.bodyFontSize - 3
+                                            font.pixelSize: userConfig.boringNotchEnabled ? Math.round(11 * root.uiScale) : userConfig.bodyFontSize - 3
                                             font.family: textFontFamily
                                             font.weight: Font.Medium
                                             width: parent.width
@@ -725,13 +735,14 @@ Item {
                                         Text {
                                             text: root.lyricsText
                                             color: userConfig.boringNotchEnabled ? colorExtractor.extractedColor : "#c0a0ff"
-                                            font.pixelSize: userConfig.boringNotchEnabled ? 10 : userConfig.bodyFontSize - 4
+                                            opacity: root.isPlaying ? 1.0 : 0.65
+                                            font.pixelSize: userConfig.boringNotchEnabled ? Math.round(10 * root.uiScale) : userConfig.bodyFontSize - 4
                                             font.family: textFontFamily
                                             font.weight: Font.Medium
                                             width: parent.width
                                             elide: Text.ElideRight
                                             maximumLineCount: 1
-                                            visible: userConfig.boringNotchEnabled && root.lyricsText !== "" && root.lyricsText !== "No music playing" && root.isPlaying
+                                            visible: userConfig.boringNotchEnabled && root.lyricsText !== "" && root.lyricsText !== "No music playing"
                                         }
                                     }
 
@@ -767,74 +778,117 @@ Item {
                                     }
                                 }
 
-                                // Scrubber / Progress slider (compact)
+                                // Middle: Scrubber / Progress slider (Fixed position above toolbar)
                                 Item {
-                                    width: parent.width
-                                    height: 12
+                                    id: scrubberArea
+                                    anchors.left: parent.left
+                                    anchors.right: parent.right
+                                    anchors.bottom: playbackToolbarArea.top
+                                    anchors.bottomMargin: userConfig.boringNotchEnabled ? 8 : 10
+                                    height: 24
 
-                                    Text {
-                                        id: timeL
-                                        anchors.left: parent.left
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        text: timePlayed
-                                        color: "#8e8e93"
-                                        font.pixelSize: userConfig.boringNotchEnabled ? 9 : userConfig.bodyFontSize - 5
-                                        font.family: textFontFamily
-                                        font.weight: Font.Medium
-                                    }
-
+                                    // Progress bar track
                                     Rectangle {
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        anchors.left: timeL.right
-                                        anchors.right: timeR.left
-                                        anchors.margins: 6
-                                        height: 3
-                                        radius: 1.5
+                                        id: sliderTrack
+                                        anchors.top: parent.top
+                                        anchors.left: parent.left
+                                        anchors.right: parent.right
+                                        height: 4
+                                        radius: 2
                                         color: "#333333"
 
                                         Rectangle {
+                                            id: sliderProgress
                                             height: parent.height
-                                            radius: 1.5
+                                            radius: 2
                                             color: userConfig.boringNotchEnabled ? colorExtractor.extractedColor : "white"
-                                            width: parent.width * trackProgress
+                                            width: Math.max(0, Math.min(parent.width, parent.width * root.trackProgress))
 
                                             Behavior on color {
                                                 ColorAnimation { duration: 250; easing.type: Easing.InOutQuad }
                                             }
-
-                                            Behavior on width {
-                                                NumberAnimation {
-                                                    duration: 500
-                                                    easing.type: Easing.OutCubic
-                                                }
-                                            }
                                         }
                                     }
 
-                                    Text {
-                                        id: timeR
+                                    // Time labels below progress track (Exact Boring Notch layout)
+                                    Item {
+                                        anchors.top: sliderTrack.bottom
+                                        anchors.topMargin: 3
+                                        anchors.left: parent.left
                                         anchors.right: parent.right
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        text: timeTotal
-                                        color: "#8e8e93"
-                                        font.pixelSize: userConfig.boringNotchEnabled ? 9 : userConfig.bodyFontSize - 5
-                                        font.family: textFontFamily
-                                        font.weight: Font.Medium
+                                        height: 14
+
+                                        Text {
+                                            id: timeL
+                                            anchors.left: parent.left
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            text: timePlayed
+                                            color: "#8e8e93"
+                                            font.pixelSize: userConfig.boringNotchEnabled ? Math.round(9 * root.uiScale) : userConfig.bodyFontSize - 5
+                                            font.family: textFontFamily
+                                            font.weight: Font.Medium
+                                        }
+
+                                        Text {
+                                            id: timeR
+                                            anchors.right: parent.right
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            text: timeTotal
+                                            color: "#8e8e93"
+                                            font.pixelSize: userConfig.boringNotchEnabled ? Math.round(9 * root.uiScale) : userConfig.bodyFontSize - 5
+                                            font.family: textFontFamily
+                                            font.weight: Font.Medium
+                                        }
+                                    }
+
+                                    // Interactive seeking
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        anchors.margins: -4
+                                        cursorShape: Qt.PointingHandCursor
+                                        preventStealing: true
+                                        onPressed: (mouse) => {
+                                            root.controlPressed();
+                                            seekFromMouse(mouse.x);
+                                        }
+                                        onPositionChanged: (mouse) => {
+                                            if (pressed) seekFromMouse(mouse.x);
+                                        }
+                                        function seekFromMouse(mouseX) {
+                                            if (!root.activePlayer || !root.activePlayer.canSeek) return;
+                                            const ratio = Math.max(0, Math.min(1, mouseX / width));
+                                            let total = Number(root.activePlayer.length) || 0;
+                                            if (total <= 0 && root.activePlayer.metadata && root.activePlayer.metadata["mpris:length"])
+                                                total = Number(root.activePlayer.metadata["mpris:length"]);
+                                            if (total > 0 && root.activePlayer.positionSupported) {
+                                                root.activePlayer.position = ratio * total;
+                                                root.trackProgress = ratio;
+                                            }
+                                        }
                                     }
                                 }
 
-                                // Playback controls toolbar
+                                // Bottom: Playback controls toolbar anchored to bottom
                                 Item {
-                                    width: parent.width
-                                    height: 24
+                                    id: playbackToolbarArea
+                                    anchors.left: parent.left
+                                    anchors.right: parent.right
+                                    anchors.bottom: parent.bottom
+                                    anchors.bottomMargin: userConfig.boringNotchEnabled ? 2 : 4
+                                    height: 28
 
                                     Row {
                                         anchors.centerIn: parent
-                                        spacing: userConfig.boringNotchEnabled ? 8 : 28
+                                        height: 28
+                                        spacing: volSliderWrapper.showSlider ? 4 : (userConfig.boringNotchEnabled ? 8 : 28)
+
+                                        Behavior on spacing {
+                                            NumberAnimation { duration: 150; easing.type: Easing.OutQuad }
+                                        }
 
                                         Item {
                                             width: 20
-                                            height: 20
+                                            height: 28
                                             visible: userConfig.boringNotchEnabled
                                             scale: shuffleArea.pressed ? 0.8 : 1.0
 
@@ -849,7 +903,7 @@ Item {
                                             MouseArea {
                                                 id: shuffleArea
                                                 anchors.fill: parent
-                                                anchors.margins: -6
+                                                anchors.margins: -4
                                                 preventStealing: true
                                                 onPressed: (mouse) => {
                                                     controlPressed();
@@ -864,9 +918,10 @@ Item {
                                         }
 
                                         Item {
+                                            id: seekBackBtn
                                             width: 20
-                                            height: 20
-                                            visible: userConfig.boringNotchEnabled
+                                            height: 28
+                                            visible: userConfig.boringNotchEnabled && musicControlsArea.width >= 225 && !volSliderWrapper.showSlider
                                             scale: seekBackArea.pressed ? 0.8 : 1.0
 
                                             Text {
@@ -880,7 +935,7 @@ Item {
                                             MouseArea {
                                                 id: seekBackArea
                                                 anchors.fill: parent
-                                                anchors.margins: -6
+                                                anchors.margins: -4
                                                 preventStealing: true
                                                 onPressed: (mouse) => {
                                                     controlPressed();
@@ -892,7 +947,7 @@ Item {
 
                                         Item {
                                             width: 20
-                                            height: 20
+                                            height: 28
                                             scale: prevArea.pressed ? 0.8 : 1.0
 
                                             Behavior on scale {
@@ -900,7 +955,9 @@ Item {
                                             }
 
                                             Canvas {
-                                                anchors.fill: parent
+                                                width: 20
+                                                height: 20
+                                                anchors.centerIn: parent
                                                 property color fillColor: prevArea.pressed ? "#888" : "white"
 
                                                 onFillColorChanged: requestPaint()
@@ -929,7 +986,7 @@ Item {
                                             MouseArea {
                                                 id: prevArea
                                                 anchors.fill: parent
-                                                anchors.margins: -8
+                                                anchors.margins: -4
                                                 preventStealing: true
                                                 onPressed: (mouse) => {
                                                     controlPressed();
@@ -940,8 +997,8 @@ Item {
                                         }
 
                                         Item {
-                                            width: 24
-                                            height: 24
+                                            width: 26
+                                            height: 28
                                             scale: playArea.pressed ? 0.8 : 1.0
 
                                             Behavior on scale {
@@ -950,15 +1007,17 @@ Item {
 
                                             Row {
                                                 anchors.centerIn: parent
-                                                spacing: 4
+                                                spacing: 4.5
                                                 visible: activePlayer && activePlayer.playbackState === MprisPlaybackState.Playing
 
-                                                Rectangle { width: 4; height: 14; radius: 1.5; color: playArea.pressed ? "#888" : "white" }
-                                                Rectangle { width: 4; height: 14; radius: 1.5; color: playArea.pressed ? "#888" : "white" }
+                                                Rectangle { width: 4.5; height: 16; radius: 1.5; color: playArea.pressed ? "#888" : "white" }
+                                                Rectangle { width: 4.5; height: 16; radius: 1.5; color: playArea.pressed ? "#888" : "white" }
                                             }
 
                                             Canvas {
-                                                anchors.fill: parent
+                                                width: 26
+                                                height: 26
+                                                anchors.centerIn: parent
                                                 visible: !activePlayer || activePlayer.playbackState !== MprisPlaybackState.Playing
                                                 property color fillColor: playArea.pressed ? "#888" : "white"
 
@@ -969,11 +1028,11 @@ Item {
                                                     ctx.fillStyle = fillColor;
                                                     ctx.strokeStyle = fillColor;
                                                     ctx.lineJoin = "round";
-                                                    ctx.lineWidth = 1.6;
+                                                    ctx.lineWidth = 1.8;
                                                     ctx.beginPath();
-                                                    ctx.moveTo(7, 3);
-                                                    ctx.lineTo(18, 12);
-                                                    ctx.lineTo(7, 21);
+                                                    ctx.moveTo(8, 4);
+                                                    ctx.lineTo(20, 13);
+                                                    ctx.lineTo(8, 22);
                                                     ctx.closePath();
                                                     ctx.fill();
                                                     ctx.stroke();
@@ -983,7 +1042,7 @@ Item {
                                             MouseArea {
                                                 id: playArea
                                                 anchors.fill: parent
-                                                anchors.margins: -8
+                                                anchors.margins: -4
                                                 preventStealing: true
                                                 onPressed: (mouse) => {
                                                     controlPressed();
@@ -995,7 +1054,7 @@ Item {
 
                                         Item {
                                             width: 20
-                                            height: 20
+                                            height: 28
                                             scale: nextArea.pressed ? 0.8 : 1.0
 
                                             Behavior on scale {
@@ -1003,7 +1062,9 @@ Item {
                                             }
 
                                             Canvas {
-                                                anchors.fill: parent
+                                                width: 20
+                                                height: 20
+                                                anchors.centerIn: parent
                                                 property color fillColor: nextArea.pressed ? "#888" : "white"
 
                                                 onFillColorChanged: requestPaint()
@@ -1032,7 +1093,7 @@ Item {
                                             MouseArea {
                                                 id: nextArea
                                                 anchors.fill: parent
-                                                anchors.margins: -8
+                                                anchors.margins: -4
                                                 preventStealing: true
                                                 onPressed: (mouse) => {
                                                     controlPressed();
@@ -1043,9 +1104,10 @@ Item {
                                         }
 
                                         Item {
+                                            id: seekFwdBtn
                                             width: 20
-                                            height: 20
-                                            visible: userConfig.boringNotchEnabled
+                                            height: 28
+                                            visible: userConfig.boringNotchEnabled && musicControlsArea.width >= 225 && !volSliderWrapper.showSlider
                                             scale: seekFwdArea.pressed ? 0.8 : 1.0
 
                                             Text {
@@ -1059,7 +1121,7 @@ Item {
                                             MouseArea {
                                                 id: seekFwdArea
                                                 anchors.fill: parent
-                                                anchors.margins: -6
+                                                anchors.margins: -4
                                                 preventStealing: true
                                                 onPressed: (mouse) => {
                                                     controlPressed();
@@ -1071,7 +1133,7 @@ Item {
 
                                         Item {
                                             width: 20
-                                            height: 20
+                                            height: 28
                                             visible: userConfig.boringNotchEnabled
                                             scale: repeatArea.pressed ? 0.8 : 1.0
 
@@ -1086,7 +1148,7 @@ Item {
                                             MouseArea {
                                                 id: repeatArea
                                                 anchors.fill: parent
-                                                anchors.margins: -6
+                                                anchors.margins: -4
                                                 preventStealing: true
                                                 onPressed: (mouse) => {
                                                     controlPressed();
@@ -1105,13 +1167,13 @@ Item {
 
                                         Row {
                                             id: volControlRow
+                                            height: 28
                                             spacing: 3
-                                            anchors.verticalCenter: parent.verticalCenter
                                             visible: userConfig.boringNotchEnabled
 
                                             Item {
                                                 width: 20
-                                                height: 20
+                                                height: 28
                                                 scale: volArea.pressed ? 0.8 : 1.0
 
                                                 Text {
@@ -1125,7 +1187,7 @@ Item {
                                                 MouseArea {
                                                     id: volArea
                                                     anchors.fill: parent
-                                                    anchors.margins: -6
+                                                    anchors.margins: -4
                                                     preventStealing: true
                                                     onPressed: (mouse) => {
                                                         controlPressed();
@@ -1140,12 +1202,11 @@ Item {
                                             Item {
                                                 id: volSliderWrapper
                                                 property bool showSlider: false
-                                                width: showSlider ? 44 : 0
-                                                height: 14
+                                                width: showSlider ? 42 : 0
+                                                height: 28
                                                 clip: true
                                                 visible: width > 0
                                                 opacity: showSlider ? 1 : 0
-                                                anchors.verticalCenter: parent.verticalCenter
 
                                                 Behavior on width {
                                                     NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
@@ -1156,7 +1217,7 @@ Item {
 
                                                 Rectangle {
                                                     anchors.centerIn: parent
-                                                    width: 40
+                                                    width: 38
                                                     height: 3.5
                                                     radius: 1.75
                                                     color: "#3a3a3c"
@@ -1170,7 +1231,7 @@ Item {
 
                                                     MouseArea {
                                                         anchors.fill: parent
-                                                        anchors.margins: -6
+                                                        anchors.margins: -4
                                                         preventStealing: true
                                                         onPressed: (mouse) => {
                                                             controlPressed();
@@ -1204,20 +1265,20 @@ Item {
 
                 BoringCalendarTile {
                     id: calendarTile
-                    width: 190
+                    width: Math.min(215, Math.max(165, Math.round(parent.width * 0.32)))
                     height: parent.height
                     anchors.verticalCenter: parent.verticalCenter
-                    visible: userConfig.boringNotchEnabled && homePage.width >= 560 && !root.cameraMirrorActive
+                    visible: userConfig.boringNotchEnabled && homePage.width >= 540 && !root.cameraMirrorActive
                     textFontFamily: root.textFontFamily
                     iconFontFamily: root.iconFontFamily
                 }
 
                 WebcamMirrorTile {
                     id: webcamTile
-                    width: 190
+                    width: Math.min(215, Math.max(165, Math.round(parent.width * 0.32)))
                     height: parent.height
                     anchors.verticalCenter: parent.verticalCenter
-                    visible: userConfig.boringNotchEnabled && homePage.width >= 560 && root.cameraMirrorActive
+                    visible: userConfig.boringNotchEnabled && homePage.width >= 540 && root.cameraMirrorActive
                     isRunning: root.cameraMirrorActive
                     textFontFamily: root.textFontFamily
                     iconFontFamily: root.iconFontFamily

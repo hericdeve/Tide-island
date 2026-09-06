@@ -8,6 +8,15 @@ Item {
     property string iconFontFamily: "Sans Serif"
     property var selectedDate: new Date()
     property var today: new Date()
+    property int currentEventIndex: 0
+    readonly property var userConfig: UserConfig
+    readonly property real fontScale: userConfig ? Math.max(0.85, Math.min(1.3, userConfig.bodyFontSize / 16.0)) : 1.0
+
+    readonly property var dayEvents: CalendarBackend ? CalendarBackend.eventsForDate(root.selectedDate) : []
+    readonly property bool hasEvents: dayEvents && dayEvents.length > 0
+    readonly property var currentEvent: hasEvents ? dayEvents[Math.min(currentEventIndex, dayEvents.length - 1)] : null
+
+    onSelectedDateChanged: currentEventIndex = 0
 
     readonly property var dayShortNames: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
     readonly property var monthNames: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
@@ -29,9 +38,12 @@ Item {
     }
 
     Column {
-        anchors.fill: parent
-        anchors.margins: 4
-        spacing: 12
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.verticalCenter: parent.verticalCenter
+        anchors.leftMargin: 4
+        anchors.rightMargin: 4
+        spacing: Math.max(12, Math.round((parent.height - 48 - 24 - 8) / 2))
 
         // Top: Month/Year + Day Strip (Exact Image #5 layout)
         Row {
@@ -48,7 +60,7 @@ Item {
                 Text {
                     text: root.monthNames[root.today.getMonth()]
                     color: "white"
-                    font.pixelSize: 13
+                    font.pixelSize: Math.round(13 * root.fontScale)
                     font.family: root.textFontFamily
                     font.weight: Font.Bold
                 }
@@ -56,7 +68,7 @@ Item {
                 Text {
                     text: String(root.today.getFullYear())
                     color: "#8e8e93"
-                    font.pixelSize: 11
+                    font.pixelSize: Math.round(11 * root.fontScale)
                     font.family: root.textFontFamily
                     font.weight: Font.Medium
                 }
@@ -92,7 +104,7 @@ Item {
                                     anchors.horizontalCenter: parent.horizontalCenter
                                     text: root.dayShortNames[dateObj.getDay()]
                                     color: isToday || isSelected ? "#8ec5fc" : "#8e8e93"
-                                    font.pixelSize: 9
+                                    font.pixelSize: Math.round(9 * root.fontScale)
                                     font.family: root.textFontFamily
                                     font.weight: isToday || isSelected ? Font.Bold : Font.Normal
                                 }
@@ -108,7 +120,7 @@ Item {
                                         anchors.centerIn: parent
                                         text: root.padZero(dateObj.getDate())
                                         color: isToday ? "white" : (isSelected ? "white" : "#c7c7cc")
-                                        font.pixelSize: 10
+                                        font.pixelSize: Math.round(10 * root.fontScale)
                                         font.family: root.textFontFamily
                                         font.weight: isToday || isSelected ? Font.Bold : Font.Medium
                                     }
@@ -126,7 +138,7 @@ Item {
             }
         }
 
-        // Bottom: Event preview row with vertical magenta/purple accent bar (Exact Image #5)
+        // Bottom: Event preview row with vertical accent bar or empty state
         Item {
             width: parent.width
             height: 24
@@ -136,23 +148,39 @@ Item {
                 width: 3
                 height: 14
                 radius: 1.5
-                color: "#af52de"
+                color: (root.currentEvent && root.currentEvent.color) ? root.currentEvent.color : "#af52de"
                 anchors.left: parent.left
                 anchors.verticalCenter: parent.verticalCenter
+                visible: root.hasEvents
+            }
+
+            Text {
+                id: emptyIcon
+                anchors.left: parent.left
+                anchors.verticalCenter: parent.verticalCenter
+                text: "󰄬"
+                color: "#30d158"
+                font.pixelSize: Math.round(13 * root.fontScale)
+                font.family: root.iconFontFamily
+                visible: !root.hasEvents
             }
 
             Text {
                 id: eventTitleText
-                anchors.left: magentaBar.right
+                anchors.left: root.hasEvents ? magentaBar.right : emptyIcon.right
                 anchors.leftMargin: 6
                 anchors.right: timeStatusText.left
                 anchors.rightMargin: 8
                 anchors.verticalCenter: parent.verticalCenter
-                text: root.isSameDay(root.selectedDate, root.today) ? "Today's Schedule" : (root.dayShortNames[root.selectedDate.getDay()] + " " + root.padZero(root.selectedDate.getDate()))
-                color: "white"
-                font.pixelSize: 12
+                text: {
+                    if (root.hasEvents && root.currentEvent)
+                        return root.currentEvent.title;
+                    return root.isSameDay(root.selectedDate, root.today) ? "No events today" : "No events";
+                }
+                color: root.hasEvents ? "white" : "#8e8e93"
+                font.pixelSize: Math.round(12 * root.fontScale)
                 font.family: root.textFontFamily
-                font.weight: Font.DemiBold
+                font.weight: root.hasEvents ? Font.DemiBold : Font.Medium
                 elide: Text.ElideRight
             }
 
@@ -160,11 +188,29 @@ Item {
                 id: timeStatusText
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.right: parent.right
-                text: "All-day"
-                color: "#8e8e93"
-                font.pixelSize: 11
+                text: {
+                    if (root.hasEvents && root.currentEvent) {
+                        let str = root.currentEvent.timeString || "All-day";
+                        if (root.dayEvents.length > 1)
+                            str += " (+" + (root.dayEvents.length - 1) + ")";
+                        return str;
+                    }
+                    return "Enjoy your free time!";
+                }
+                color: root.hasEvents ? "#8e8e93" : "#636366"
+                font.pixelSize: Math.round(11 * root.fontScale)
                 font.family: root.textFontFamily
                 font.weight: Font.Medium
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                enabled: root.hasEvents && root.dayEvents.length > 1
+                cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                onClicked: {
+                    if (root.dayEvents.length > 1)
+                        root.currentEventIndex = (root.currentEventIndex + 1) % root.dayEvents.length;
+                }
             }
         }
     }

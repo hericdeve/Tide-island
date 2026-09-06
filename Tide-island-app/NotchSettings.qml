@@ -52,7 +52,7 @@ PagePanel {
         Item {
             id: content
             width: scroller.width
-            height: mediaPanel.y + mediaPanel.height + 40
+            height: calendarPanel.y + calendarPanel.height + 60
 
             Text {
                 id: title
@@ -238,6 +238,12 @@ PagePanel {
 
                     SplitLine { width: parent.width }
 
+                    LayerSelectionRow {
+                        width: parent.width
+                    }
+
+                    SplitLine { width: parent.width }
+
                     ToggleRow {
                         title: "Boring Face Animation"
                         description: "Show playful animated blinking eyes in closed notch when idle"
@@ -324,6 +330,50 @@ PagePanel {
                     SplitLine { width: parent.width }
 
                     ExcludedPlayersRow {
+                        width: parent.width
+                    }
+                }
+            }
+
+            Text {
+                id: calendarTitle
+                text: "Calendar & Google Calendar"
+                anchors.top: mediaPanel.bottom
+                anchors.topMargin: 34
+                anchors.left: parent.left
+                anchors.leftMargin: 32
+                anchors.right: parent.right
+                anchors.rightMargin: 40
+                font.family: Theme.titleFontFamily
+                font.pixelSize: 23
+                color: Theme.textColor
+            }
+
+            Rectangle {
+                id: calendarPanel
+                color: Theme.cardBgColor
+                radius: 16
+                border.width: 1
+                border.color: Theme.splitLineColor
+                anchors.top: calendarTitle.bottom
+                anchors.topMargin: 15
+                anchors.left: parent.left
+                anchors.leftMargin: 30
+                anchors.right: parent.right
+                anchors.rightMargin: 40
+                height: calendarColumn.implicitHeight + 36
+
+                Column {
+                    id: calendarColumn
+                    anchors.top: parent.top
+                    anchors.topMargin: 18
+                    anchors.left: parent.left
+                    anchors.leftMargin: 18
+                    anchors.right: parent.right
+                    anchors.rightMargin: 18
+                    spacing: 16
+
+                    CalendarSourcesRow {
                         width: parent.width
                     }
                 }
@@ -661,6 +711,454 @@ PagePanel {
                             anchors.fill: parent
                             cursorShape: Qt.PointingHandCursor
                             onClicked: row.removePlayer(index)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    component LayerSelectionRow: Item {
+        id: layerRow
+
+        property string selectedLayer: String(ConfigStore.value("islandLayer", "top")).toLowerCase() === "overlay" ? "overlay" : "top"
+
+        height: 49
+
+        Text {
+            id: layerTitle
+            text: "Window Layer"
+            font.family: Theme.textFontFamily
+            font.pixelSize: 18
+            color: Theme.textColor
+            anchors.top: parent.top
+            anchors.left: parent.left
+        }
+
+        Text {
+            text: "Render on 'top' (standard) or 'overlay' (above all windows and lock screens)"
+            font.family: Theme.textFontFamily
+            font.pixelSize: 14
+            anchors.top: layerTitle.bottom
+            anchors.topMargin: 5
+            anchors.left: layerTitle.left
+            width: Math.max(80, parent.width - buttonGroup.width - 28)
+            elide: Text.ElideRight
+            color: Theme.subtleTextColor
+        }
+
+        Row {
+            id: buttonGroup
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 6
+
+            Repeater {
+                model: [
+                    { label: "Top", value: "top" },
+                    { label: "Overlay", value: "overlay" }
+                ]
+
+                Rectangle {
+                    id: btn
+                    readonly property bool selected: layerRow.selectedLayer === modelData.value
+
+                    width: Math.max(76, btnText.implicitWidth + 20)
+                    height: 36
+                    radius: 7
+                    color: selected ? Theme.cardBgColor
+                                    : btnMouse.pressed ? Theme.controlPressedColor
+                                                       : Theme.componentBgColor
+                    border.width: 1
+                    border.color: Theme.inputBorderColor
+
+                    Behavior on color { ColorAnimation { duration: Theme.animationDuration } }
+                    Behavior on border.color { ColorAnimation { duration: Theme.animationDuration } }
+
+                    Text {
+                        id: btnText
+                        anchors.centerIn: parent
+                        text: modelData.label
+                        color: btn.selected ? Theme.textColor : Theme.secondaryTextColor
+                        font.family: Theme.textFontFamily
+                        font.pixelSize: 14
+                        font.weight: btn.selected ? Font.DemiBold : Font.Normal
+                    }
+
+                    MouseArea {
+                        id: btnMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            layerRow.selectedLayer = modelData.value
+                            ConfigStore.setValue("islandLayer", modelData.value)
+                            ConfigStore.save()
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    component CalendarSourcesRow: Item {
+        id: calRow
+        height: calColumn.implicitHeight + 10
+
+        property var calendarList: {
+            const raw = ConfigStore.value("calendars", [])
+            return Array.isArray(raw) ? raw : []
+        }
+
+        property string selectedColor: "#007aff"
+        property bool showHelp: false
+
+        function addCalendar(name, url) {
+            const trimmedUrl = String(url || "").trim()
+            if (trimmedUrl === "") return
+            const trimmedName = String(name || "").trim() || "Google Calendar"
+
+            let normalizedUrl = trimmedUrl
+            if (normalizedUrl.toLowerCase().startsWith("webcal://")) {
+                normalizedUrl = "https://" + normalizedUrl.substring(9)
+            }
+
+            const current = calendarList.slice()
+            const id = "cal-" + Date.now() + "-" + Math.floor(Math.random() * 1000)
+            current.push({
+                "id": id,
+                "name": trimmedName,
+                "url": normalizedUrl,
+                "color": calRow.selectedColor,
+                "enabled": true
+            })
+            ConfigStore.setValue("calendars", current)
+            ConfigStore.save()
+            calRow.calendarList = current
+        }
+
+        function removeCalendar(index) {
+            const current = calendarList.slice()
+            if (index >= 0 && index < current.length) {
+                current.splice(index, 1)
+                ConfigStore.setValue("calendars", current)
+                ConfigStore.save()
+                calRow.calendarList = current
+            }
+        }
+
+        function toggleCalendar(index) {
+            const current = calendarList.slice()
+            if (index >= 0 && index < current.length) {
+                const item = Object.assign({}, current[index])
+                item.enabled = !item.enabled
+                current[index] = item
+                ConfigStore.setValue("calendars", current)
+                ConfigStore.save()
+                calRow.calendarList = current
+            }
+        }
+
+        Column {
+            id: calColumn
+            width: parent.width
+            spacing: 14
+
+            Column {
+                width: parent.width
+                spacing: 4
+
+                Text {
+                    text: "Google Calendar & Event Feeds"
+                    font.family: Theme.textFontFamily
+                    font.pixelSize: 18
+                    color: Theme.textColor
+                }
+
+                Text {
+                    text: "Connect Google Calendar private feeds (or any iCal/ICS link) and toggle which calendars to display in the notch."
+                    font.family: Theme.textFontFamily
+                    font.pixelSize: 14
+                    color: Theme.subtleTextColor
+                    width: parent.width
+                    wrapMode: Text.WordWrap
+                }
+            }
+
+            // Quick instruction guide toggle
+            Row {
+                spacing: 6
+
+                Text {
+                    text: calRow.showHelp ? "󰅃 Hide Google Calendar setup guide" : "󰅀 How to get your Google Calendar secret iCal link"
+                    color: Theme.accentColor
+                    font.family: Theme.textFontFamily
+                    font.pixelSize: 13
+                    font.weight: Font.Medium
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: calRow.showHelp = !calRow.showHelp
+                }
+            }
+
+            // Help instructions box
+            Rectangle {
+                width: parent.width
+                height: helpCol.implicitHeight + 24
+                radius: 8
+                color: Theme.componentBgColor
+                border.width: 1
+                border.color: Theme.inputBorderColor
+                visible: calRow.showHelp
+
+                Column {
+                    id: helpCol
+                    anchors.fill: parent
+                    anchors.margins: 12
+                    spacing: 6
+
+                    Text {
+                        text: "1. Open Google Calendar in your web browser (calendar.google.com)"
+                        color: Theme.textColor
+                        font.family: Theme.textFontFamily
+                        font.pixelSize: 13
+                    }
+                    Text {
+                        text: "2. Under 'My calendars' on the left, click the 3 dots (⋮) next to your calendar -> 'Settings and sharing'"
+                        color: Theme.textColor
+                        font.family: Theme.textFontFamily
+                        font.pixelSize: 13
+                    }
+                    Text {
+                        text: "3. Scroll down to 'Integrate calendar' and copy the 'Secret address in iCal format'"
+                        color: Theme.textColor
+                        font.family: Theme.textFontFamily
+                        font.pixelSize: 13
+                    }
+                    Text {
+                        text: "4. Paste the URL below and click Add. You can repeat this for each calendar you want to sync!"
+                        color: Theme.textColor
+                        font.family: Theme.textFontFamily
+                        font.pixelSize: 13
+                    }
+                }
+            }
+
+            // Input form: Name + URL + Color + Add
+            Column {
+                width: parent.width
+                spacing: 8
+
+                Row {
+                    width: parent.width
+                    spacing: 8
+
+                    ConfigTextField {
+                        id: calNameInput
+                        width: 160
+                        height: 36
+                        placeholderText: "Calendar Name"
+                    }
+
+                    ConfigTextField {
+                        id: calUrlInput
+                        width: Math.max(200, parent.width - calNameInput.width - addBtn.width - 24)
+                        height: 36
+                        placeholderText: "https://calendar.google.com/calendar/ical/.../basic.ics"
+                        onAccepted: {
+                            calRow.addCalendar(calNameInput.text, calUrlInput.text)
+                            calNameInput.text = ""
+                            calUrlInput.text = ""
+                        }
+                    }
+
+                    Rectangle {
+                        id: addBtn
+                        width: 72
+                        height: 36
+                        radius: 7
+                        color: addCalMouse.pressed ? Theme.controlPressedColor : Theme.componentBgColor
+                        border.width: 1
+                        border.color: Theme.inputBorderColor
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "+ Add"
+                            color: Theme.textColor
+                            font.family: Theme.textFontFamily
+                            font.pixelSize: 14
+                            font.weight: Font.DemiBold
+                        }
+
+                        MouseArea {
+                            id: addCalMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                calRow.addCalendar(calNameInput.text, calUrlInput.text)
+                                calNameInput.text = ""
+                                calUrlInput.text = ""
+                            }
+                        }
+                    }
+                }
+
+                // Color picker row
+                Row {
+                    spacing: 8
+
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "Color:"
+                        color: Theme.subtleTextColor
+                        font.family: Theme.textFontFamily
+                        font.pixelSize: 13
+                    }
+
+                    Repeater {
+                        model: [
+                            { color: "#007aff", label: "Blue" },
+                            { color: "#af52de", label: "Purple" },
+                            { color: "#30d158", label: "Green" },
+                            { color: "#ff9500", label: "Orange" },
+                            { color: "#ff2d55", label: "Red" }
+                        ]
+
+                        Rectangle {
+                            width: 22
+                            height: 22
+                            radius: 11
+                            color: modelData.color
+                            border.width: calRow.selectedColor === modelData.color ? 2 : 0
+                            border.color: "white"
+
+                            Rectangle {
+                                anchors.centerIn: parent
+                                width: 8
+                                height: 8
+                                radius: 4
+                                color: "white"
+                                visible: calRow.selectedColor === modelData.color
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: calRow.selectedColor = modelData.color
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Configured calendars list
+            Column {
+                width: parent.width
+                spacing: 8
+
+                Text {
+                    text: calRow.calendarList.length > 0 ? "Configured Calendars (" + calRow.calendarList.length + "):" : "No calendars added yet."
+                    color: Theme.subtleTextColor
+                    font.family: Theme.textFontFamily
+                    font.pixelSize: 14
+                    font.weight: Font.Medium
+                }
+
+                Repeater {
+                    model: calRow.calendarList
+
+                    Rectangle {
+                        width: calColumn.width
+                        height: 44
+                        radius: 8
+                        color: Theme.componentBgColor
+                        border.width: 1
+                        border.color: Theme.inputBorderColor
+
+                        Row {
+                            anchors.left: parent.left
+                            anchors.leftMargin: 12
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: 10
+
+                            // Checkbox toggle
+                            Rectangle {
+                                width: 22
+                                height: 22
+                                radius: 5
+                                color: modelData.enabled ? Theme.accentColor : "transparent"
+                                border.width: 1
+                                border.color: modelData.enabled ? Theme.accentColor : Theme.inputBorderColor
+                                anchors.verticalCenter: parent.verticalCenter
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "✓"
+                                    color: "white"
+                                    font.pixelSize: 13
+                                    font.bold: true
+                                    visible: modelData.enabled
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: calRow.toggleCalendar(index)
+                                }
+                            }
+
+                            // Color dot
+                            Rectangle {
+                                width: 12
+                                height: 12
+                                radius: 6
+                                color: modelData.color || "#007aff"
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+
+                            // Calendar info
+                            Column {
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: 2
+
+                                Text {
+                                    text: modelData.name || "Calendar"
+                                    color: modelData.enabled ? Theme.textColor : Theme.subtleTextColor
+                                    font.family: Theme.textFontFamily
+                                    font.pixelSize: 14
+                                    font.weight: Font.Medium
+                                }
+                            }
+                        }
+
+                        // Remove button
+                        Rectangle {
+                            anchors.right: parent.right
+                            anchors.rightMargin: 10
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 28
+                            height: 28
+                            radius: 14
+                            color: delCalMouse.containsMouse ? Theme.controlPressedColor : "transparent"
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: "×"
+                                font.pixelSize: 18
+                                color: delCalMouse.containsMouse ? "#ff453a" : Theme.subtleTextColor
+                            }
+
+                            MouseArea {
+                                id: delCalMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: calRow.removeCalendar(index)
+                            }
                         }
                     }
                 }

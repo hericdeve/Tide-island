@@ -362,6 +362,11 @@ int UserConfigBackend::notchHoverCloseDelayMs() const
     return m_notchHoverCloseDelayMs;
 }
 
+QString UserConfigBackend::islandLayer() const
+{
+    return m_islandLayer;
+}
+
 int UserConfigBackend::islandWidth() const
 {
     return m_islandWidth;
@@ -545,6 +550,9 @@ void UserConfigBackend::loadConfig()
     updateField(this, m_notchBottomCornerRadius, jsonBoundedInt(configObject, QLatin1String("notchBottomCornerRadius"), 14, 0, 160), &UserConfigBackend::notchBottomCornerRadiusChanged);
     updateField(this, m_notchHoverOpenDelayMs, jsonBoundedInt(configObject, QLatin1String("notchHoverOpenDelayMs"), 300, 0, 3000), &UserConfigBackend::notchHoverOpenDelayMsChanged);
     updateField(this, m_notchHoverCloseDelayMs, jsonBoundedInt(configObject, QLatin1String("notchHoverCloseDelayMs"), 100, 0, 3000), &UserConfigBackend::notchHoverCloseDelayMsChanged);
+    const QString configuredLayer = jsonString(configObject, QLatin1String("islandLayer"), QStringLiteral("top")).trimmed().toLower();
+    const QString normalizedLayer = (configuredLayer == QLatin1String("overlay")) ? QStringLiteral("overlay") : QStringLiteral("top");
+    updateField(this, m_islandLayer, normalizedLayer, &UserConfigBackend::islandLayerChanged);
     updateField(this, m_islandWidth, jsonInt(configObject, QLatin1String("islandWidth"), 140), &UserConfigBackend::islandWidthChanged);
     updateField(this, m_islandBackgroundOpacity, jsonBoundedInt(configObject, QLatin1String("islandBackgroundOpacity"), 60, 0, 100), &UserConfigBackend::islandBackgroundOpacityChanged);
     updateField(this, m_islandHeight, jsonInt(configObject, QLatin1String("islandHeight"), 38), &UserConfigBackend::islandHeightChanged);

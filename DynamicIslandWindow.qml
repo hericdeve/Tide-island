@@ -164,11 +164,15 @@ PanelWindow {
     Component.onCompleted: root.retainedWindowHeight = root.requestedWindowHeight
 
     exclusiveZone: Math.ceil(root.baseExclusiveZone * root.exclusiveZoneProgress)
-    WlrLayershell.layer: islandContainer.wallpaperPickerLayerVisible
-        || islandContainer.applicationLauncherLayerVisible
-        || islandContainer.fileShelfLayerVisible
-        ? WlrLayer.Overlay
-        : WlrLayer.Top
+    WlrLayershell.layer: {
+        if (userConfig.islandLayer === "overlay")
+            return WlrLayer.Overlay;
+        if (islandContainer.wallpaperPickerLayerVisible
+                || islandContainer.applicationLauncherLayerVisible
+                || islandContainer.fileShelfLayerVisible)
+            return WlrLayer.Overlay;
+        return WlrLayer.Top;
+    }
     WlrLayershell.keyboardFocus: {
         if (islandContainer.controlCenterLayerVisible
                 || islandContainer.wallpaperPickerLayerVisible
@@ -181,7 +185,7 @@ PanelWindow {
         if (root.monitorFocused && root.overviewVisible)
             return WlrKeyboardFocus.Exclusive;
         if (islandContainer.expandedPlayerKeyboardFocusRequested)
-            return WlrKeyboardFocus.Exclusive;
+            return WlrKeyboardFocus.OnDemand;
         if (root.monitorFocused && root.connectivityPromptActive)
             return WlrKeyboardFocus.OnDemand;
         return WlrKeyboardFocus.None;
@@ -767,7 +771,6 @@ PanelWindow {
     }
 
     function focusExpandedPlayer() {
-        islandContainer.requestExpandedPlayerKeyboardFocus();
         if (expandedPlayerLoader.item && expandedPlayerLoader.item.grabKeyboardFocus)
             expandedPlayerLoader.item.grabKeyboardFocus();
     }
@@ -1009,9 +1012,7 @@ PanelWindow {
             : null
 
         onExpandedLayerVisibleChanged: {
-            if (expandedLayerVisible)
-                requestExpandedPlayerKeyboardFocus();
-            else
+            if (!expandedLayerVisible)
                 expandedPlayerKeyboardFocusRequested = false;
         }
 

@@ -62,6 +62,7 @@ class UserConfigBackend final : public QObject {
     Q_PROPERTY(int notchHoverOpenDelayMs READ notchHoverOpenDelayMs NOTIFY notchHoverOpenDelayMsChanged FINAL)
     Q_PROPERTY(int notchHoverCloseDelayMs READ notchHoverCloseDelayMs NOTIFY notchHoverCloseDelayMsChanged FINAL)
 
+    Q_PROPERTY(QString islandLayer READ islandLayer NOTIFY islandLayerChanged FINAL)
     Q_PROPERTY(int islandWidth READ islandWidth NOTIFY islandWidthChanged FINAL)
     Q_PROPERTY(int islandHeight READ islandHeight NOTIFY islandHeightChanged FINAL)
     Q_PROPERTY(int islandExclusiveZone READ islandExclusiveZone NOTIFY islandExclusiveZoneChanged FINAL)
@@ -122,6 +123,7 @@ public:
     int notchBottomCornerRadius() const;
     int notchHoverOpenDelayMs() const;
     int notchHoverCloseDelayMs() const;
+    QString islandLayer() const;
     int islandWidth() const;
     int islandHeight() const;
     int islandExclusiveZone() const;
@@ -184,6 +186,7 @@ signals:
     void notchBottomCornerRadiusChanged();
     void notchHoverOpenDelayMsChanged();
     void notchHoverCloseDelayMsChanged();
+    void islandLayerChanged();
     void islandWidthChanged();
     void islandHeightChanged();
     void islandExclusiveZoneChanged();
@@ -247,6 +250,7 @@ private:
     int m_notchBottomCornerRadius = 14;
     int m_notchHoverOpenDelayMs = 300;
     int m_notchHoverCloseDelayMs = 100;
+    QString m_islandLayer = QStringLiteral("top");
     int m_islandWidth = 140;
     int m_islandBackgroundOpacity = 60;
     int m_islandHeight = 38;
