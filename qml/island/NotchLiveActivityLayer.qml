@@ -40,106 +40,96 @@ Item {
         }
     }
 
-    Row {
-        anchors.fill: parent
-        anchors.leftMargin: 12
-        anchors.rightMargin: 12
-        spacing: 8
+    // Left: Mini Album Art (18x18, rounded 4px)
+    Item {
+        id: miniAlbumArt
+        anchors.left: parent.left
+        anchors.leftMargin: 10
+        anchors.verticalCenter: parent.verticalCenter
+        width: 18
+        height: 18
 
-        // Left: Mini Album Art (Boring Notch style)
-        Item {
-            anchors.verticalCenter: parent.verticalCenter
-            width: 20
-            height: 20
-
-            Rectangle {
-                anchors.fill: parent
-                radius: 4
-                color: "#1c1c1e"
-                clip: true
-
-                Image {
-                    anchors.fill: parent
-                    source: root.currentArtUrl
-                    fillMode: Image.PreserveAspectCrop
-                    visible: source.toString() !== ""
-                    sourceSize: Qt.size(40, 40)
-                    smooth: true
-                }
-
-                Text {
-                    anchors.centerIn: parent
-                    text: "󰎆"
-                    color: "#8e8e93"
-                    font.family: root.iconFontFamily
-                    font.pixelSize: 12
-                    visible: !root.currentArtUrl || root.currentArtUrl === ""
-                }
-            }
-        }
-
-        // Center: Track Title & Artist
-        Item {
-            anchors.verticalCenter: parent.verticalCenter
-            width: Math.max(0, parent.width - 20 - 36 - 24)
-            height: parent.height
+        Rectangle {
+            anchors.fill: parent
+            radius: 4
+            color: "#1c1c1e"
             clip: true
 
-            Row {
-                anchors.verticalCenter: parent.verticalCenter
-                anchors.left: parent.left
-                spacing: 6
+            Image {
+                anchors.fill: parent
+                source: root.currentArtUrl
+                fillMode: Image.PreserveAspectCrop
+                visible: source.toString() !== ""
+                sourceSize: Qt.size(36, 36)
+                smooth: true
+            }
 
-                Text {
-                    text: root.currentTrack !== "" ? root.currentTrack : "Not Playing"
-                    color: "white"
-                    font.pixelSize: 12
-                    font.family: root.textFontFamily
-                    font.weight: Font.DemiBold
-                    elide: Text.ElideRight
-                    maximumLineCount: 1
-                }
-
-                Text {
-                    text: root.currentArtist
-                    color: "#8e8e93"
-                    font.pixelSize: 11
-                    font.family: root.textFontFamily
-                    elide: Text.ElideRight
-                    maximumLineCount: 1
-                    visible: root.currentArtist !== "" && parent.parent.width > 120
-                }
+            Text {
+                anchors.centerIn: parent
+                text: "󰎆"
+                color: "#8e8e93"
+                font.family: root.iconFontFamily
+                font.pixelSize: 11
+                visible: !root.currentArtUrl || root.currentArtUrl === ""
             }
         }
+    }
 
-        // Right: Live Spectrogram / Visualizer
-        Item {
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.right: parent.right
-            width: 24
-            height: 14
+    // Right: Mini 4-bar Spectrogram (16x12)
+    Item {
+        id: miniVisualizer
+        anchors.right: parent.right
+        anchors.rightMargin: 10
+        anchors.verticalCenter: parent.verticalCenter
+        width: 16
+        height: 12
 
-            Row {
-                anchors.centerIn: parent
-                height: parent.height
-                spacing: 2
+        Row {
+            anchors.centerIn: parent
+            height: parent.height
+            spacing: 2
 
-                Repeater {
-                    model: 4
+            Repeater {
+                model: 4
 
-                    Rectangle {
-                        width: 3
-                        height: Math.max(3, parent.height * root.barLevel(index))
-                        radius: 1.5
-                        color: root.isPlaying ? "#b56cff" : "#5f4b72"
-                        anchors.verticalCenter: parent.verticalCenter
+                Rectangle {
+                    width: 2.5
+                    height: Math.max(2.5, parent.height * root.barLevel(index))
+                    radius: 1.2
+                    color: root.isPlaying ? "#b56cff" : "#5f4b72"
+                    anchors.bottom: parent.bottom
 
-                        Behavior on height {
-                            NumberAnimation { duration: 100; easing.type: Easing.InOutQuad }
-                        }
+                    Behavior on height {
+                        NumberAnimation { duration: 100; easing.type: Easing.InOutQuad }
                     }
                 }
             }
         }
+    }
+
+    // Center: Track Title & Artist strictly anchored BETWEEN miniAlbumArt and miniVisualizer
+    Text {
+        id: trackText
+        anchors.left: miniAlbumArt.right
+        anchors.leftMargin: 8
+        anchors.right: miniVisualizer.left
+        anchors.rightMargin: 8
+        anchors.verticalCenter: parent.verticalCenter
+        text: {
+            if (root.currentTrack === "") return "Not Playing";
+            if (root.currentArtist !== "" && parent.width >= 240)
+                return root.currentTrack + " • " + root.currentArtist;
+            return root.currentTrack;
+        }
+        color: "white"
+        font.pixelSize: 11
+        font.family: root.textFontFamily
+        font.weight: Font.DemiBold
+        font.letterSpacing: -0.15
+        horizontalAlignment: Text.AlignHCenter
+        verticalAlignment: Text.AlignVCenter
+        elide: Text.ElideRight
+        maximumLineCount: 1
+        clip: true
     }
 }

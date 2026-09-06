@@ -1936,7 +1936,9 @@ PanelWindow {
                         Math.min(root.width - 48, notificationLoader.item.maximumWidth, notificationLoader.item.preferredWidth)
                     );
                 default:
-                    return userConfig.boringNotchEnabled ? userConfig.notchClosedWidth : userConfig.islandWidth;
+                    return userConfig.boringNotchEnabled
+                        ? (islandContainer.currentTrack !== "" ? Math.max(userConfig.notchClosedWidth, 220) : userConfig.notchClosedWidth)
+                        : userConfig.islandWidth;
                 }
             }
             readonly property real targetHeight: {
