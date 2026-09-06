@@ -633,8 +633,8 @@ Item {
                                     height: parent.height * 1.45
                                     source: albumArtImage
                                     blurEnabled: true
-                                    blur: 0.85
-                                    blurMax: 36
+                                    blur: 0.8
+                                    blurMax: 20
                                     opacity: root.isPlaying && currentArtUrl !== "" ? 0.65 : 0.0
                                     visible: opacity > 0.001
 
@@ -1126,32 +1126,88 @@ Item {
                                             }
                                         }
 
-                                        Item {
-                                            width: 20
-                                            height: 20
+                                        Row {
+                                            id: volControlRow
+                                            spacing: 3
+                                            anchors.verticalCenter: parent.verticalCenter
                                             visible: userConfig.boringNotchEnabled
-                                            scale: volArea.pressed ? 0.8 : 1.0
 
-                                            Text {
-                                                anchors.centerIn: parent
-                                                text: (activePlayer && activePlayer.volume === 0) ? "󰖁" : "󰕾"
-                                                color: volArea.pressed ? "#888" : "white"
-                                                font.family: root.iconFontFamily
-                                                font.pixelSize: 13
+                                            Item {
+                                                width: 20
+                                                height: 20
+                                                scale: volArea.pressed ? 0.8 : 1.0
+
+                                                Text {
+                                                    anchors.centerIn: parent
+                                                    text: (activePlayer && activePlayer.volume === 0) ? "󰖁" : "󰕾"
+                                                    color: volArea.pressed ? "#888" : "white"
+                                                    font.family: root.iconFontFamily
+                                                    font.pixelSize: 13
+                                                }
+
+                                                MouseArea {
+                                                    id: volArea
+                                                    anchors.fill: parent
+                                                    anchors.margins: -6
+                                                    preventStealing: true
+                                                    onPressed: (mouse) => {
+                                                        controlPressed();
+                                                        mouse.accepted = true;
+                                                    }
+                                                    onClicked: {
+                                                        volSliderWrapper.showSlider = !volSliderWrapper.showSlider;
+                                                    }
+                                                }
                                             }
 
-                                            MouseArea {
-                                                id: volArea
-                                                anchors.fill: parent
-                                                anchors.margins: -6
-                                                preventStealing: true
-                                                onPressed: (mouse) => {
-                                                    controlPressed();
-                                                    mouse.accepted = true;
+                                            Item {
+                                                id: volSliderWrapper
+                                                property bool showSlider: false
+                                                width: showSlider ? 44 : 0
+                                                height: 14
+                                                clip: true
+                                                visible: width > 0
+                                                opacity: showSlider ? 1 : 0
+                                                anchors.verticalCenter: parent.verticalCenter
+
+                                                Behavior on width {
+                                                    NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
                                                 }
-                                                onClicked: {
-                                                    if (activePlayer && activePlayer.volume !== undefined) {
-                                                        activePlayer.volume = activePlayer.volume > 0 ? 0 : 0.7;
+                                                Behavior on opacity {
+                                                    NumberAnimation { duration: 140; easing.type: Easing.InOutQuad }
+                                                }
+
+                                                Rectangle {
+                                                    anchors.centerIn: parent
+                                                    width: 40
+                                                    height: 3.5
+                                                    radius: 1.75
+                                                    color: "#3a3a3c"
+
+                                                    Rectangle {
+                                                        height: parent.height
+                                                        radius: 1.75
+                                                        color: colorExtractor.extractedColor
+                                                        width: parent.width * Math.max(0, Math.min(1, (activePlayer && activePlayer.volume !== undefined) ? Number(activePlayer.volume) : 0.7))
+                                                    }
+
+                                                    MouseArea {
+                                                        anchors.fill: parent
+                                                        anchors.margins: -6
+                                                        preventStealing: true
+                                                        onPressed: (mouse) => {
+                                                            controlPressed();
+                                                            const val = Math.max(0, Math.min(1, mouse.x / width));
+                                                            if (activePlayer && activePlayer.volume !== undefined)
+                                                                activePlayer.volume = val;
+                                                        }
+                                                        onPositionChanged: (mouse) => {
+                                                            if (pressed) {
+                                                                const val = Math.max(0, Math.min(1, mouse.x / width));
+                                                                if (activePlayer && activePlayer.volume !== undefined)
+                                                                    activePlayer.volume = val;
+                                                            }
+                                                        }
                                                     }
                                                 }
                                             }

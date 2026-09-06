@@ -27,6 +27,8 @@ Item {
         anchors.fill: parent
         z: -1
         antialiasing: true
+        renderTarget: Canvas.FramebufferObject
+        renderStrategy: Canvas.Immediate
 
         onPaint: {
             const context = getContext("2d");

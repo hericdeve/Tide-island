@@ -26,9 +26,9 @@ FocusScope {
 
     readonly property int visibleCapacity: 5
     readonly property real horizontalPadding: 18
-    readonly property real cardWidth: 176
-    readonly property real cardHeight: 176
-    readonly property real overflowCellWidth: 196
+    readonly property real cardWidth: root.height < 220 ? Math.max(90, Math.round(root.height - 64)) : 176
+    readonly property real cardHeight: root.height < 220 ? Math.max(90, Math.round(root.height - 64)) : 176
+    readonly property real overflowCellWidth: cardWidth + 20
 
     focus: showCondition && !dropPreviewOnly
     activeFocusOnTab: true

@@ -1886,7 +1886,7 @@ PanelWindow {
         Rectangle {
             id: mainCapsule
             z: 5
-            property int morphDuration: 400
+            property int morphDuration: userConfig.boringNotchEnabled ? 300 : 400
             readonly property bool notificationHistorySurface: islandContainer.islandState === "notification_center"
             property real outlineWidth: root.overviewContentVisible || notificationHistorySurface ? 1 : 0
             property color outlineColor: root.overviewContentVisible
@@ -1924,8 +1924,9 @@ PanelWindow {
                     return 410;
                 case "wallpaper_picker":
                 case "application_launcher":
-                case "file_shelf":
                     return 1100;
+                case "file_shelf":
+                    return userConfig.boringNotchEnabled ? userConfig.notchOpenWidth : 1100;
                 case "expanded":
                 case "bluetooth_expanded":
                     return userConfig.boringNotchEnabled ? userConfig.notchOpenWidth : 410;
@@ -1953,8 +1954,9 @@ PanelWindow {
                     return notificationCenterLoader.item ? notificationCenterLoader.item.contentHeight : 200;
                 case "wallpaper_picker":
                 case "application_launcher":
-                case "file_shelf":
                     return 260;
+                case "file_shelf":
+                    return userConfig.boringNotchEnabled ? userConfig.notchOpenHeight : 260;
                 case "expanded":
                 case "bluetooth_expanded":
                     return userConfig.boringNotchEnabled ? userConfig.notchOpenHeight : 165;
@@ -1976,8 +1978,9 @@ PanelWindow {
                     return mainCapsule.targetHeight * 36 / 165;
                 case "wallpaper_picker":
                 case "application_launcher":
-                case "file_shelf":
                     return 34;
+                case "file_shelf":
+                    return userConfig.boringNotchEnabled ? userConfig.notchBottomCornerRadius * 2 : 34;
                 case "expanded":
                 case "bluetooth_expanded":
                     return userConfig.boringNotchEnabled ? userConfig.notchBottomCornerRadius * 2 : 40;
