@@ -235,8 +235,13 @@ PanelWindow {
         || root.overviewVisible
         || root.connectivityPromptActive
         || root.anyConnectivityDetailMounted
-    readonly property bool autoHideTargetVisible: autoHideMustShow
-        || (!autoHideForcedHidden && (!autoHideEnabled || autoHideVisible))
+    readonly property bool isFullscreenActive: hyprlandIntegration ? !!hyprlandIntegration.isFullscreen : false
+    readonly property bool fullscreenAutoHide: userConfig.hideNotchInFullscreen
+        && isFullscreenActive
+        && !islandContainer.expandedLayerVisible
+        && !root.overviewVisible
+    readonly property bool autoHideTargetVisible: !fullscreenAutoHide && (autoHideMustShow
+        || (!autoHideForcedHidden && (!autoHideEnabled || autoHideVisible)))
     readonly property bool autoHideSuppressesTransientReveal: (autoHideEnabled || autoHideForcedHidden)
         && !autoHideTargetVisible
     property real autoHideProgress: autoHideTargetVisible ? 1 : 0
@@ -2362,7 +2367,7 @@ PanelWindow {
                 id: lyricsSwipeLoader
                 anchors.fill: parent
                 active: islandContainer.lyricsSwipeVisible
-                    && (!userConfig.boringNotchEnabled || islandContainer.currentTrack === "" || islandContainer.swipeTransitionProgress > 0.01)
+                    && (!userConfig.boringNotchEnabled || (!userConfig.showBoringFace && islandContainer.currentTrack === "") || islandContainer.swipeTransitionProgress > 0.01)
                 asynchronous: false
                 visible: active
 
@@ -2410,6 +2415,23 @@ PanelWindow {
                         iconFontFamily: root.iconFontFamily
                         textFontFamily: root.textFontFamily
                     }
+                }
+            }
+
+            Loader {
+                id: boringFaceLoader
+                anchors.centerIn: parent
+                active: !root.overviewVisible
+                    && userConfig.boringNotchEnabled
+                    && userConfig.showBoringFace
+                    && islandContainer.islandState === "normal"
+                    && islandContainer.currentTrack === ""
+                    && Math.abs(islandContainer.swipeTransitionProgress) < 0.01
+                asynchronous: false
+                visible: active
+
+                sourceComponent: Component {
+                    BoringFaceAnimation {}
                 }
             }
 
@@ -2504,6 +2526,7 @@ PanelWindow {
                         currentArtUrl: islandContainer.currentArtUrl
                         currentTrack: islandContainer.currentTrack
                         currentArtist: islandContainer.currentArtist
+                        lyricsText: islandContainer.lyricsDisplayText
                         timePlayed: islandContainer.timePlayed
                         timeTotal: islandContainer.timeTotal
                         trackProgress: islandContainer.trackProgress
@@ -2714,6 +2737,9 @@ PanelWindow {
                 id: islandFileDropArea
                 z: 10000
                 anchors.fill: parent
+                anchors.bottomMargin: userConfig.boringNotchEnabled && !islandContainer.fileShelfLayerVisible ? -32 : 0
+                anchors.leftMargin: userConfig.boringNotchEnabled && !islandContainer.fileShelfLayerVisible ? -32 : 0
+                anchors.rightMargin: userConfig.boringNotchEnabled && !islandContainer.fileShelfLayerVisible ? -32 : 0
                 enabled: islandContainer.fileShelfLayerVisible
                     || islandContainer.fileShelfCanAutoOpen
 

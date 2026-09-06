@@ -19,6 +19,9 @@ Item {
     readonly property int workspaceId: monitor && monitor.activeWorkspace
         ? monitor.activeWorkspace.id
         : 1
+    readonly property bool isFullscreen: monitor && monitor.activeWorkspace
+        ? (monitor.activeWorkspace.hasFullscreen !== undefined ? !!monitor.activeWorkspace.hasFullscreen : false)
+        : false
 
     HyprlandDispatch {
         id: dispatch

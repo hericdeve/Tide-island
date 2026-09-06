@@ -50,6 +50,8 @@ class UserConfigBackend final : public QObject {
     Q_PROPERTY(int islandAutoHideDelayMs READ islandAutoHideDelayMs NOTIFY islandAutoHideDelayMsChanged FINAL)
     Q_PROPERTY(bool islandShowWorkspaceOnAutoHide READ islandShowWorkspaceOnAutoHide NOTIFY islandShowWorkspaceOnAutoHideChanged FINAL)
     Q_PROPERTY(bool boringNotchEnabled READ boringNotchEnabled NOTIFY boringNotchEnabledChanged FINAL)
+    Q_PROPERTY(bool hideNotchInFullscreen READ hideNotchInFullscreen NOTIFY hideNotchInFullscreenChanged FINAL)
+    Q_PROPERTY(bool showBoringFace READ showBoringFace NOTIFY showBoringFaceChanged FINAL)
     Q_PROPERTY(int notchClosedWidth READ notchClosedWidth NOTIFY notchClosedWidthChanged FINAL)
     Q_PROPERTY(int notchClosedHeight READ notchClosedHeight NOTIFY notchClosedHeightChanged FINAL)
     Q_PROPERTY(int notchOpenWidth READ notchOpenWidth NOTIFY notchOpenWidthChanged FINAL)
@@ -108,6 +110,8 @@ public:
     bool islandAutoHideEnabled() const;
     int islandAutoHideDelayMs() const;
     bool boringNotchEnabled() const;
+    bool hideNotchInFullscreen() const;
+    bool showBoringFace() const;
     int notchClosedWidth() const;
     int notchClosedHeight() const;
     int notchOpenWidth() const;
@@ -167,6 +171,8 @@ signals:
     void islandAutoHideEnabledChanged();
     void islandAutoHideDelayMsChanged();
     void boringNotchEnabledChanged();
+    void hideNotchInFullscreenChanged();
+    void showBoringFaceChanged();
     void notchClosedWidthChanged();
     void notchClosedHeightChanged();
     void notchOpenWidthChanged();
@@ -227,6 +233,8 @@ private:
     bool m_islandAutoHideEnabled = true;
     int m_islandAutoHideDelayMs = 1000;
     bool m_boringNotchEnabled = true;
+    bool m_hideNotchInFullscreen = true;
+    bool m_showBoringFace = false;
     int m_notchClosedWidth = 185;
     int m_notchClosedHeight = 32;
     int m_notchOpenWidth = 640;

@@ -233,6 +233,26 @@ PagePanel {
 
                     SplitLine { width: parent.width }
 
+                    ToggleRow {
+                        title: "Hide in Fullscreen"
+                        description: "Automatically hide notch when an application enters fullscreen"
+                        keyName: "hideNotchInFullscreen"
+                        fallbackState: true
+                        width: parent.width
+                    }
+
+                    SplitLine { width: parent.width }
+
+                    ToggleRow {
+                        title: "Boring Face Animation"
+                        description: "Show playful animated eyes in closed notch when idle"
+                        keyName: "showBoringFace"
+                        fallbackState: false
+                        width: parent.width
+                    }
+
+                    SplitLine { width: parent.width }
+
                     ConfigRow {
                         title: "Closed Notch Width"
                         description: "Width of notch when closed (default 185)"

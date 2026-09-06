@@ -30,6 +30,7 @@ Item {
     property string currentArtUrl: ""
     property string currentTrack: ""
     property string currentArtist: ""
+    property string lyricsText: ""
     property string timePlayed: "0:00"
     property string timeTotal: "0:00"
     property real trackProgress: 0
@@ -78,6 +79,18 @@ Item {
         }
 
         if (activePlayer.canPlay) activePlayer.play();
+    }
+
+    function seekOffset(seconds) {
+        if (!activePlayer || !activePlayer.canControl) return;
+        if (activePlayer.position !== undefined) {
+            const nextPos = Math.max(0, activePlayer.position + seconds);
+            if (activePlayer.canSeek && typeof activePlayer.seek === "function") {
+                activePlayer.seek(seconds * 1000000);
+            } else {
+                activePlayer.position = nextPos;
+            }
+        }
     }
 
     function showPage(page) {
@@ -564,9 +577,19 @@ Item {
                         }
                     }
 
-                    Item {
+                    Row {
                         width: parent.width
-                        height: 60
+                        height: parent.height - notchHeader.height - parent.spacing
+                        spacing: 12
+
+                        Column {
+                            id: musicContentColumn
+                            width: calendarTile.visible ? parent.width - calendarTile.width - parent.spacing * 2 : parent.width
+                            spacing: userConfig.boringNotchEnabled ? 8 : 14
+
+                            Item {
+                                width: parent.width
+                                height: 60
 
                         Row {
                             anchors.left: parent.left
@@ -635,6 +658,18 @@ Item {
                                     font.weight: Font.Medium
                                     width: Math.max(200, homePage.width - 160)
                                     elide: Text.ElideRight
+                                }
+
+                                Text {
+                                    text: root.lyricsText
+                                    color: "#c0a0ff"
+                                    font.pixelSize: userConfig.bodyFontSize - 3
+                                    font.family: textFontFamily
+                                    font.weight: Font.Medium
+                                    width: Math.max(180, homePage.width - 160)
+                                    elide: Text.ElideRight
+                                    maximumLineCount: 1
+                                    visible: userConfig.boringNotchEnabled && root.lyricsText !== "" && root.lyricsText !== "No music playing" && root.isPlaying
                                 }
                             }
                         }
@@ -736,7 +771,65 @@ Item {
 
                         Row {
                             anchors.centerIn: parent
-                            spacing: 50
+                            spacing: userConfig.boringNotchEnabled ? 18 : 50
+
+                            Item {
+                                width: 26
+                                height: 26
+                                visible: userConfig.boringNotchEnabled
+                                scale: shuffleArea.pressed ? 0.8 : 1.0
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "󰒝"
+                                    color: (activePlayer && activePlayer.shuffle) ? "#b56cff" : (shuffleArea.pressed ? "#888" : "#8e8e93")
+                                    font.family: root.iconFontFamily
+                                    font.pixelSize: 16
+                                }
+
+                                MouseArea {
+                                    id: shuffleArea
+                                    anchors.fill: parent
+                                    anchors.margins: -8
+                                    preventStealing: true
+                                    onPressed: (mouse) => {
+                                        controlPressed();
+                                        mouse.accepted = true;
+                                    }
+                                    onClicked: {
+                                        if (activePlayer && activePlayer.shuffle !== undefined) {
+                                            activePlayer.shuffle = !activePlayer.shuffle;
+                                        }
+                                    }
+                                }
+                            }
+
+                            Item {
+                                width: 28
+                                height: 28
+                                visible: userConfig.boringNotchEnabled
+                                scale: seekBackArea.pressed ? 0.8 : 1.0
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "󰕌"
+                                    color: seekBackArea.pressed ? "#888" : "white"
+                                    font.family: root.iconFontFamily
+                                    font.pixelSize: 18
+                                }
+
+                                MouseArea {
+                                    id: seekBackArea
+                                    anchors.fill: parent
+                                    anchors.margins: -10
+                                    preventStealing: true
+                                    onPressed: (mouse) => {
+                                        controlPressed();
+                                        mouse.accepted = true;
+                                    }
+                                    onClicked: root.seekOffset(-15)
+                                }
+                            }
 
                             Item {
                                 width: 28
@@ -889,8 +982,120 @@ Item {
                                     onClicked: if (activePlayer) activePlayer.next()
                                 }
                             }
+
+                            Item {
+                                width: 28
+                                height: 28
+                                visible: userConfig.boringNotchEnabled
+                                scale: seekFwdArea.pressed ? 0.8 : 1.0
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "󰕎"
+                                    color: seekFwdArea.pressed ? "#888" : "white"
+                                    font.family: root.iconFontFamily
+                                    font.pixelSize: 18
+                                }
+
+                                MouseArea {
+                                    id: seekFwdArea
+                                    anchors.fill: parent
+                                    anchors.margins: -10
+                                    preventStealing: true
+                                    onPressed: (mouse) => {
+                                        controlPressed();
+                                        mouse.accepted = true;
+                                    }
+                                    onClicked: root.seekOffset(15)
+                                }
+                            }
+
+                            Item {
+                                width: 26
+                                height: 26
+                                visible: userConfig.boringNotchEnabled
+                                scale: repeatArea.pressed ? 0.8 : 1.0
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: (activePlayer && String(activePlayer.loopStatus).toLowerCase().indexOf("track") !== -1) ? "󰑘" : "󰑖"
+                                    color: (activePlayer && String(activePlayer.loopStatus).toLowerCase() !== "none") ? "#b56cff" : (repeatArea.pressed ? "#888" : "#8e8e93")
+                                    font.family: root.iconFontFamily
+                                    font.pixelSize: 16
+                                }
+
+                                MouseArea {
+                                    id: repeatArea
+                                    anchors.fill: parent
+                                    anchors.margins: -8
+                                    preventStealing: true
+                                    onPressed: (mouse) => {
+                                        controlPressed();
+                                        mouse.accepted = true;
+                                    }
+                                    onClicked: {
+                                        if (activePlayer && activePlayer.loopStatus !== undefined) {
+                                            const s = String(activePlayer.loopStatus).toLowerCase();
+                                            if (s === "none") activePlayer.loopStatus = "Playlist";
+                                            else if (s === "playlist") activePlayer.loopStatus = "Track";
+                                            else activePlayer.loopStatus = "None";
+                                        }
+                                    }
+                                }
+                            }
+
+                            Item {
+                                width: 28
+                                height: 28
+                                visible: userConfig.boringNotchEnabled
+                                scale: volArea.pressed ? 0.8 : 1.0
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: (activePlayer && activePlayer.volume === 0) ? "󰖁" : "󰕾"
+                                    color: volArea.pressed ? "#888" : "white"
+                                    font.family: root.iconFontFamily
+                                    font.pixelSize: 18
+                                }
+
+                                MouseArea {
+                                    id: volArea
+                                    anchors.fill: parent
+                                    anchors.margins: -10
+                                    preventStealing: true
+                                    onPressed: (mouse) => {
+                                        controlPressed();
+                                        mouse.accepted = true;
+                                    }
+                                    onClicked: {
+                                        if (activePlayer && activePlayer.volume !== undefined) {
+                                            activePlayer.volume = activePlayer.volume > 0 ? 0 : 0.7;
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
+                }
+
+                Rectangle {
+                    width: 1
+                    height: parent.height - 8
+                    color: "#2c2c2e"
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: calendarTile.visible
+                }
+
+                BoringCalendarTile {
+                    id: calendarTile
+                    width: 215
+                    height: parent.height
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: userConfig.boringNotchEnabled && homePage.width >= 560
+                    textFontFamily: root.textFontFamily
+                    iconFontFamily: root.iconFontFamily
+                }
+            }
                 }
             }
 

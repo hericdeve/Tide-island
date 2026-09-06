@@ -307,6 +307,16 @@ bool UserConfigBackend::boringNotchEnabled() const
     return m_boringNotchEnabled;
 }
 
+bool UserConfigBackend::hideNotchInFullscreen() const
+{
+    return m_hideNotchInFullscreen;
+}
+
+bool UserConfigBackend::showBoringFace() const
+{
+    return m_showBoringFace;
+}
+
 int UserConfigBackend::notchClosedWidth() const
 {
     return m_notchClosedWidth;
@@ -519,6 +529,8 @@ void UserConfigBackend::loadConfig()
     updateField(this, m_islandAutoHideEnabled, jsonBool(configObject, QLatin1String("islandAutoHideEnabled"), true), &UserConfigBackend::islandAutoHideEnabledChanged);
     updateField(this, m_islandAutoHideDelayMs, jsonBoundedInt(configObject, QLatin1String("islandAutoHideDelayMs"), 1000, 100, 10000), &UserConfigBackend::islandAutoHideDelayMsChanged);
     updateField(this, m_boringNotchEnabled, jsonBool(configObject, QLatin1String("boringNotchEnabled"), true), &UserConfigBackend::boringNotchEnabledChanged);
+    updateField(this, m_hideNotchInFullscreen, jsonBool(configObject, QLatin1String("hideNotchInFullscreen"), true), &UserConfigBackend::hideNotchInFullscreenChanged);
+    updateField(this, m_showBoringFace, jsonBool(configObject, QLatin1String("showBoringFace"), false), &UserConfigBackend::showBoringFaceChanged);
     updateField(this, m_notchClosedWidth, jsonBoundedInt(configObject, QLatin1String("notchClosedWidth"), 185, 80, 1000), &UserConfigBackend::notchClosedWidthChanged);
     updateField(this, m_notchClosedHeight, jsonBoundedInt(configObject, QLatin1String("notchClosedHeight"), 32, 16, 200), &UserConfigBackend::notchClosedHeightChanged);
     updateField(this, m_notchOpenWidth, jsonBoundedInt(configObject, QLatin1String("notchOpenWidth"), 640, 240, 1600), &UserConfigBackend::notchOpenWidthChanged);
