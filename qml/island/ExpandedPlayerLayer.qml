@@ -611,24 +611,20 @@ Item {
                         height: parent.height - notchHeader.height - parent.spacing
                         spacing: 12
 
-                        Column {
-                            id: musicContentColumn
-                            width: calendarTile.visible ? parent.width - calendarTile.width - parent.spacing * 2 : parent.width
-                            spacing: userConfig.boringNotchEnabled ? 8 : 14
-
-                            Item {
-                                width: parent.width
-                                height: 60
-
                         Row {
-                            anchors.left: parent.left
-                            anchors.verticalCenter: parent.verticalCenter
-                            spacing: 16
+                            id: musicPlayerSection
+                            width: (calendarTile.visible || webcamTile.visible)
+                                ? parent.width - 215 - parent.spacing * 2
+                                : parent.width
+                            height: parent.height
+                            spacing: userConfig.boringNotchEnabled ? 16 : 14
 
+                            // Left: 90x90 (or 60x60) Album Art with lighting effect
                             Item {
                                 id: albumArtWrapper
-                                width: 60
-                                height: 60
+                                width: userConfig.boringNotchEnabled ? 90 : 60
+                                height: userConfig.boringNotchEnabled ? 90 : 60
+                                anchors.verticalCenter: parent.verticalCenter
 
                                 MultiEffect {
                                     anchors.centerIn: parent
@@ -648,7 +644,7 @@ Item {
 
                                 ClippingRectangle {
                                     anchors.fill: parent
-                                    radius: 12
+                                    radius: userConfig.boringNotchEnabled ? 13 : 10
                                     color: "#2c2c2e"
                                     antialiasing: true
 
@@ -658,7 +654,7 @@ Item {
                                         source: currentArtUrl
                                         fillMode: Image.PreserveAspectCrop
                                         visible: source.toString() !== ""
-                                        sourceSize: Qt.size(120, 120)
+                                        sourceSize: Qt.size(180, 180)
                                         smooth: true
                                         onStatusChanged: {
                                             if (status === Image.Ready)
@@ -692,455 +688,476 @@ Item {
                                             } catch (e) {}
                                         }
                                     }
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: "󰎆"
+                                        color: "#8e8e93"
+                                        font.family: root.iconFontFamily
+                                        font.pixelSize: userConfig.boringNotchEnabled ? 36 : 24
+                                        visible: !root.currentArtUrl || root.currentArtUrl === ""
+                                    }
                                 }
                             }
 
+                            // Right: Controls column
                             Column {
+                                id: musicControlsColumn
+                                width: Math.max(0, parent.width - albumArtWrapper.width - parent.spacing)
                                 anchors.verticalCenter: parent.verticalCenter
-                                spacing: 4
+                                spacing: userConfig.boringNotchEnabled ? 5 : 8
 
-                                Text {
-                                    text: currentTrack
-                                    color: "white"
-                                    font.pixelSize: userConfig.bodyFontSize
-                                    font.family: textFontFamily
-                                    font.weight: Font.DemiBold
-                                    font.letterSpacing: -0.15
-                                    width: Math.max(180, homePage.width - 180)
-                                    elide: Text.ElideRight
+                                // Track title, artist, live lyrics & mini visualizer
+                                Item {
+                                    width: parent.width
+                                    height: songInfoCol.implicitHeight
+
+                                    Column {
+                                        id: songInfoCol
+                                        anchors.left: parent.left
+                                        anchors.right: miniVisualizer.left
+                                        anchors.rightMargin: 8
+                                        spacing: 2
+
+                                        Text {
+                                            text: currentTrack !== "" ? currentTrack : "Not Playing"
+                                            color: "white"
+                                            font.pixelSize: userConfig.boringNotchEnabled ? userConfig.bodyFontSize : userConfig.bodyFontSize
+                                            font.family: textFontFamily
+                                            font.weight: Font.Bold
+                                            font.letterSpacing: -0.2
+                                            width: parent.width
+                                            elide: Text.ElideRight
+                                            maximumLineCount: 1
+                                        }
+
+                                        Text {
+                                            text: currentArtist
+                                            color: "#8e8e93"
+                                            font.pixelSize: userConfig.bodyFontSize - 3
+                                            font.family: textFontFamily
+                                            font.weight: Font.Medium
+                                            width: parent.width
+                                            elide: Text.ElideRight
+                                            maximumLineCount: 1
+                                            visible: currentArtist !== ""
+                                        }
+
+                                        Text {
+                                            text: root.lyricsText
+                                            color: userConfig.boringNotchEnabled ? colorExtractor.extractedColor : "#c0a0ff"
+                                            font.pixelSize: userConfig.bodyFontSize - 4
+                                            font.family: textFontFamily
+                                            font.weight: Font.Medium
+                                            width: parent.width
+                                            elide: Text.ElideRight
+                                            maximumLineCount: 1
+                                            visible: userConfig.boringNotchEnabled && root.lyricsText !== "" && root.lyricsText !== "No music playing" && root.isPlaying
+                                        }
+                                    }
+
+                                    // Mini visualizer
+                                    Row {
+                                        id: miniVisualizer
+                                        anchors.right: parent.right
+                                        anchors.top: parent.top
+                                        anchors.topMargin: 2
+                                        height: 16
+                                        spacing: 2.5
+
+                                        Repeater {
+                                            model: 4
+
+                                            Rectangle {
+                                                width: 3
+                                                height: isPlaying
+                                                    ? 4 + (parent.height - 4) * visualizerLevel(index)
+                                                    : (isPlaying ? 4 : 3)
+                                                radius: 1.5
+                                                color: isPlaying ? (userConfig.boringNotchEnabled ? colorExtractor.extractedColor : "#b56cff") : "#5f4b72"
+                                                anchors.bottom: parent.bottom
+
+                                                Behavior on height {
+                                                    NumberAnimation {
+                                                        duration: isPlaying ? 120 : 260
+                                                        easing.type: Easing.InOutQuad
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
 
-                                Text {
-                                    text: currentArtist
-                                    color: "#8e8e93"
-                                    font.pixelSize: userConfig.bodyFontSize - 2
-                                    font.family: textFontFamily
-                                    font.weight: Font.Medium
-                                    width: Math.max(200, homePage.width - 160)
-                                    elide: Text.ElideRight
-                                }
+                                // Scrubber / Progress slider
+                                Item {
+                                    width: parent.width
+                                    height: 14
 
-                                Text {
-                                    text: root.lyricsText
-                                    color: userConfig.boringNotchEnabled ? colorExtractor.extractedColor : "#c0a0ff"
-                                    font.pixelSize: userConfig.bodyFontSize - 3
-                                    font.family: textFontFamily
-                                    font.weight: Font.Medium
-                                    width: Math.max(180, homePage.width - 160)
-                                    elide: Text.ElideRight
-                                    maximumLineCount: 1
-                                    visible: userConfig.boringNotchEnabled && root.lyricsText !== "" && root.lyricsText !== "No music playing" && root.isPlaying
-                                }
-                            }
-                        }
-
-                        Item {
-                            anchors.right: parent.right
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: 44
-                            height: 22
-
-                            Row {
-                                anchors.centerIn: parent
-                                height: parent.height
-                                spacing: 4
-
-                                Repeater {
-                                    model: 5
-
-                                    delegate: Rectangle {
-                                        width: 4
-                                        height: isPlaying
-                                            ? 6 + (parent.height - 6) * visualizerLevel(index)
-                                            : 6 + (parent.height - 6) * pausedVisualizerLevel(index)
-                                        radius: 2
-                                        color: isPlaying ? (userConfig.boringNotchEnabled ? colorExtractor.extractedColor : "#b56cff") : "#5f4b72"
+                                    Text {
+                                        id: timeL
+                                        anchors.left: parent.left
                                         anchors.verticalCenter: parent.verticalCenter
+                                        text: timePlayed
+                                        color: "#8e8e93"
+                                        font.pixelSize: userConfig.bodyFontSize - 5
+                                        font.family: textFontFamily
+                                        font.weight: Font.Medium
+                                    }
 
-                                        Behavior on height {
-                                            NumberAnimation {
-                                                duration: isPlaying ? 120 : 260
-                                                easing.type: Easing.InOutQuad
+                                    Rectangle {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        anchors.left: timeL.right
+                                        anchors.right: timeR.left
+                                        anchors.margins: 8
+                                        height: 4
+                                        radius: 2
+                                        color: "#333333"
+
+                                        Rectangle {
+                                            height: parent.height
+                                            radius: 2
+                                            color: userConfig.boringNotchEnabled ? colorExtractor.extractedColor : "white"
+                                            width: parent.width * trackProgress
+
+                                            Behavior on color {
+                                                ColorAnimation { duration: 250; easing.type: Easing.InOutQuad }
+                                            }
+
+                                            Behavior on width {
+                                                NumberAnimation {
+                                                    duration: 500
+                                                    easing.type: Easing.OutCubic
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    Text {
+                                        id: timeR
+                                        anchors.right: parent.right
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: timeTotal
+                                        color: "#8e8e93"
+                                        font.pixelSize: userConfig.bodyFontSize - 5
+                                        font.family: textFontFamily
+                                        font.weight: Font.Medium
+                                    }
+                                }
+
+                                // Playback controls toolbar
+                                Item {
+                                    width: parent.width
+                                    height: 28
+
+                                    Row {
+                                        anchors.centerIn: parent
+                                        spacing: userConfig.boringNotchEnabled ? 16 : 28
+
+                                        Item {
+                                            width: 24
+                                            height: 24
+                                            visible: userConfig.boringNotchEnabled
+                                            scale: shuffleArea.pressed ? 0.8 : 1.0
+
+                                            Text {
+                                                anchors.centerIn: parent
+                                                text: "󰒝"
+                                                color: (activePlayer && activePlayer.shuffle) ? "#b56cff" : (shuffleArea.pressed ? "#888" : "#8e8e93")
+                                                font.family: root.iconFontFamily
+                                                font.pixelSize: 15
+                                            }
+
+                                            MouseArea {
+                                                id: shuffleArea
+                                                anchors.fill: parent
+                                                anchors.margins: -8
+                                                preventStealing: true
+                                                onPressed: (mouse) => {
+                                                    controlPressed();
+                                                    mouse.accepted = true;
+                                                }
+                                                onClicked: {
+                                                    if (activePlayer && activePlayer.shuffle !== undefined) {
+                                                        activePlayer.shuffle = !activePlayer.shuffle;
+                                                    }
+                                                }
                                             }
                                         }
 
-                                        Behavior on color {
-                                            ColorAnimation {
-                                                duration: isPlaying ? 140 : 280
-                                                easing.type: Easing.InOutQuad
+                                        Item {
+                                            width: 24
+                                            height: 24
+                                            visible: userConfig.boringNotchEnabled
+                                            scale: seekBackArea.pressed ? 0.8 : 1.0
+
+                                            Text {
+                                                anchors.centerIn: parent
+                                                text: "󰕌"
+                                                color: seekBackArea.pressed ? "#888" : "white"
+                                                font.family: root.iconFontFamily
+                                                font.pixelSize: 16
+                                            }
+
+                                            MouseArea {
+                                                id: seekBackArea
+                                                anchors.fill: parent
+                                                anchors.margins: -8
+                                                preventStealing: true
+                                                onPressed: (mouse) => {
+                                                    controlPressed();
+                                                    mouse.accepted = true;
+                                                }
+                                                onClicked: root.seekOffset(-15)
+                                            }
+                                        }
+
+                                        Item {
+                                            width: 24
+                                            height: 24
+                                            scale: prevArea.pressed ? 0.8 : 1.0
+
+                                            Behavior on scale {
+                                                NumberAnimation { duration: 100 }
+                                            }
+
+                                            Canvas {
+                                                anchors.fill: parent
+                                                property color fillColor: prevArea.pressed ? "#888" : "white"
+
+                                                onFillColorChanged: requestPaint()
+                                                onPaint: {
+                                                    var ctx = getContext("2d");
+                                                    ctx.clearRect(0, 0, width, height);
+                                                    ctx.fillStyle = fillColor;
+                                                    ctx.strokeStyle = fillColor;
+                                                    ctx.lineJoin = "round";
+                                                    ctx.lineWidth = 1.8;
+                                                    ctx.beginPath();
+                                                    ctx.rect(3, 4, 2.5, 16);
+                                                    ctx.moveTo(12, 4);
+                                                    ctx.lineTo(5, 12);
+                                                    ctx.lineTo(12, 20);
+                                                    ctx.closePath();
+                                                    ctx.moveTo(20, 4);
+                                                    ctx.lineTo(13, 12);
+                                                    ctx.lineTo(20, 20);
+                                                    ctx.closePath();
+                                                    ctx.fill();
+                                                    ctx.stroke();
+                                                }
+                                            }
+
+                                            MouseArea {
+                                                id: prevArea
+                                                anchors.fill: parent
+                                                anchors.margins: -10
+                                                preventStealing: true
+                                                onPressed: (mouse) => {
+                                                    controlPressed();
+                                                    mouse.accepted = true;
+                                                }
+                                                onClicked: root.previousRequested()
+                                            }
+                                        }
+
+                                        Item {
+                                            width: 28
+                                            height: 28
+                                            scale: playArea.pressed ? 0.8 : 1.0
+
+                                            Behavior on scale {
+                                                NumberAnimation { duration: 100 }
+                                            }
+
+                                            Row {
+                                                anchors.centerIn: parent
+                                                spacing: 5
+                                                visible: activePlayer && activePlayer.playbackState === MprisPlaybackState.Playing
+
+                                                Rectangle { width: 5; height: 18; radius: 2; color: playArea.pressed ? "#888" : "white" }
+                                                Rectangle { width: 5; height: 18; radius: 2; color: playArea.pressed ? "#888" : "white" }
+                                            }
+
+                                            Canvas {
+                                                anchors.fill: parent
+                                                visible: !activePlayer || activePlayer.playbackState !== MprisPlaybackState.Playing
+                                                property color fillColor: playArea.pressed ? "#888" : "white"
+
+                                                onFillColorChanged: requestPaint()
+                                                onPaint: {
+                                                    var ctx = getContext("2d");
+                                                    ctx.clearRect(0, 0, width, height);
+                                                    ctx.fillStyle = fillColor;
+                                                    ctx.strokeStyle = fillColor;
+                                                    ctx.lineJoin = "round";
+                                                    ctx.lineWidth = 1.8;
+                                                    ctx.beginPath();
+                                                    ctx.moveTo(8, 3);
+                                                    ctx.lineTo(22, 14);
+                                                    ctx.lineTo(8, 25);
+                                                    ctx.closePath();
+                                                    ctx.fill();
+                                                    ctx.stroke();
+                                                }
+                                            }
+
+                                            MouseArea {
+                                                id: playArea
+                                                anchors.fill: parent
+                                                anchors.margins: -10
+                                                preventStealing: true
+                                                onPressed: (mouse) => {
+                                                    controlPressed();
+                                                    mouse.accepted = true;
+                                                }
+                                                onClicked: togglePlayback()
+                                            }
+                                        }
+
+                                        Item {
+                                            width: 24
+                                            height: 24
+                                            scale: nextArea.pressed ? 0.8 : 1.0
+
+                                            Behavior on scale {
+                                                NumberAnimation { duration: 100 }
+                                            }
+
+                                            Canvas {
+                                                anchors.fill: parent
+                                                property color fillColor: nextArea.pressed ? "#888" : "white"
+
+                                                onFillColorChanged: requestPaint()
+                                                onPaint: {
+                                                    var ctx = getContext("2d");
+                                                    ctx.clearRect(0, 0, width, height);
+                                                    ctx.fillStyle = fillColor;
+                                                    ctx.strokeStyle = fillColor;
+                                                    ctx.lineJoin = "round";
+                                                    ctx.lineWidth = 1.8;
+                                                    ctx.beginPath();
+                                                    ctx.moveTo(4, 4);
+                                                    ctx.lineTo(11, 12);
+                                                    ctx.lineTo(4, 20);
+                                                    ctx.closePath();
+                                                    ctx.moveTo(12, 4);
+                                                    ctx.lineTo(19, 12);
+                                                    ctx.lineTo(12, 20);
+                                                    ctx.closePath();
+                                                    ctx.rect(19, 4, 2.5, 16);
+                                                    ctx.fill();
+                                                    ctx.stroke();
+                                                }
+                                            }
+
+                                            MouseArea {
+                                                id: nextArea
+                                                anchors.fill: parent
+                                                anchors.margins: -10
+                                                preventStealing: true
+                                                onPressed: (mouse) => {
+                                                    controlPressed();
+                                                    mouse.accepted = true;
+                                                }
+                                                onClicked: if (activePlayer) activePlayer.next()
+                                            }
+                                        }
+
+                                        Item {
+                                            width: 24
+                                            height: 24
+                                            visible: userConfig.boringNotchEnabled
+                                            scale: seekFwdArea.pressed ? 0.8 : 1.0
+
+                                            Text {
+                                                anchors.centerIn: parent
+                                                text: "󰕎"
+                                                color: seekFwdArea.pressed ? "#888" : "white"
+                                                font.family: root.iconFontFamily
+                                                font.pixelSize: 16
+                                            }
+
+                                            MouseArea {
+                                                id: seekFwdArea
+                                                anchors.fill: parent
+                                                anchors.margins: -8
+                                                preventStealing: true
+                                                onPressed: (mouse) => {
+                                                    controlPressed();
+                                                    mouse.accepted = true;
+                                                }
+                                                onClicked: root.seekOffset(15)
+                                            }
+                                        }
+
+                                        Item {
+                                            width: 24
+                                            height: 24
+                                            visible: userConfig.boringNotchEnabled
+                                            scale: repeatArea.pressed ? 0.8 : 1.0
+
+                                            Text {
+                                                anchors.centerIn: parent
+                                                text: (activePlayer && String(activePlayer.loopStatus).toLowerCase().indexOf("track") !== -1) ? "󰑘" : "󰑖"
+                                                color: (activePlayer && String(activePlayer.loopStatus).toLowerCase() !== "none") ? "#b56cff" : (repeatArea.pressed ? "#888" : "#8e8e93")
+                                                font.family: root.iconFontFamily
+                                                font.pixelSize: 15
+                                            }
+
+                                            MouseArea {
+                                                id: repeatArea
+                                                anchors.fill: parent
+                                                anchors.margins: -8
+                                                preventStealing: true
+                                                onPressed: (mouse) => {
+                                                    controlPressed();
+                                                    mouse.accepted = true;
+                                                }
+                                                onClicked: {
+                                                    if (activePlayer && activePlayer.loopStatus !== undefined) {
+                                                        const s = String(activePlayer.loopStatus).toLowerCase();
+                                                        if (s === "none") activePlayer.loopStatus = "Playlist";
+                                                        else if (s === "playlist") activePlayer.loopStatus = "Track";
+                                                        else activePlayer.loopStatus = "None";
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        Item {
+                                            width: 24
+                                            height: 24
+                                            visible: userConfig.boringNotchEnabled
+                                            scale: volArea.pressed ? 0.8 : 1.0
+
+                                            Text {
+                                                anchors.centerIn: parent
+                                                text: (activePlayer && activePlayer.volume === 0) ? "󰖁" : "󰕾"
+                                                color: volArea.pressed ? "#888" : "white"
+                                                font.family: root.iconFontFamily
+                                                font.pixelSize: 16
+                                            }
+
+                                            MouseArea {
+                                                id: volArea
+                                                anchors.fill: parent
+                                                anchors.margins: -8
+                                                preventStealing: true
+                                                onPressed: (mouse) => {
+                                                    controlPressed();
+                                                    mouse.accepted = true;
+                                                }
+                                                onClicked: {
+                                                    if (activePlayer && activePlayer.volume !== undefined) {
+                                                        activePlayer.volume = activePlayer.volume > 0 ? 0 : 0.7;
+                                                    }
+                                                }
                                             }
                                         }
                                     }
                                 }
                             }
                         }
-                    }
-
-                    Item {
-                        width: parent.width
-                        height: 16
-
-                        Text {
-                            id: timeL
-                            anchors.left: parent.left
-                            text: timePlayed
-                            color: "#8e8e93"
-                            font.pixelSize: userConfig.bodyFontSize - 4
-                            font.family: textFontFamily
-                            font.weight: Font.Medium
-                        }
-
-                        Rectangle {
-                            anchors.verticalCenter: parent.verticalCenter
-                            anchors.left: timeL.right
-                            anchors.right: timeR.left
-                            anchors.margins: 12
-                            height: 6
-                            radius: 3
-                            color: "#333333"
-
-                            Rectangle {
-                                height: parent.height
-                                radius: 3
-                                color: userConfig.boringNotchEnabled ? colorExtractor.extractedColor : "white"
-                                width: parent.width * trackProgress
-
-                                Behavior on color {
-                                    ColorAnimation { duration: 250; easing.type: Easing.InOutQuad }
-                                }
-
-                                Behavior on width {
-                                    NumberAnimation {
-                                        duration: 500
-                                        easing.type: Easing.OutCubic
-                                    }
-                                }
-                            }
-                        }
-
-                        Text {
-                            id: timeR
-                            anchors.right: parent.right
-                            text: timeTotal
-                            color: "#8e8e93"
-                            font.pixelSize: userConfig.bodyFontSize - 4
-                            font.family: textFontFamily
-                            font.weight: Font.Medium
-                        }
-                    }
-
-                    Item {
-                        width: parent.width
-                        height: 36
-
-                        Row {
-                            anchors.centerIn: parent
-                            spacing: userConfig.boringNotchEnabled ? 18 : 50
-
-                            Item {
-                                width: 26
-                                height: 26
-                                visible: userConfig.boringNotchEnabled
-                                scale: shuffleArea.pressed ? 0.8 : 1.0
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: "󰒝"
-                                    color: (activePlayer && activePlayer.shuffle) ? "#b56cff" : (shuffleArea.pressed ? "#888" : "#8e8e93")
-                                    font.family: root.iconFontFamily
-                                    font.pixelSize: 16
-                                }
-
-                                MouseArea {
-                                    id: shuffleArea
-                                    anchors.fill: parent
-                                    anchors.margins: -8
-                                    preventStealing: true
-                                    onPressed: (mouse) => {
-                                        controlPressed();
-                                        mouse.accepted = true;
-                                    }
-                                    onClicked: {
-                                        if (activePlayer && activePlayer.shuffle !== undefined) {
-                                            activePlayer.shuffle = !activePlayer.shuffle;
-                                        }
-                                    }
-                                }
-                            }
-
-                            Item {
-                                width: 28
-                                height: 28
-                                visible: userConfig.boringNotchEnabled
-                                scale: seekBackArea.pressed ? 0.8 : 1.0
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: "󰕌"
-                                    color: seekBackArea.pressed ? "#888" : "white"
-                                    font.family: root.iconFontFamily
-                                    font.pixelSize: 18
-                                }
-
-                                MouseArea {
-                                    id: seekBackArea
-                                    anchors.fill: parent
-                                    anchors.margins: -10
-                                    preventStealing: true
-                                    onPressed: (mouse) => {
-                                        controlPressed();
-                                        mouse.accepted = true;
-                                    }
-                                    onClicked: root.seekOffset(-15)
-                                }
-                            }
-
-                            Item {
-                                width: 28
-                                height: 28
-                                scale: prevArea.pressed ? 0.8 : 1.0
-
-                                Behavior on scale {
-                                    NumberAnimation { duration: 100 }
-                                }
-
-                                Canvas {
-                                    anchors.fill: parent
-                                    property color fillColor: prevArea.pressed ? "#888" : "white"
-
-                                    onFillColorChanged: requestPaint()
-                                    onPaint: {
-                                        var ctx = getContext("2d");
-                                        ctx.clearRect(0, 0, width, height);
-                                        ctx.fillStyle = fillColor;
-                                        ctx.strokeStyle = fillColor;
-                                        ctx.lineJoin = "round";
-                                        ctx.lineWidth = 2;
-                                        ctx.beginPath();
-                                        ctx.rect(3, 5, 3, 18);
-                                        ctx.moveTo(14, 5);
-                                        ctx.lineTo(6, 14);
-                                        ctx.lineTo(14, 23);
-                                        ctx.closePath();
-                                        ctx.moveTo(23, 5);
-                                        ctx.lineTo(15, 14);
-                                        ctx.lineTo(23, 23);
-                                        ctx.closePath();
-                                        ctx.fill();
-                                        ctx.stroke();
-                                    }
-                                }
-
-                                MouseArea {
-                                    id: prevArea
-                                    anchors.fill: parent
-                                    anchors.margins: -15
-                                    preventStealing: true
-                                    onPressed: (mouse) => {
-                                        controlPressed();
-                                        mouse.accepted = true;
-                                    }
-                                    onClicked: root.previousRequested()
-                                }
-                            }
-
-                            Item {
-                                width: 28
-                                height: 28
-                                scale: playArea.pressed ? 0.8 : 1.0
-
-                                Behavior on scale {
-                                    NumberAnimation { duration: 100 }
-                                }
-
-                                Row {
-                                    anchors.centerIn: parent
-                                    spacing: 6
-                                    visible: activePlayer && activePlayer.playbackState === MprisPlaybackState.Playing
-
-                                    Rectangle { width: 6; height: 20; radius: 2; color: playArea.pressed ? "#888" : "white" }
-                                    Rectangle { width: 6; height: 20; radius: 2; color: playArea.pressed ? "#888" : "white" }
-                                }
-
-                                Canvas {
-                                    anchors.fill: parent
-                                    visible: !activePlayer || activePlayer.playbackState !== MprisPlaybackState.Playing
-                                    property color fillColor: playArea.pressed ? "#888" : "white"
-
-                                    onFillColorChanged: requestPaint()
-                                    onPaint: {
-                                        var ctx = getContext("2d");
-                                        ctx.clearRect(0, 0, width, height);
-                                        ctx.fillStyle = fillColor;
-                                        ctx.strokeStyle = fillColor;
-                                        ctx.lineJoin = "round";
-                                        ctx.lineWidth = 2;
-                                        ctx.beginPath();
-                                        ctx.moveTo(8, 4);
-                                        ctx.lineTo(24, 14);
-                                        ctx.lineTo(8, 24);
-                                        ctx.closePath();
-                                        ctx.fill();
-                                        ctx.stroke();
-                                    }
-                                }
-
-                                MouseArea {
-                                    id: playArea
-                                    anchors.fill: parent
-                                    anchors.margins: -15
-                                    preventStealing: true
-                                    onPressed: (mouse) => {
-                                        controlPressed();
-                                        mouse.accepted = true;
-                                    }
-                                    onClicked: togglePlayback()
-                                }
-                            }
-
-                            Item {
-                                width: 28
-                                height: 28
-                                scale: nextArea.pressed ? 0.8 : 1.0
-
-                                Behavior on scale {
-                                    NumberAnimation { duration: 100 }
-                                }
-
-                                Canvas {
-                                    anchors.fill: parent
-                                    property color fillColor: nextArea.pressed ? "#888" : "white"
-
-                                    onFillColorChanged: requestPaint()
-                                    onPaint: {
-                                        var ctx = getContext("2d");
-                                        ctx.clearRect(0, 0, width, height);
-                                        ctx.fillStyle = fillColor;
-                                        ctx.strokeStyle = fillColor;
-                                        ctx.lineJoin = "round";
-                                        ctx.lineWidth = 2;
-                                        ctx.beginPath();
-                                        ctx.moveTo(5, 5);
-                                        ctx.lineTo(13, 14);
-                                        ctx.lineTo(5, 23);
-                                        ctx.closePath();
-                                        ctx.moveTo(14, 5);
-                                        ctx.lineTo(22, 14);
-                                        ctx.lineTo(14, 23);
-                                        ctx.closePath();
-                                        ctx.rect(22, 5, 3, 18);
-                                        ctx.fill();
-                                        ctx.stroke();
-                                    }
-                                }
-
-                                MouseArea {
-                                    id: nextArea
-                                    anchors.fill: parent
-                                    anchors.margins: -15
-                                    preventStealing: true
-                                    onPressed: (mouse) => {
-                                        controlPressed();
-                                        mouse.accepted = true;
-                                    }
-                                    onClicked: if (activePlayer) activePlayer.next()
-                                }
-                            }
-
-                            Item {
-                                width: 28
-                                height: 28
-                                visible: userConfig.boringNotchEnabled
-                                scale: seekFwdArea.pressed ? 0.8 : 1.0
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: "󰕎"
-                                    color: seekFwdArea.pressed ? "#888" : "white"
-                                    font.family: root.iconFontFamily
-                                    font.pixelSize: 18
-                                }
-
-                                MouseArea {
-                                    id: seekFwdArea
-                                    anchors.fill: parent
-                                    anchors.margins: -10
-                                    preventStealing: true
-                                    onPressed: (mouse) => {
-                                        controlPressed();
-                                        mouse.accepted = true;
-                                    }
-                                    onClicked: root.seekOffset(15)
-                                }
-                            }
-
-                            Item {
-                                width: 26
-                                height: 26
-                                visible: userConfig.boringNotchEnabled
-                                scale: repeatArea.pressed ? 0.8 : 1.0
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: (activePlayer && String(activePlayer.loopStatus).toLowerCase().indexOf("track") !== -1) ? "󰑘" : "󰑖"
-                                    color: (activePlayer && String(activePlayer.loopStatus).toLowerCase() !== "none") ? "#b56cff" : (repeatArea.pressed ? "#888" : "#8e8e93")
-                                    font.family: root.iconFontFamily
-                                    font.pixelSize: 16
-                                }
-
-                                MouseArea {
-                                    id: repeatArea
-                                    anchors.fill: parent
-                                    anchors.margins: -8
-                                    preventStealing: true
-                                    onPressed: (mouse) => {
-                                        controlPressed();
-                                        mouse.accepted = true;
-                                    }
-                                    onClicked: {
-                                        if (activePlayer && activePlayer.loopStatus !== undefined) {
-                                            const s = String(activePlayer.loopStatus).toLowerCase();
-                                            if (s === "none") activePlayer.loopStatus = "Playlist";
-                                            else if (s === "playlist") activePlayer.loopStatus = "Track";
-                                            else activePlayer.loopStatus = "None";
-                                        }
-                                    }
-                                }
-                            }
-
-                            Item {
-                                width: 28
-                                height: 28
-                                visible: userConfig.boringNotchEnabled
-                                scale: volArea.pressed ? 0.8 : 1.0
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: (activePlayer && activePlayer.volume === 0) ? "󰖁" : "󰕾"
-                                    color: volArea.pressed ? "#888" : "white"
-                                    font.family: root.iconFontFamily
-                                    font.pixelSize: 18
-                                }
-
-                                MouseArea {
-                                    id: volArea
-                                    anchors.fill: parent
-                                    anchors.margins: -10
-                                    preventStealing: true
-                                    onPressed: (mouse) => {
-                                        controlPressed();
-                                        mouse.accepted = true;
-                                    }
-                                    onClicked: {
-                                        if (activePlayer && activePlayer.volume !== undefined) {
-                                            activePlayer.volume = activePlayer.volume > 0 ? 0 : 0.7;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
 
                 Rectangle {
                     width: 1
