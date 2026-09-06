@@ -52,7 +52,7 @@ PagePanel {
         Item {
             id: content
             width: scroller.width
-            height: behaviorPanel.y + behaviorPanel.height + 40
+            height: mediaPanel.y + mediaPanel.height + 40
 
             Text {
                 id: title
@@ -273,6 +273,61 @@ PagePanel {
                     }
                 }
             }
+
+            Text {
+                id: mediaTitle
+                text: "Media & Player Monitoring"
+                anchors.top: behaviorPanel.bottom
+                anchors.topMargin: 34
+                anchors.left: parent.left
+                anchors.leftMargin: 32
+                anchors.right: parent.right
+                anchors.rightMargin: 40
+                font.family: Theme.titleFontFamily
+                font.pixelSize: 23
+                color: Theme.textColor
+            }
+
+            Rectangle {
+                id: mediaPanel
+                color: Theme.cardBgColor
+                radius: 16
+                border.width: 1
+                border.color: Theme.splitLineColor
+                anchors.top: mediaTitle.bottom
+                anchors.topMargin: 15
+                anchors.left: parent.left
+                anchors.leftMargin: 30
+                anchors.right: parent.right
+                anchors.rightMargin: 40
+                height: mediaColumn.implicitHeight + 36
+
+                Column {
+                    id: mediaColumn
+                    anchors.top: parent.top
+                    anchors.topMargin: 18
+                    anchors.left: parent.left
+                    anchors.leftMargin: 18
+                    anchors.right: parent.right
+                    anchors.rightMargin: 18
+                    spacing: 16
+
+                    ToggleRow {
+                        title: "Auto-Expand on Track Change"
+                        description: "Expand island into full player when media changes (disabled by default)"
+                        keyName: "disableAutoExpandOnTrackChange"
+                        fallbackState: true
+                        invert: true
+                        width: parent.width
+                    }
+
+                    SplitLine { width: parent.width }
+
+                    ExcludedPlayersRow {
+                        width: parent.width
+                    }
+                }
+            }
         }
     }
 
@@ -352,7 +407,11 @@ PagePanel {
         property string description: ""
         property string keyName: ""
         property bool fallbackState: false
-        property bool checkedState: root.boolValue(keyName, fallbackState)
+        property bool invert: false
+        property bool checkedState: {
+            const val = root.boolValue(keyName, fallbackState)
+            return invert ? !val : val
+        }
 
         height: 49
 
@@ -420,8 +479,190 @@ PagePanel {
                 onClicked: {
                     const next = !toggleRow.checkedState
                     toggleRow.checkedState = next
-                    ConfigStore.setValue(toggleRow.keyName, next)
+                    ConfigStore.setValue(toggleRow.keyName, toggleRow.invert ? !next : next)
                     ConfigStore.save()
+                }
+            }
+        }
+    }
+
+    component ExcludedPlayersRow: Item {
+        id: row
+        height: rowColumn.implicitHeight + 10
+
+        property var playerList: {
+            const raw = ConfigStore.value("excludedPlayers", [])
+            return Array.isArray(raw) ? raw : []
+        }
+
+        function addPlayer(name) {
+            const trimmed = String(name || "").trim().toLowerCase()
+            if (trimmed === "") return
+            const current = playerList.slice()
+            if (current.indexOf(trimmed) === -1) {
+                current.push(trimmed)
+                ConfigStore.setValue("excludedPlayers", current)
+                ConfigStore.save()
+                row.playerList = current
+            }
+        }
+
+        function removePlayer(index) {
+            const current = playerList.slice()
+            if (index >= 0 && index < current.length) {
+                current.splice(index, 1)
+                ConfigStore.setValue("excludedPlayers", current)
+                ConfigStore.save()
+                row.playerList = current
+            }
+        }
+
+        Column {
+            id: rowColumn
+            width: parent.width
+            spacing: 12
+
+            Column {
+                width: parent.width
+                spacing: 4
+
+                Text {
+                    text: "Excluded Media Players"
+                    font.family: Theme.textFontFamily
+                    font.pixelSize: 18
+                    color: Theme.textColor
+                }
+
+                Text {
+                    text: "Ignore background audio players or browser tabs matching these names"
+                    font.family: Theme.textFontFamily
+                    font.pixelSize: 14
+                    color: Theme.subtleTextColor
+                }
+            }
+
+            // Input field + Add button + quick suggestion chips
+            Row {
+                width: parent.width
+                spacing: 8
+
+                ConfigTextField {
+                    id: playerInput
+                    width: 200
+                    height: 36
+                    placeholderText: "e.g. firefox, brave, discord"
+                    onAccepted: {
+                        row.addPlayer(playerInput.text)
+                        playerInput.text = ""
+                    }
+                }
+
+                Rectangle {
+                    width: 64
+                    height: 36
+                    radius: 7
+                    color: addMouse.pressed ? Theme.controlPressedColor : Theme.componentBgColor
+                    border.width: 1
+                    border.color: Theme.inputBorderColor
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: "Add"
+                        color: Theme.textColor
+                        font.family: Theme.textFontFamily
+                        font.pixelSize: 14
+                        font.weight: Font.DemiBold
+                    }
+
+                    MouseArea {
+                        id: addMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            row.addPlayer(playerInput.text)
+                            playerInput.text = ""
+                        }
+                    }
+                }
+
+                // Quick add suggestion chips
+                Repeater {
+                    model: ["firefox", "chromium", "discord"]
+
+                    delegate: Rectangle {
+                        width: chipText.implicitWidth + 14
+                        height: 36
+                        radius: 7
+                        color: "transparent"
+                        border.width: 1
+                        border.color: Theme.inputBorderColor
+                        visible: row.playerList.indexOf(modelData) === -1
+
+                        Text {
+                            id: chipText
+                            anchors.centerIn: parent
+                            text: "+ " + modelData
+                            color: Theme.subtleTextColor
+                            font.family: Theme.textFontFamily
+                            font.pixelSize: 12
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: row.addPlayer(modelData)
+                        }
+                    }
+                }
+            }
+
+            // Active excluded chips list
+            Flow {
+                width: parent.width
+                spacing: 6
+                visible: row.playerList.length > 0
+
+                Repeater {
+                    model: row.playerList
+
+                    delegate: Rectangle {
+                        width: tagRow.implicitWidth + 16
+                        height: 28
+                        radius: 6
+                        color: Theme.componentBgColor
+                        border.width: 1
+                        border.color: Theme.inputBorderColor
+
+                        Row {
+                            id: tagRow
+                            anchors.centerIn: parent
+                            spacing: 6
+
+                            Text {
+                                text: modelData
+                                color: Theme.textColor
+                                font.family: Theme.textFontFamily
+                                font.pixelSize: 13
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+
+                            Text {
+                                text: "×"
+                                color: "#ff453a"
+                                font.pixelSize: 15
+                                font.weight: Font.Bold
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: row.removePlayer(index)
+                        }
+                    }
                 }
             }
         }

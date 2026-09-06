@@ -44,6 +44,8 @@ public:
     Q_INVOKABLE void cancelTlpApply();
     Q_INVOKABLE void setCavaClientActive(const QString &clientId, bool active);
     Q_INVOKABLE void ensureUserConfigAvailable();
+    Q_INVOKABLE void openConfigApp();
+    Q_INVOKABLE void openSettings();
 
 signals:
     void notificationReceived(const QString &appName, const QString &summary, const QString &body);

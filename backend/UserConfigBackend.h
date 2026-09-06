@@ -43,6 +43,7 @@ class UserConfigBackend final : public QObject {
     Q_PROPERTY(int dynamicIslandSecondaryButton READ dynamicIslandSecondaryButton NOTIFY dynamicIslandSecondaryButtonChanged FINAL)
     Q_PROPERTY(QString dynamicIslandSecondaryAction READ dynamicIslandSecondaryAction NOTIFY dynamicIslandSecondaryActionChanged FINAL)
     Q_PROPERTY(QVariantList dynamicIslandLeftSwipeItems READ dynamicIslandLeftSwipeItems NOTIFY dynamicIslandLeftSwipeItemsChanged FINAL)
+    Q_PROPERTY(QVariantList excludedPlayers READ excludedPlayers NOTIFY excludedPlayersChanged FINAL)
     Q_PROPERTY(bool disableAutoExpandOnTrackChange READ disableAutoExpandOnTrackChange NOTIFY disableAutoExpandOnTrackChangeChanged FINAL)
     Q_PROPERTY(bool playerRememberLastPane READ playerRememberLastPane NOTIFY playerRememberLastPaneChanged FINAL)
     Q_PROPERTY(int hoverExpandAction READ hoverExpandAction NOTIFY hoverExpandActionChanged FINAL)
@@ -103,6 +104,7 @@ public:
     int dynamicIslandSecondaryButton() const;
     QString dynamicIslandSecondaryAction() const;
     const QVariantList &dynamicIslandLeftSwipeItems() const;
+    const QVariantList &excludedPlayers() const;
     bool disableAutoExpandOnTrackChange() const;
     bool playerRememberLastPane() const;
     int hoverExpandAction() const;
@@ -164,6 +166,7 @@ signals:
     void dynamicIslandSecondaryButtonChanged();
     void dynamicIslandSecondaryActionChanged();
     void dynamicIslandLeftSwipeItemsChanged();
+    void excludedPlayersChanged();
     void disableAutoExpandOnTrackChangeChanged();
     void playerRememberLastPaneChanged();
     void islandShowWorkspaceOnAutoHideChanged();
@@ -226,8 +229,9 @@ private:
     int m_dynamicIslandSecondaryButton = 3;
     QString m_dynamicIslandSecondaryAction = QStringLiteral("toggleControlCenter");
     QVariantList m_dynamicIslandLeftSwipeItems;
+    QVariantList m_excludedPlayers;
     bool m_islandShowWorkspaceOnAutoHide = true;
-    bool m_disableAutoExpandOnTrackChange = false;
+    bool m_disableAutoExpandOnTrackChange = true;
     bool m_playerRememberLastPane = false;
     int m_hoverExpandAction = 1;
     bool m_islandAutoHideEnabled = true;

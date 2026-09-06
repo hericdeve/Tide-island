@@ -749,6 +749,31 @@ void SystemServices::ensureUserConfigAvailable() {
     }
 }
 
+void SystemServices::openConfigApp() {
+    QString configAppPath = QString::fromLocal8Bit(qgetenv("TIDE_ISLAND_CONFIG_APP")).trimmed();
+    if (configAppPath.isEmpty())
+        configAppPath = findExecutable(QStringLiteral("tide-island-config-app"));
+
+    if (configAppPath.isEmpty()) {
+        const QString localBuildPath = QCoreApplication::applicationDirPath() + QStringLiteral("/Tide-island-app/tide-island-config-app");
+        if (QFileInfo::exists(localBuildPath))
+            configAppPath = localBuildPath;
+    }
+
+    if (configAppPath.isEmpty()) {
+        qWarning() << "[SystemServices] Could not find tide-island-config-app executable";
+        return;
+    }
+
+    if (!QProcess::startDetached(configAppPath, {})) {
+        qWarning() << "[SystemServices] Failed to launch config app:" << configAppPath;
+    }
+}
+
+void SystemServices::openSettings() {
+    openConfigApp();
+}
+
 void SystemServices::generateWallpaperThumbnail(const QString &sourcePath,
                                                 const QString &cachePath,
                                                 const QString &cacheDir,

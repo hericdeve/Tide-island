@@ -1870,7 +1870,7 @@ PanelWindow {
         }
 
         onCurrentTrackChanged: {
-            if (userConfig.disableAutoExpandOnTrackChange) return;
+            if (userConfig.disableAutoExpandOnTrackChange || userConfig.boringNotchEnabled) return;
             if (currentTrack !== ""
                     && islandState !== "control_center"
                     && islandState !== "notification"

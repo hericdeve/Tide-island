@@ -184,10 +184,35 @@ Item {
         );
     }
 
+    Connections {
+        target: UserConfig
+        function onExcludedPlayersChanged() {
+            root.activePlayer = root.resolveActivePlayer();
+        }
+    }
+
+    function isPlayerExcluded(player) {
+        if (!player) return true;
+        const list = UserConfig.excludedPlayers;
+        if (!list || list.length === 0) return false;
+
+        const identity = String(player.identity || "").toLowerCase();
+        const dbus = String(player.dbusName || "").toLowerCase();
+        const desktop = String(player.desktopEntry || "").toLowerCase();
+
+        for (let i = 0; i < list.length; i++) {
+            const pattern = String(list[i] || "").trim().toLowerCase();
+            if (pattern === "") continue;
+            if (identity.includes(pattern) || dbus.includes(pattern) || desktop.includes(pattern))
+                return true;
+        }
+        return false;
+    }
+
     function findPlayerByDbusName(dbusName) {
         if (!playersList || !dbusName) return null;
         for (let index = 0; index < playersList.length; index++) {
-            if (playersList[index].dbusName === dbusName)
+            if (playersList[index].dbusName === dbusName && !isPlayerExcluded(playersList[index]))
                 return playersList[index];
         }
         return null;
@@ -197,25 +222,36 @@ Item {
         if (!playersList || playersList.length === 0) return null;
 
         for (let index = 0; index < playersList.length; index++) {
-            if (playersList[index].playbackState === MprisPlaybackState.Playing)
-                return playersList[index];
+            const p = playersList[index];
+            if (isPlayerExcluded(p)) continue;
+            if (p.playbackState === MprisPlaybackState.Playing)
+                return p;
         }
 
         const rememberedPlayer = findPlayerByDbusName(lastActivePlayerDbusName);
-        if (rememberedPlayer && (playerHasTrackInfo(rememberedPlayer) || rememberedPlayer.canControl))
+        if (rememberedPlayer && !isPlayerExcluded(rememberedPlayer) && (playerHasTrackInfo(rememberedPlayer) || rememberedPlayer.canControl))
             return rememberedPlayer;
 
         for (let index = 0; index < playersList.length; index++) {
-            if (playersList[index].playbackState === MprisPlaybackState.Paused && playerHasTrackInfo(playersList[index]))
-                return playersList[index];
+            const p = playersList[index];
+            if (isPlayerExcluded(p)) continue;
+            if (p.playbackState === MprisPlaybackState.Paused && playerHasTrackInfo(p))
+                return p;
         }
 
         for (let index = 0; index < playersList.length; index++) {
-            if (playersList[index].canControl)
+            const p = playersList[index];
+            if (isPlayerExcluded(p)) continue;
+            if (p.canControl)
+                return p;
+        }
+
+        for (let index = 0; index < playersList.length; index++) {
+            if (!isPlayerExcluded(playersList[index]))
                 return playersList[index];
         }
 
-        return playersList[0];
+        return null;
     }
 
     QtObject {

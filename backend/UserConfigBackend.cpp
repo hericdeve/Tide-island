@@ -272,6 +272,11 @@ const QVariantList &UserConfigBackend::dynamicIslandLeftSwipeItems() const
     return m_dynamicIslandLeftSwipeItems;
 }
 
+const QVariantList &UserConfigBackend::excludedPlayers() const
+{
+    return m_excludedPlayers;
+}
+
 bool UserConfigBackend::disableAutoExpandOnTrackChange() const
 {
     return m_disableAutoExpandOnTrackChange;
@@ -523,7 +528,8 @@ void UserConfigBackend::loadConfig()
     updateField(this, m_islandShowWorkspaceOnAutoHide, jsonBool(configObject, QLatin1String("islandShowWorkspaceOnAutoHide"), true), &UserConfigBackend::islandShowWorkspaceOnAutoHideChanged);
     updateField(this, m_dynamicIslandSecondaryAction, jsonString(configObject, QLatin1String("dynamicIslandSecondaryAction"), QStringLiteral("toggleControlCenter")), &UserConfigBackend::dynamicIslandSecondaryActionChanged);
     updateField(this, m_dynamicIslandLeftSwipeItems, jsonArray(configObject, QLatin1String("dynamicIslandLeftSwipeItems"), defaultDynamicIslandLeftSwipeItems()), &UserConfigBackend::dynamicIslandLeftSwipeItemsChanged);
-    updateField(this, m_disableAutoExpandOnTrackChange, jsonBool(configObject, QLatin1String("disableAutoExpandOnTrackChange"), false), &UserConfigBackend::disableAutoExpandOnTrackChangeChanged);
+    updateField(this, m_excludedPlayers, jsonArray(configObject, QLatin1String("excludedPlayers"), QVariantList{}), &UserConfigBackend::excludedPlayersChanged);
+    updateField(this, m_disableAutoExpandOnTrackChange, jsonBool(configObject, QLatin1String("disableAutoExpandOnTrackChange"), true), &UserConfigBackend::disableAutoExpandOnTrackChangeChanged);
     updateField(this, m_playerRememberLastPane, jsonBool(configObject, QLatin1String("playerRememberLastPane"), false), &UserConfigBackend::playerRememberLastPaneChanged);
     updateField(this, m_hoverExpandAction, jsonInt(configObject, QLatin1String("hoverExpandAction"), 1), &UserConfigBackend::hoverExpandActionChanged);
     updateField(this, m_islandAutoHideEnabled, jsonBool(configObject, QLatin1String("islandAutoHideEnabled"), true), &UserConfigBackend::islandAutoHideEnabledChanged);

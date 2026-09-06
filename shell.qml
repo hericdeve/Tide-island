@@ -262,6 +262,18 @@ Scope {
         function toggleFileShelf() {
             shellRoot.forFocusedWindow((window) => window.toggleFileShelfWindow());
         }
+
+        function openSettings() {
+            SystemServices.openConfigApp();
+        }
+    }
+
+    IpcHandler {
+        target: "settings"
+
+        function open() {
+            SystemServices.openConfigApp();
+        }
     }
 
     Connections {

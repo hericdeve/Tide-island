@@ -417,28 +417,26 @@ Item {
                         height: 24
                         visible: userConfig.boringNotchEnabled
 
-                        // Left tabs: Music / Timer / Shelf
+                        // Left tabs: Home / Shelf (Matching Boring Notch Image #5)
                         Row {
                             anchors.left: parent.left
                             anchors.verticalCenter: parent.verticalCenter
                             spacing: 6
 
                             Rectangle {
-                                width: tabMusicText.implicitWidth + 16
+                                width: 34
                                 height: 22
                                 radius: 11
-                                color: root.currentPage === 0 ? "#323236" : "transparent"
+                                color: root.currentPage === 0 ? "#2c2c2e" : "transparent"
                                 border.width: root.currentPage === 0 ? 0 : 1
                                 border.color: "#3a3a3c"
 
                                 Text {
-                                    id: tabMusicText
                                     anchors.centerIn: parent
-                                    text: "Music"
+                                    text: "󰋜"
                                     color: root.currentPage === 0 ? "white" : "#8e8e93"
-                                    font.pixelSize: 11
-                                    font.family: root.textFontFamily
-                                    font.weight: root.currentPage === 0 ? Font.DemiBold : Font.Normal
+                                    font.family: root.iconFontFamily
+                                    font.pixelSize: 13
                                 }
 
                                 MouseArea {
@@ -449,46 +447,17 @@ Item {
                             }
 
                             Rectangle {
-                                width: tabTimerText.implicitWidth + 16
-                                height: 22
-                                radius: 11
-                                color: root.currentPage === 1 ? "#323236" : "transparent"
-                                border.width: root.currentPage === 1 ? 0 : 1
-                                border.color: "#3a3a3c"
-
-                                Text {
-                                    id: tabTimerText
-                                    anchors.centerIn: parent
-                                    text: "Timer"
-                                    color: root.currentPage === 1 ? "white" : "#8e8e93"
-                                    font.pixelSize: 11
-                                    font.family: root.textFontFamily
-                                    font.weight: root.currentPage === 1 ? Font.DemiBold : Font.Normal
-                                }
-
-                                MouseArea {
-                                    anchors.fill: parent
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: root.showPage(1)
-                                }
-                            }
-
-                            Rectangle {
-                                width: tabShelfText.implicitWidth + 16
+                                width: 30
                                 height: 22
                                 radius: 11
                                 color: "transparent"
-                                border.width: 1
-                                border.color: "#3a3a3c"
 
                                 Text {
-                                    id: tabShelfText
                                     anchors.centerIn: parent
-                                    text: "Shelf"
+                                    text: "󰉋"
                                     color: "#8e8e93"
-                                    font.pixelSize: 11
-                                    font.family: root.textFontFamily
-                                    font.weight: Font.Normal
+                                    font.family: root.iconFontFamily
+                                    font.pixelSize: 13
                                 }
 
                                 MouseArea {
@@ -503,22 +472,7 @@ Item {
                         Row {
                             anchors.right: parent.right
                             anchors.verticalCenter: parent.verticalCenter
-                            spacing: 10
-
-                            Row {
-                                anchors.verticalCenter: parent.verticalCenter
-                                spacing: 4
-                                visible: root.batteryCapacity >= 0
-
-                                Text {
-                                    text: (root.isCharging ? "󰂄 " : "󰁹 ") + root.batteryCapacity + "%"
-                                    color: root.isCharging ? "#30d158" : (root.batteryCapacity <= 20 ? "#ff453a" : "#8e8e93")
-                                    font.pixelSize: 11
-                                    font.family: root.iconFontFamily
-                                    font.weight: Font.Medium
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-                            }
+                            spacing: 8
 
                             Item {
                                 width: 22
@@ -571,8 +525,31 @@ Item {
                                         anchors.fill: parent
                                         hoverEnabled: true
                                         cursorShape: Qt.PointingHandCursor
-                                        onClicked: SystemServices.ensureUserConfigAvailable()
+                                        onClicked: SystemServices.openConfigApp()
                                     }
+                                }
+                            }
+
+                            Row {
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: 4
+                                visible: root.batteryCapacity >= 0
+
+                                Text {
+                                    text: root.batteryCapacity + "%"
+                                    color: "white"
+                                    font.pixelSize: 11
+                                    font.family: root.textFontFamily
+                                    font.weight: Font.Medium
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+
+                                Text {
+                                    text: root.isCharging ? "󰂄" : "󰁹"
+                                    color: root.isCharging ? "#30d158" : (root.batteryCapacity <= 20 ? "#ff453a" : "#8e8e93")
+                                    font.pixelSize: 14
+                                    font.family: root.iconFontFamily
+                                    anchors.verticalCenter: parent.verticalCenter
                                 }
                             }
 
