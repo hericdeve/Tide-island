@@ -5,7 +5,8 @@ Item {
 
     property bool isBlinking: false
     property real lookOffsetX: 0
-    readonly property real faceScale: parent ? Math.max(0.75, Math.min(2.5, parent.height / 32.0)) : 1.0
+    property real customScale: -1
+    readonly property real faceScale: customScale > 0 ? customScale : (parent ? Math.max(0.75, Math.min(2.5, parent.height / 32.0)) : 1.0)
 
     width: Math.round(32 * faceScale)
     height: Math.round(20 * faceScale)

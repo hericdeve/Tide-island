@@ -2345,6 +2345,7 @@ PanelWindow {
                 id: customSwipeLoader
                 anchors.fill: parent
                 active: islandContainer.customSwipeVisible
+                    && userConfig.notchMode !== "circle"
                 asynchronous: false
                 visible: active
 
@@ -2376,6 +2377,7 @@ PanelWindow {
                 id: lyricsSwipeLoader
                 anchors.fill: parent
                 active: islandContainer.lyricsSwipeVisible
+                    && userConfig.notchMode !== "circle"
                     && ((!userConfig.showBoringFace && islandContainer.currentTrack === "") || islandContainer.swipeTransitionProgress > 0.01)
                 asynchronous: false
                 visible: active
@@ -2450,7 +2452,6 @@ PanelWindow {
                 active: !root.overviewVisible
                     && userConfig.notchMode === "circle"
                     && islandContainer.islandState === "normal"
-                    && Math.abs(islandContainer.swipeTransitionProgress) < 0.01
                 asynchronous: false
                 visible: active
 
@@ -2460,9 +2461,17 @@ PanelWindow {
                         currentTrack: islandContainer.currentTrack
                         currentArtist: islandContainer.currentArtist
                         isPlaying: islandContainer.activePlayer ? islandContainer.activePlayer.playbackState === MprisPlaybackState.Playing : false
+                        trackProgress: islandContainer.trackProgress
+                        batteryCapacity: islandContainer.batteryCapacity
+                        isCharging: islandContainer.isCharging
+                        currentCpuUsage: islandContainer.currentCpuUsage
+                        currentRamUsage: islandContainer.currentRamUsage
+                        currentTime: timeObj.currentTime
+                        currentDateLabel: timeObj.currentDateLabel
                         showBoringFace: userConfig.showBoringFace
                         iconFontFamily: root.iconFontFamily
                         textFontFamily: root.textFontFamily
+                        onExpandRequested: islandContainer.showExpandedPlayer(false)
                     }
                 }
             }
