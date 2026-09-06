@@ -24,6 +24,7 @@ Item {
 
     property int batteryCapacity: -1
     property bool isCharging: false
+    property bool cameraMirrorActive: false
 
     property int initialPage: 0
     property bool showCondition: false
@@ -527,6 +528,34 @@ Item {
                                 Rectangle {
                                     anchors.fill: parent
                                     radius: 11
+                                    color: root.cameraMirrorActive ? "#b56cff" : (camMouse.containsMouse ? "#323236" : "transparent")
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: "󰄀"
+                                        color: root.cameraMirrorActive ? "white" : (camMouse.containsMouse ? "white" : "#8e8e93")
+                                        font.family: root.iconFontFamily
+                                        font.pixelSize: 13
+                                    }
+
+                                    MouseArea {
+                                        id: camMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: root.cameraMirrorActive = !root.cameraMirrorActive
+                                    }
+                                }
+                            }
+
+                            Item {
+                                width: 22
+                                height: 22
+                                anchors.verticalCenter: parent.verticalCenter
+
+                                Rectangle {
+                                    anchors.fill: parent
+                                    radius: 11
                                     color: settingsMouse.containsMouse ? "#323236" : "transparent"
 
                                     Text {
@@ -631,6 +660,37 @@ Item {
                                         visible: source.toString() !== ""
                                         sourceSize: Qt.size(120, 120)
                                         smooth: true
+                                        onStatusChanged: {
+                                            if (status === Image.Ready)
+                                                colorExtractor.requestPaint();
+                                        }
+                                    }
+
+                                    Canvas {
+                                        id: colorExtractor
+                                        width: 1
+                                        height: 1
+                                        visible: false
+                                        property color extractedColor: "#b56cff"
+
+                                        onPaint: {
+                                            const ctx = getContext("2d");
+                                            try {
+                                                ctx.drawImage(albumArtImage, 0, 0, 1, 1);
+                                                const pixel = ctx.getImageData(0, 0, 1, 1).data;
+                                                if (pixel && pixel.length >= 3) {
+                                                    let r = pixel[0], g = pixel[1], b = pixel[2];
+                                                    const max = Math.max(r, g, b);
+                                                    if (max < 140 && max > 0) {
+                                                        const factor = 170 / max;
+                                                        r = Math.min(255, Math.round(r * factor));
+                                                        g = Math.min(255, Math.round(g * factor));
+                                                        b = Math.min(255, Math.round(b * factor));
+                                                    }
+                                                    extractedColor = Qt.rgba(r / 255, g / 255, b / 255, 1.0);
+                                                }
+                                            } catch (e) {}
+                                        }
                                     }
                                 }
                             }
@@ -662,7 +722,7 @@ Item {
 
                                 Text {
                                     text: root.lyricsText
-                                    color: "#c0a0ff"
+                                    color: userConfig.boringNotchEnabled ? colorExtractor.extractedColor : "#c0a0ff"
                                     font.pixelSize: userConfig.bodyFontSize - 3
                                     font.family: textFontFamily
                                     font.weight: Font.Medium
@@ -694,7 +754,7 @@ Item {
                                             ? 6 + (parent.height - 6) * visualizerLevel(index)
                                             : 6 + (parent.height - 6) * pausedVisualizerLevel(index)
                                         radius: 2
-                                        color: isPlaying ? "#b56cff" : "#5f4b72"
+                                        color: isPlaying ? (userConfig.boringNotchEnabled ? colorExtractor.extractedColor : "#b56cff") : "#5f4b72"
                                         anchors.verticalCenter: parent.verticalCenter
 
                                         Behavior on height {
@@ -742,8 +802,12 @@ Item {
                             Rectangle {
                                 height: parent.height
                                 radius: 3
-                                color: "white"
+                                color: userConfig.boringNotchEnabled ? colorExtractor.extractedColor : "white"
                                 width: parent.width * trackProgress
+
+                                Behavior on color {
+                                    ColorAnimation { duration: 250; easing.type: Easing.InOutQuad }
+                                }
 
                                 Behavior on width {
                                     NumberAnimation {
@@ -1083,7 +1147,7 @@ Item {
                     height: parent.height - 8
                     color: "#2c2c2e"
                     anchors.verticalCenter: parent.verticalCenter
-                    visible: calendarTile.visible
+                    visible: calendarTile.visible || webcamTile.visible
                 }
 
                 BoringCalendarTile {
@@ -1091,7 +1155,18 @@ Item {
                     width: 215
                     height: parent.height
                     anchors.verticalCenter: parent.verticalCenter
-                    visible: userConfig.boringNotchEnabled && homePage.width >= 560
+                    visible: userConfig.boringNotchEnabled && homePage.width >= 560 && !root.cameraMirrorActive
+                    textFontFamily: root.textFontFamily
+                    iconFontFamily: root.iconFontFamily
+                }
+
+                WebcamMirrorTile {
+                    id: webcamTile
+                    width: 215
+                    height: parent.height
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: userConfig.boringNotchEnabled && homePage.width >= 560 && root.cameraMirrorActive
+                    isRunning: root.cameraMirrorActive
                     textFontFamily: root.textFontFamily
                     iconFontFamily: root.iconFontFamily
                 }

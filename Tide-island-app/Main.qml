@@ -38,6 +38,8 @@ ApplicationWindow {
             return shortcutPage
         case 5:
             return interactionPage
+        case 6:
+            return notchPage
         default:
             return null
         }
@@ -122,7 +124,7 @@ ApplicationWindow {
         Text{
             id: islandButton
             anchors.horizontalCenter: parent.horizontalCenter
-            y: 210
+            y: 175
             color: currentPage === 1 ? Theme.selectedColor : Theme.textColor
             text: islandButtonText.width > mainSplitLine.x ? "G" : "General"
             font.family: Theme.titleFontFamily
@@ -148,7 +150,7 @@ ApplicationWindow {
         Text{
             id: wallpaperButton
             anchors.horizontalCenter: parent.horizontalCenter
-            y: 265
+            y: 225
             color: currentPage === 2 ? Theme.selectedColor : Theme.textColor
             text: wallpaperButtonText.width > mainSplitLine.x ? "W" : "Wallpaper"
             font.family: Theme.titleFontFamily
@@ -174,7 +176,7 @@ ApplicationWindow {
         Text{
             id: fontButton
             anchors.horizontalCenter: parent.horizontalCenter
-            y: 320
+            y: 275
             color: currentPage === 3 ? Theme.selectedColor : Theme.textColor
             text: fontButtonText.width > mainSplitLine.x ? "F" : "Font"
             font.family: Theme.titleFontFamily
@@ -200,7 +202,7 @@ ApplicationWindow {
         Text{
             id: shortcutButton
             anchors.horizontalCenter: parent.horizontalCenter
-            y: 375
+            y: 325
             color: currentPage === 4 ? Theme.selectedColor : Theme.textColor
             text: shortcutButtonText.width > mainSplitLine.x ? "S" : "Shortcut"
             font.family: Theme.titleFontFamily
@@ -226,7 +228,7 @@ ApplicationWindow {
         Text{
             id: interactionButton
             anchors.horizontalCenter: parent.horizontalCenter
-            y: 430
+            y: 375
             color: currentPage === 5 ? Theme.selectedColor : Theme.textColor
             text: interactionButtonText.width > mainSplitLine.x ? "I" : "Interaction"
             font.family: Theme.titleFontFamily
@@ -245,6 +247,32 @@ ApplicationWindow {
 
                 onClicked: {
                     selectPage(5)
+                }
+            }
+        }
+
+        Text{
+            id: notchButton
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: 425
+            color: currentPage === 6 ? Theme.selectedColor : Theme.textColor
+            text: notchButtonText.width > mainSplitLine.x ? "N" : "Notch"
+            font.family: Theme.titleFontFamily
+            font.pixelSize: 23
+
+            TextMetrics {
+                id: notchButtonText
+                font: notchButton.font
+                text: "Notch"
+            }
+
+            Behavior on color {ColorAnimation{ duration:Theme.animationDuration}}
+
+            MouseArea{
+                anchors.fill:parent
+
+                onClicked: {
+                    selectPage(6)
                 }
             }
         }
@@ -316,6 +344,13 @@ ApplicationWindow {
 
         Interaction {
             id: interactionPage
+            anchors.fill: parent
+            visible: false
+            opacity: 0
+        }
+
+        NotchSettings {
+            id: notchPage
             anchors.fill: parent
             visible: false
             opacity: 0
