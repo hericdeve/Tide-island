@@ -82,3 +82,6 @@ CODE_QUALITY_REVIEW.md
 .DS_Store
 Thumbs.db
 compilar.sh
+
+# graft's local graph cache — regenerable, not committed (run `graft build`).
+/graft/
