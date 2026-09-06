@@ -49,6 +49,15 @@ class UserConfigBackend final : public QObject {
     Q_PROPERTY(bool islandAutoHideEnabled READ islandAutoHideEnabled NOTIFY islandAutoHideEnabledChanged FINAL)
     Q_PROPERTY(int islandAutoHideDelayMs READ islandAutoHideDelayMs NOTIFY islandAutoHideDelayMsChanged FINAL)
     Q_PROPERTY(bool islandShowWorkspaceOnAutoHide READ islandShowWorkspaceOnAutoHide NOTIFY islandShowWorkspaceOnAutoHideChanged FINAL)
+    Q_PROPERTY(bool boringNotchEnabled READ boringNotchEnabled NOTIFY boringNotchEnabledChanged FINAL)
+    Q_PROPERTY(int notchClosedWidth READ notchClosedWidth NOTIFY notchClosedWidthChanged FINAL)
+    Q_PROPERTY(int notchClosedHeight READ notchClosedHeight NOTIFY notchClosedHeightChanged FINAL)
+    Q_PROPERTY(int notchOpenWidth READ notchOpenWidth NOTIFY notchOpenWidthChanged FINAL)
+    Q_PROPERTY(int notchOpenHeight READ notchOpenHeight NOTIFY notchOpenHeightChanged FINAL)
+    Q_PROPERTY(int notchTopCornerRadius READ notchTopCornerRadius NOTIFY notchTopCornerRadiusChanged FINAL)
+    Q_PROPERTY(int notchBottomCornerRadius READ notchBottomCornerRadius NOTIFY notchBottomCornerRadiusChanged FINAL)
+    Q_PROPERTY(int notchHoverOpenDelayMs READ notchHoverOpenDelayMs NOTIFY notchHoverOpenDelayMsChanged FINAL)
+    Q_PROPERTY(int notchHoverCloseDelayMs READ notchHoverCloseDelayMs NOTIFY notchHoverCloseDelayMsChanged FINAL)
 
     Q_PROPERTY(int islandWidth READ islandWidth NOTIFY islandWidthChanged FINAL)
     Q_PROPERTY(int islandHeight READ islandHeight NOTIFY islandHeightChanged FINAL)
@@ -98,6 +107,15 @@ public:
     bool islandShowWorkspaceOnAutoHide() const;
     bool islandAutoHideEnabled() const;
     int islandAutoHideDelayMs() const;
+    bool boringNotchEnabled() const;
+    int notchClosedWidth() const;
+    int notchClosedHeight() const;
+    int notchOpenWidth() const;
+    int notchOpenHeight() const;
+    int notchTopCornerRadius() const;
+    int notchBottomCornerRadius() const;
+    int notchHoverOpenDelayMs() const;
+    int notchHoverCloseDelayMs() const;
     int islandWidth() const;
     int islandHeight() const;
     int islandExclusiveZone() const;
@@ -148,6 +166,15 @@ signals:
     void hoverExpandActionChanged();
     void islandAutoHideEnabledChanged();
     void islandAutoHideDelayMsChanged();
+    void boringNotchEnabledChanged();
+    void notchClosedWidthChanged();
+    void notchClosedHeightChanged();
+    void notchOpenWidthChanged();
+    void notchOpenHeightChanged();
+    void notchTopCornerRadiusChanged();
+    void notchBottomCornerRadiusChanged();
+    void notchHoverOpenDelayMsChanged();
+    void notchHoverCloseDelayMsChanged();
     void islandWidthChanged();
     void islandHeightChanged();
     void islandExclusiveZoneChanged();
@@ -199,6 +226,15 @@ private:
     int m_hoverExpandAction = 1;
     bool m_islandAutoHideEnabled = true;
     int m_islandAutoHideDelayMs = 1000;
+    bool m_boringNotchEnabled = true;
+    int m_notchClosedWidth = 185;
+    int m_notchClosedHeight = 32;
+    int m_notchOpenWidth = 640;
+    int m_notchOpenHeight = 190;
+    int m_notchTopCornerRadius = 6;
+    int m_notchBottomCornerRadius = 14;
+    int m_notchHoverOpenDelayMs = 300;
+    int m_notchHoverCloseDelayMs = 100;
     int m_islandWidth = 140;
     int m_islandBackgroundOpacity = 60;
     int m_islandHeight = 38;

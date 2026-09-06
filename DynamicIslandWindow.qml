@@ -1816,7 +1816,7 @@ PanelWindow {
         }
         Timer {
             id: hoverExpandDelayTimer
-            interval: 350
+            interval: userConfig.boringNotchEnabled ? userConfig.notchHoverOpenDelayMs : 350
             repeat: false
             onTriggered: {
                 if (!root.islandPointerInside) return;
@@ -1837,7 +1837,7 @@ PanelWindow {
         }
         Timer {
             id: hoverCollapseDelayTimer
-            interval: 350
+            interval: userConfig.boringNotchEnabled ? userConfig.notchHoverCloseDelayMs : 350
             repeat: false
             onTriggered: {
                 if (root.islandPointerInside) return;
@@ -1920,7 +1920,7 @@ PanelWindow {
                     return 1100;
                 case "expanded":
                 case "bluetooth_expanded":
-                    return 410;
+                    return userConfig.boringNotchEnabled ? userConfig.notchOpenWidth : 410;
                 case "notification":
                     if (!notificationLoader.item) return 272;
                     return Math.max(
@@ -1928,7 +1928,7 @@ PanelWindow {
                         Math.min(root.width - 48, notificationLoader.item.maximumWidth, notificationLoader.item.preferredWidth)
                     );
                 default:
-                    return userConfig.islandWidth;
+                    return userConfig.boringNotchEnabled ? userConfig.notchClosedWidth : userConfig.islandWidth;
                 }
             }
             readonly property real targetHeight: {
@@ -1947,13 +1947,13 @@ PanelWindow {
                     return 260;
                 case "expanded":
                 case "bluetooth_expanded":
-                    return 165;
+                    return userConfig.boringNotchEnabled ? userConfig.notchOpenHeight : 165;
                 case "notification":
                     return notificationLoader.item
                         ? Math.max(56, notificationLoader.item.preferredHeight)
                         : 56;
                 default:
-                    return userConfig.islandHeight;
+                    return userConfig.boringNotchEnabled ? userConfig.notchClosedHeight : userConfig.islandHeight;
                 }
             }
             readonly property real targetRadius: {
@@ -1970,11 +1970,11 @@ PanelWindow {
                     return 34;
                 case "expanded":
                 case "bluetooth_expanded":
-                    return 40;
+                    return userConfig.boringNotchEnabled ? userConfig.notchBottomCornerRadius * 2 : 40;
                 case "notification":
                     return islandContainer.notificationExpanded ? 28 : mainCapsule.targetHeight / 2;
                 default:
-                    return userConfig.islandHeight / 2;
+                    return userConfig.boringNotchEnabled ? userConfig.notchBottomCornerRadius : userConfig.islandHeight / 2;
                 }
             }
             function sideSwipeWidthForProgress(progressValue) {
@@ -1991,7 +1991,9 @@ PanelWindow {
             )
             color: root.overviewContentVisible
                 ? root.overviewCapsuleColor
-                : (notificationHistorySurface ? "#080808" : Qt.rgba(0, 0, 0, userConfig.islandBackgroundOpacity / 100.0))
+                : (userConfig.boringNotchEnabled
+                    ? StyleTokens.transparent
+                    : (notificationHistorySurface ? "#080808" : Qt.rgba(0, 0, 0, userConfig.islandBackgroundOpacity / 100.0)))
             y: userConfig.islandTopMargin
                 - (1 - root.autoHideProgress) * (targetHeight + userConfig.islandTopMargin + 8)
             x: parent ? parent.width * userConfig.islandPositionX / 100 - width / 2 : 0
@@ -2026,8 +2028,21 @@ PanelWindow {
             Behavior on color { ColorAnimation { duration: 280; easing.type: Easing.InOutQuad } }
             Behavior on outlineWidth { NumberAnimation { duration: 260; easing.type: Easing.InOutQuad } }
             Behavior on outlineColor { ColorAnimation { duration: 260; easing.type: Easing.InOutQuad } }
-            border.width: outlineWidth
+            border.width: userConfig.boringNotchEnabled && !root.overviewContentVisible ? 0 : outlineWidth
             border.color: outlineColor
+
+            NotchSurface {
+                anchors.fill: parent
+                z: -2
+                visible: userConfig.boringNotchEnabled && !root.overviewContentVisible
+                color: mainCapsule.notificationHistorySurface ? "#080808" : Qt.rgba(0, 0, 0, userConfig.islandBackgroundOpacity / 100.0)
+                borderColor: mainCapsule.outlineColor
+                borderWidth: mainCapsule.outlineWidth
+                topCornerRadius: userConfig.notchTopCornerRadius
+                bottomCornerRadius: islandContainer.islandState === "expanded" || islandContainer.islandState === "control_center"
+                    ? userConfig.notchBottomCornerRadius + 6
+                    : userConfig.notchBottomCornerRadius
+            }
 
             Rectangle {
                 anchors.fill: parent

@@ -405,7 +405,7 @@ Item {
                                     font.family: textFontFamily
                                     font.weight: Font.DemiBold
                                     font.letterSpacing: -0.15
-                                    width: 180
+                                    width: Math.max(180, homePage.width - 180)
                                     elide: Text.ElideRight
                                 }
 
@@ -415,7 +415,7 @@ Item {
                                     font.pixelSize: userConfig.bodyFontSize - 2
                                     font.family: textFontFamily
                                     font.weight: Font.Medium
-                                    width: 200
+                                    width: Math.max(200, homePage.width - 160)
                                     elide: Text.ElideRight
                                 }
                             }

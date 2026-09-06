@@ -302,6 +302,51 @@ int UserConfigBackend::islandAutoHideDelayMs() const
     return m_islandAutoHideDelayMs;
 }
 
+bool UserConfigBackend::boringNotchEnabled() const
+{
+    return m_boringNotchEnabled;
+}
+
+int UserConfigBackend::notchClosedWidth() const
+{
+    return m_notchClosedWidth;
+}
+
+int UserConfigBackend::notchClosedHeight() const
+{
+    return m_notchClosedHeight;
+}
+
+int UserConfigBackend::notchOpenWidth() const
+{
+    return m_notchOpenWidth;
+}
+
+int UserConfigBackend::notchOpenHeight() const
+{
+    return m_notchOpenHeight;
+}
+
+int UserConfigBackend::notchTopCornerRadius() const
+{
+    return m_notchTopCornerRadius;
+}
+
+int UserConfigBackend::notchBottomCornerRadius() const
+{
+    return m_notchBottomCornerRadius;
+}
+
+int UserConfigBackend::notchHoverOpenDelayMs() const
+{
+    return m_notchHoverOpenDelayMs;
+}
+
+int UserConfigBackend::notchHoverCloseDelayMs() const
+{
+    return m_notchHoverCloseDelayMs;
+}
+
 int UserConfigBackend::islandWidth() const
 {
     return m_islandWidth;
@@ -473,6 +518,15 @@ void UserConfigBackend::loadConfig()
     updateField(this, m_hoverExpandAction, jsonInt(configObject, QLatin1String("hoverExpandAction"), 1), &UserConfigBackend::hoverExpandActionChanged);
     updateField(this, m_islandAutoHideEnabled, jsonBool(configObject, QLatin1String("islandAutoHideEnabled"), true), &UserConfigBackend::islandAutoHideEnabledChanged);
     updateField(this, m_islandAutoHideDelayMs, jsonBoundedInt(configObject, QLatin1String("islandAutoHideDelayMs"), 1000, 100, 10000), &UserConfigBackend::islandAutoHideDelayMsChanged);
+    updateField(this, m_boringNotchEnabled, jsonBool(configObject, QLatin1String("boringNotchEnabled"), true), &UserConfigBackend::boringNotchEnabledChanged);
+    updateField(this, m_notchClosedWidth, jsonBoundedInt(configObject, QLatin1String("notchClosedWidth"), 185, 80, 1000), &UserConfigBackend::notchClosedWidthChanged);
+    updateField(this, m_notchClosedHeight, jsonBoundedInt(configObject, QLatin1String("notchClosedHeight"), 32, 16, 200), &UserConfigBackend::notchClosedHeightChanged);
+    updateField(this, m_notchOpenWidth, jsonBoundedInt(configObject, QLatin1String("notchOpenWidth"), 640, 240, 1600), &UserConfigBackend::notchOpenWidthChanged);
+    updateField(this, m_notchOpenHeight, jsonBoundedInt(configObject, QLatin1String("notchOpenHeight"), 190, 100, 900), &UserConfigBackend::notchOpenHeightChanged);
+    updateField(this, m_notchTopCornerRadius, jsonBoundedInt(configObject, QLatin1String("notchTopCornerRadius"), 6, 0, 120), &UserConfigBackend::notchTopCornerRadiusChanged);
+    updateField(this, m_notchBottomCornerRadius, jsonBoundedInt(configObject, QLatin1String("notchBottomCornerRadius"), 14, 0, 160), &UserConfigBackend::notchBottomCornerRadiusChanged);
+    updateField(this, m_notchHoverOpenDelayMs, jsonBoundedInt(configObject, QLatin1String("notchHoverOpenDelayMs"), 300, 0, 3000), &UserConfigBackend::notchHoverOpenDelayMsChanged);
+    updateField(this, m_notchHoverCloseDelayMs, jsonBoundedInt(configObject, QLatin1String("notchHoverCloseDelayMs"), 100, 0, 3000), &UserConfigBackend::notchHoverCloseDelayMsChanged);
     updateField(this, m_islandWidth, jsonInt(configObject, QLatin1String("islandWidth"), 140), &UserConfigBackend::islandWidthChanged);
     updateField(this, m_islandBackgroundOpacity, jsonBoundedInt(configObject, QLatin1String("islandBackgroundOpacity"), 60, 0, 100), &UserConfigBackend::islandBackgroundOpacityChanged);
     updateField(this, m_islandHeight, jsonInt(configObject, QLatin1String("islandHeight"), 38), &UserConfigBackend::islandHeightChanged);
