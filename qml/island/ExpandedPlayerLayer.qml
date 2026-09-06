@@ -409,17 +409,17 @@ Item {
 
                 Column {
                     anchors.fill: parent
-                    anchors.topMargin: userConfig.boringNotchEnabled ? 10 : 20
-                    anchors.bottomMargin: userConfig.boringNotchEnabled ? 10 : 20
-                    anchors.leftMargin: userConfig.boringNotchEnabled ? 16 : 20
-                    anchors.rightMargin: userConfig.boringNotchEnabled ? 16 : 20
-                    spacing: userConfig.boringNotchEnabled ? 8 : 14
+                    anchors.topMargin: 10
+                    anchors.bottomMargin: 10
+                    anchors.leftMargin: 16
+                    anchors.rightMargin: 16
+                    spacing: 8
 
                     Item {
                         id: notchHeader
                         width: parent.width
                         height: 24
-                        visible: userConfig.boringNotchEnabled
+                        visible: true
 
                         // Left tabs: Home / Shelf (Matching Boring Notch Image #5)
                         Row {
@@ -598,14 +598,14 @@ Item {
                                 ? Math.max(180, parent.width - calendarTile.width - 1 - parent.spacing * 2)
                                 : parent.width
                             height: parent.height
-                            spacing: userConfig.boringNotchEnabled ? 14 : 14
+                            spacing: 14
                             clip: true
 
                             // Left: Full-height Album Art / Media Banner with lighting effect
                             Item {
                                 id: albumArtWrapper
-                                width: userConfig.boringNotchEnabled ? Math.max(60, parent.height - 4) : 60
-                                height: userConfig.boringNotchEnabled ? Math.max(60, parent.height - 4) : 60
+                                width: Math.max(60, parent.height - 4)
+                                height: Math.max(60, parent.height - 4)
                                 anchors.verticalCenter: parent.verticalCenter
 
                                 MultiEffect {
@@ -626,7 +626,7 @@ Item {
 
                                 ClippingRectangle {
                                     anchors.fill: parent
-                                    radius: userConfig.boringNotchEnabled ? 16 : 10
+                                    radius: 16
                                     color: "#2c2c2e"
                                     antialiasing: true
 
@@ -676,7 +676,7 @@ Item {
                                         text: "󰎆"
                                         color: "#8e8e93"
                                         font.family: root.iconFontFamily
-                                        font.pixelSize: userConfig.boringNotchEnabled ? 44 : 24
+                                        font.pixelSize: 44
                                         visible: !root.currentArtUrl || root.currentArtUrl === ""
                                     }
                                 }
@@ -694,11 +694,11 @@ Item {
                                 Item {
                                     id: songInfoArea
                                     anchors.top: parent.top
-                                    anchors.topMargin: userConfig.boringNotchEnabled ? 2 : 4
+                                    anchors.topMargin: 2
                                     anchors.left: parent.left
                                     anchors.right: parent.right
                                     anchors.bottom: scrubberArea.top
-                                    anchors.bottomMargin: userConfig.boringNotchEnabled ? 6 : 8
+                                    anchors.bottomMargin: 6
                                     clip: true
 
                                     Column {
@@ -711,7 +711,7 @@ Item {
                                         Text {
                                             text: currentTrack !== "" ? currentTrack : "Not Playing"
                                             color: "white"
-                                            font.pixelSize: userConfig.boringNotchEnabled ? Math.round(13 * root.uiScale) : userConfig.bodyFontSize
+                                            font.pixelSize: Math.round(13 * root.uiScale)
                                             font.family: textFontFamily
                                             font.weight: Font.Bold
                                             font.letterSpacing: -0.2
@@ -723,7 +723,7 @@ Item {
                                         Text {
                                             text: currentArtist
                                             color: "#8e8e93"
-                                            font.pixelSize: userConfig.boringNotchEnabled ? Math.round(11 * root.uiScale) : userConfig.bodyFontSize - 3
+                                            font.pixelSize: Math.round(11 * root.uiScale)
                                             font.family: textFontFamily
                                             font.weight: Font.Medium
                                             width: parent.width
@@ -734,15 +734,15 @@ Item {
 
                                         Text {
                                             text: root.lyricsText
-                                            color: userConfig.boringNotchEnabled ? colorExtractor.extractedColor : "#c0a0ff"
+                                            color: colorExtractor.extractedColor
                                             opacity: root.isPlaying ? 1.0 : 0.65
-                                            font.pixelSize: userConfig.boringNotchEnabled ? Math.round(10 * root.uiScale) : userConfig.bodyFontSize - 4
+                                            font.pixelSize: Math.round(10 * root.uiScale)
                                             font.family: textFontFamily
                                             font.weight: Font.Medium
                                             width: parent.width
                                             elide: Text.ElideRight
                                             maximumLineCount: 1
-                                            visible: userConfig.boringNotchEnabled && root.lyricsText !== "" && root.lyricsText !== "No music playing"
+                                            visible: root.lyricsText !== "" && root.lyricsText !== "No music playing"
                                         }
                                     }
 
@@ -764,7 +764,7 @@ Item {
                                                     ? 3 + (parent.height - 3) * visualizerLevel(index)
                                                     : (isPlaying ? 3 : 2)
                                                 radius: 1.2
-                                                color: isPlaying ? (userConfig.boringNotchEnabled ? colorExtractor.extractedColor : "#b56cff") : "#5f4b72"
+                                                color: isPlaying ? colorExtractor.extractedColor : "#5f4b72"
                                                 anchors.bottom: parent.bottom
 
                                                 Behavior on height {
@@ -784,7 +784,7 @@ Item {
                                     anchors.left: parent.left
                                     anchors.right: parent.right
                                     anchors.bottom: playbackToolbarArea.top
-                                    anchors.bottomMargin: userConfig.boringNotchEnabled ? 8 : 10
+                                    anchors.bottomMargin: 8
                                     height: 24
 
                                     // Progress bar track
@@ -801,7 +801,7 @@ Item {
                                             id: sliderProgress
                                             height: parent.height
                                             radius: 2
-                                            color: userConfig.boringNotchEnabled ? colorExtractor.extractedColor : "white"
+                                            color: colorExtractor.extractedColor
                                             width: Math.max(0, Math.min(parent.width, parent.width * root.trackProgress))
 
                                             Behavior on color {
@@ -824,7 +824,7 @@ Item {
                                             anchors.verticalCenter: parent.verticalCenter
                                             text: timePlayed
                                             color: "#8e8e93"
-                                            font.pixelSize: userConfig.boringNotchEnabled ? Math.round(9 * root.uiScale) : userConfig.bodyFontSize - 5
+                                            font.pixelSize: Math.round(9 * root.uiScale)
                                             font.family: textFontFamily
                                             font.weight: Font.Medium
                                         }
@@ -835,7 +835,7 @@ Item {
                                             anchors.verticalCenter: parent.verticalCenter
                                             text: timeTotal
                                             color: "#8e8e93"
-                                            font.pixelSize: userConfig.boringNotchEnabled ? Math.round(9 * root.uiScale) : userConfig.bodyFontSize - 5
+                                            font.pixelSize: Math.round(9 * root.uiScale)
                                             font.family: textFontFamily
                                             font.weight: Font.Medium
                                         }
@@ -874,13 +874,13 @@ Item {
                                     anchors.left: parent.left
                                     anchors.right: parent.right
                                     anchors.bottom: parent.bottom
-                                    anchors.bottomMargin: userConfig.boringNotchEnabled ? 2 : 4
+                                    anchors.bottomMargin: 2
                                     height: 28
 
                                     Row {
                                         anchors.centerIn: parent
                                         height: 28
-                                        spacing: volSliderWrapper.showSlider ? 4 : (userConfig.boringNotchEnabled ? 8 : 28)
+                                        spacing: volSliderWrapper.showSlider ? 4 : 8
 
                                         Behavior on spacing {
                                             NumberAnimation { duration: 150; easing.type: Easing.OutQuad }
@@ -889,7 +889,7 @@ Item {
                                         Item {
                                             width: 20
                                             height: 28
-                                            visible: userConfig.boringNotchEnabled
+                                            visible: true
                                             scale: shuffleArea.pressed ? 0.8 : 1.0
 
                                             Text {
@@ -921,7 +921,7 @@ Item {
                                             id: seekBackBtn
                                             width: 20
                                             height: 28
-                                            visible: userConfig.boringNotchEnabled && musicControlsArea.width >= 225 && !volSliderWrapper.showSlider
+                                            visible: musicControlsArea.width >= 225 && !volSliderWrapper.showSlider
                                             scale: seekBackArea.pressed ? 0.8 : 1.0
 
                                             Text {
@@ -1107,7 +1107,7 @@ Item {
                                             id: seekFwdBtn
                                             width: 20
                                             height: 28
-                                            visible: userConfig.boringNotchEnabled && musicControlsArea.width >= 225 && !volSliderWrapper.showSlider
+                                            visible: musicControlsArea.width >= 225 && !volSliderWrapper.showSlider
                                             scale: seekFwdArea.pressed ? 0.8 : 1.0
 
                                             Text {
@@ -1134,7 +1134,7 @@ Item {
                                         Item {
                                             width: 20
                                             height: 28
-                                            visible: userConfig.boringNotchEnabled
+                                            visible: true
                                             scale: repeatArea.pressed ? 0.8 : 1.0
 
                                             Text {
@@ -1169,7 +1169,7 @@ Item {
                                             id: volControlRow
                                             height: 28
                                             spacing: 3
-                                            visible: userConfig.boringNotchEnabled
+                                            visible: true
 
                                             Item {
                                                 width: 20
@@ -1268,7 +1268,7 @@ Item {
                     width: Math.min(215, Math.max(165, Math.round(parent.width * 0.32)))
                     height: parent.height
                     anchors.verticalCenter: parent.verticalCenter
-                    visible: userConfig.boringNotchEnabled && homePage.width >= 540 && !root.cameraMirrorActive
+                    visible: homePage.width >= 540 && !root.cameraMirrorActive
                     textFontFamily: root.textFontFamily
                     iconFontFamily: root.iconFontFamily
                 }
@@ -1278,7 +1278,7 @@ Item {
                     width: Math.min(215, Math.max(165, Math.round(parent.width * 0.32)))
                     height: parent.height
                     anchors.verticalCenter: parent.verticalCenter
-                    visible: userConfig.boringNotchEnabled && homePage.width >= 540 && root.cameraMirrorActive
+                    visible: homePage.width >= 540 && root.cameraMirrorActive
                     isRunning: root.cameraMirrorActive
                     textFontFamily: root.textFontFamily
                     iconFontFamily: root.iconFontFamily

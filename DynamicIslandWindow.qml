@@ -128,8 +128,9 @@ PanelWindow {
             height: powerConnectivityDetailShell.visible ? Math.ceil(powerConnectivityDetailShell.height) : 0
         }
     }
+    readonly property real capsuleTopMargin: userConfig.boringNotchEnabled ? 0 : Math.max(4, userConfig.islandTopMargin)
     readonly property real capsuleWindowHeight: Math.ceil(
-        userConfig.islandTopMargin + mainCapsule.targetHeight + 12
+        root.capsuleTopMargin + mainCapsule.targetHeight + 12
     )
     readonly property real connectivityDetailWindowHeight: root.anyConnectivityDetailMounted
         ? Math.ceil(userConfig.islandTopMargin + root.connectivityDetailHeight + 12)
@@ -955,9 +956,7 @@ PanelWindow {
         readonly property bool splitShowsText: islandState === "split" && osdProgress < 0 && osdCustomText !== ""
         readonly property bool splitShowsIconOnly: islandState === "split" && osdProgress < 0 && osdCustomText === ""
         readonly property bool splitUsesExtendedLayout: splitShowsProgress || splitShowsText
-        readonly property real splitCapsuleWidth: userConfig.boringNotchEnabled
-            ? Math.max(userConfig.notchClosedWidth + 95, 280)
-            : (splitShowsProgress ? 248 : (splitShowsText ? 220 : userConfig.islandWidth))
+        readonly property real splitCapsuleWidth: Math.max(userConfig.notchClosedWidth + 95, 280)
         readonly property bool canShowSideSwipe: islandState === "normal"
             || islandState === "custom"
             || islandState === "lyrics"
@@ -1825,7 +1824,7 @@ PanelWindow {
         }
         Timer {
             id: hoverExpandDelayTimer
-            interval: userConfig.boringNotchEnabled ? userConfig.notchHoverOpenDelayMs : 350
+            interval: userConfig.notchHoverOpenDelayMs
             repeat: false
             onTriggered: {
                 if (!root.islandPointerInside) return;
@@ -1846,7 +1845,7 @@ PanelWindow {
         }
         Timer {
             id: hoverCollapseDelayTimer
-            interval: userConfig.boringNotchEnabled ? userConfig.notchHoverCloseDelayMs : 350
+            interval: userConfig.notchHoverCloseDelayMs
             repeat: false
             onTriggered: {
                 if (root.islandPointerInside) return;
@@ -1871,7 +1870,7 @@ PanelWindow {
         }
 
         onCurrentTrackChanged: {
-            if (userConfig.disableAutoExpandOnTrackChange || userConfig.boringNotchEnabled) return;
+            if (userConfig.disableAutoExpandOnTrackChange) return;
             if (currentTrack !== ""
                     && islandState !== "control_center"
                     && islandState !== "notification"
@@ -1887,7 +1886,7 @@ PanelWindow {
         Rectangle {
             id: mainCapsule
             z: 5
-            property int morphDuration: userConfig.boringNotchEnabled ? 300 : 400
+            property int morphDuration: 300
             readonly property bool notificationHistorySurface: islandContainer.islandState === "notification_center"
             property real outlineWidth: root.overviewContentVisible || notificationHistorySurface ? 1 : 0
             property color outlineColor: root.overviewContentVisible
@@ -1914,11 +1913,9 @@ PanelWindow {
                 case "split":
                     return islandContainer.splitCapsuleWidth;
                 case "long_capsule":
-                    return userConfig.boringNotchEnabled ? userConfig.notchClosedWidth : 220;
                 case "custom":
-                    return userConfig.boringNotchEnabled ? userConfig.notchClosedWidth : islandContainer.customCapsuleWidth;
                 case "lyrics":
-                    return userConfig.boringNotchEnabled ? userConfig.notchClosedWidth : islandContainer.lyricsCapsuleWidth;
+                    return userConfig.notchClosedWidth;
                 case "control_center":
                     return 420;
                 case "notification_center":
@@ -1927,10 +1924,9 @@ PanelWindow {
                 case "application_launcher":
                     return 1100;
                 case "file_shelf":
-                    return userConfig.boringNotchEnabled ? userConfig.notchOpenWidth : 1100;
                 case "expanded":
                 case "bluetooth_expanded":
-                    return userConfig.boringNotchEnabled ? userConfig.notchOpenWidth : 410;
+                    return userConfig.notchOpenWidth;
                 case "notification":
                     if (!notificationLoader.item) return 272;
                     return Math.max(
@@ -1938,9 +1934,9 @@ PanelWindow {
                         Math.min(root.width - 48, notificationLoader.item.maximumWidth, notificationLoader.item.preferredWidth)
                     );
                 default:
-                    return userConfig.boringNotchEnabled
-                        ? (islandContainer.currentTrack !== "" ? Math.round(userConfig.notchClosedWidth + 2 * Math.max(0, userConfig.notchClosedHeight - 12) + 20) : userConfig.notchClosedWidth)
-                        : userConfig.islandWidth;
+                    return islandContainer.currentTrack !== ""
+                        ? Math.round(userConfig.notchClosedWidth + 2 * Math.max(0, userConfig.notchClosedHeight - 12) + 20)
+                        : userConfig.notchClosedWidth;
                 }
             }
             readonly property real targetHeight: {
@@ -1957,16 +1953,15 @@ PanelWindow {
                 case "application_launcher":
                     return 260;
                 case "file_shelf":
-                    return userConfig.boringNotchEnabled ? userConfig.notchOpenHeight : 260;
                 case "expanded":
                 case "bluetooth_expanded":
-                    return userConfig.boringNotchEnabled ? userConfig.notchOpenHeight : 165;
+                    return userConfig.notchOpenHeight;
                 case "notification":
                     return notificationLoader.item
                         ? Math.max(56, notificationLoader.item.preferredHeight)
                         : 56;
                 default:
-                    return userConfig.boringNotchEnabled ? userConfig.notchClosedHeight : userConfig.islandHeight;
+                    return userConfig.notchClosedHeight;
                 }
             }
             readonly property real targetRadius: {
@@ -1981,24 +1976,23 @@ PanelWindow {
                 case "application_launcher":
                     return 34;
                 case "file_shelf":
-                    return userConfig.boringNotchEnabled ? userConfig.notchBottomCornerRadius * 2 : 34;
                 case "expanded":
                 case "bluetooth_expanded":
-                    return userConfig.boringNotchEnabled ? userConfig.notchBottomCornerRadius * 2 : 40;
+                    return userConfig.notchBottomCornerRadius * 2;
                 case "notification":
                     return islandContainer.notificationExpanded ? 28 : mainCapsule.targetHeight / 2;
                 default:
-                    return userConfig.boringNotchEnabled ? userConfig.notchBottomCornerRadius : userConfig.islandHeight / 2;
+                    return userConfig.boringNotchEnabled ? userConfig.notchBottomCornerRadius : (mainCapsule.targetHeight / 2);
                 }
             }
             function sideSwipeWidthForProgress(progressValue) {
                 if (progressValue < 0)
-                    return userConfig.islandWidth + (islandContainer.customCapsuleWidth - userConfig.islandWidth)
+                    return userConfig.notchClosedWidth + (islandContainer.customCapsuleWidth - userConfig.notchClosedWidth)
                         * islandContainer.clamp01(-progressValue);
                 if (progressValue > 0)
-                    return userConfig.islandWidth + (islandContainer.lyricsCapsuleWidth - userConfig.islandWidth)
+                    return userConfig.notchClosedWidth + (islandContainer.lyricsCapsuleWidth - userConfig.notchClosedWidth)
                         * islandContainer.clamp01(progressValue);
-                return userConfig.islandWidth;
+                return userConfig.notchClosedWidth;
             }
             readonly property real sideSwipePreviewWidth: mainCapsule.sideSwipeWidthForProgress(
                 islandContainer.swipeTransitionProgress
@@ -2008,8 +2002,8 @@ PanelWindow {
                 : (userConfig.boringNotchEnabled
                     ? StyleTokens.transparent
                     : (notificationHistorySurface ? "#080808" : Qt.rgba(0, 0, 0, userConfig.islandBackgroundOpacity / 100.0)))
-            y: userConfig.islandTopMargin
-                - (1 - root.autoHideProgress) * (targetHeight + userConfig.islandTopMargin + 8)
+            y: root.capsuleTopMargin
+                - (1 - root.autoHideProgress) * (targetHeight + root.capsuleTopMargin + 8)
             x: parent ? parent.width * userConfig.islandPositionX / 100 - width / 2 : 0
             clip: true
             width: displayedWidth
@@ -2374,7 +2368,7 @@ PanelWindow {
                 id: lyricsSwipeLoader
                 anchors.fill: parent
                 active: islandContainer.lyricsSwipeVisible
-                    && (!userConfig.boringNotchEnabled || (!userConfig.showBoringFace && islandContainer.currentTrack === "") || islandContainer.swipeTransitionProgress > 0.01)
+                    && ((!userConfig.showBoringFace && islandContainer.currentTrack === "") || islandContainer.swipeTransitionProgress > 0.01)
                 asynchronous: false
                 visible: active
 
@@ -2389,8 +2383,8 @@ PanelWindow {
                         textFontFamily: root.textFontFamily
                         timeFontFamily: root.timeFontFamily
                         textPixelSize: root.bodyFontSize
-                        minimumWidth: 220
-                        maximumWidth: Math.max(220, root.width - 48)
+                        minimumWidth: userConfig.notchClosedWidth
+                        maximumWidth: Math.max(userConfig.notchClosedWidth, root.width - 48)
                         transitionProgress: islandContainer.rightSwipeProgress
                         recordingActive: islandContainer.screenRecordingActive
                         showSecondaryText: islandContainer.workspaceOriginSide !== "right"
@@ -2405,7 +2399,6 @@ PanelWindow {
                 id: notchLiveActivityLoader
                 anchors.fill: parent
                 active: !root.overviewVisible
-                    && userConfig.boringNotchEnabled
                     && islandContainer.islandState === "normal"
                     && islandContainer.currentTrack !== ""
                     && Math.abs(islandContainer.swipeTransitionProgress) < 0.01
@@ -2429,7 +2422,6 @@ PanelWindow {
                 id: boringFaceLoader
                 anchors.centerIn: parent
                 active: !root.overviewVisible
-                    && userConfig.boringNotchEnabled
                     && userConfig.showBoringFace
                     && islandContainer.islandState === "normal"
                     && islandContainer.currentTrack === ""
@@ -2744,9 +2736,9 @@ PanelWindow {
                 id: islandFileDropArea
                 z: 10000
                 anchors.fill: parent
-                anchors.bottomMargin: userConfig.boringNotchEnabled && !islandContainer.fileShelfLayerVisible ? -32 : 0
-                anchors.leftMargin: userConfig.boringNotchEnabled && !islandContainer.fileShelfLayerVisible ? -32 : 0
-                anchors.rightMargin: userConfig.boringNotchEnabled && !islandContainer.fileShelfLayerVisible ? -32 : 0
+                anchors.bottomMargin: !islandContainer.fileShelfLayerVisible ? -32 : 0
+                anchors.leftMargin: !islandContainer.fileShelfLayerVisible ? -32 : 0
+                anchors.rightMargin: !islandContainer.fileShelfLayerVisible ? -32 : 0
                 enabled: islandContainer.fileShelfLayerVisible
                     || islandContainer.fileShelfCanAutoOpen
 

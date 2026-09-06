@@ -20,7 +20,7 @@ Item {
     property bool recordingActive: false
     property real transitionProgress: 0
     property int textPixelSize: userConfig.bodyFontSize
-    property real minimumWidth: userConfig.boringNotchEnabled ? userConfig.notchClosedWidth : 220
+    property real minimumWidth: userConfig.notchClosedWidth
     property real maximumWidth: minimumWidth
     property real horizontalPadding: 14
     property real coverSize: 24
