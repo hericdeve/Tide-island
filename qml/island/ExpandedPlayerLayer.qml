@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Effects
 import IslandBackend
 import Quickshell.Services.Mpris
 import Quickshell.Widgets
@@ -14,11 +15,15 @@ Item {
     signal keyboardFocusReleased()
     signal previousRequested()
     signal pageChanged(int page)
+    signal shelfRequested()
     signal timerToggleRequested(int hours, int minutes)
     signal timerResetRequested()
     signal timerDurationRequested(int hours, int minutes)
 
     readonly property var userConfig: UserConfig
+
+    property int batteryCapacity: -1
+    property bool isCharging: false
 
     property int initialPage: 0
     property bool showCondition: false
@@ -145,6 +150,27 @@ Item {
     property bool isWheelSwiping: false
     property real wheelAccumulatedDelta: 0
     property real wheelStartProgress: 0
+    property real verticalWheelAccumulatedDelta: 0
+
+    Timer {
+        id: verticalWheelTimer
+        interval: 200
+        repeat: false
+        onTriggered: root.verticalWheelAccumulatedDelta = 0
+    }
+
+    function handleVerticalWheel(deltaY, wheel) {
+        verticalWheelAccumulatedDelta += deltaY;
+        verticalWheelTimer.restart();
+
+        // Upward scroll / swipe closes the player (Boring Notch swipe up to close)
+        if (verticalWheelAccumulatedDelta > 60) {
+            verticalWheelAccumulatedDelta = 0;
+            root.closeRequested();
+        }
+        if (wheel && wheel.accepted !== undefined)
+            wheel.accepted = true;
+    }
 
     Timer {
         id: wheelSettleTimer
@@ -186,9 +212,12 @@ Item {
             deltaX = aX * 0.75;
         }
 
-        const effectiveY = Math.abs(pY !== 0 ? pY : aY);
-        if (Math.abs(deltaX) < 1 && effectiveY > 4)
+        const rawY = pY !== 0 ? pY : aY;
+        const effectiveY = Math.abs(rawY);
+        if (Math.abs(deltaX) < 1 && effectiveY > 4) {
+            handleVerticalWheel(rawY, wheel);
             return;
+        }
 
         if (Math.abs(deltaX) < 0.5)
             return;
@@ -365,8 +394,175 @@ Item {
 
                 Column {
                     anchors.fill: parent
-                    anchors.margins: 20
-                    spacing: 14
+                    anchors.margins: userConfig.boringNotchEnabled ? 16 : 20
+                    spacing: userConfig.boringNotchEnabled ? 10 : 14
+
+                    Item {
+                        id: notchHeader
+                        width: parent.width
+                        height: 24
+                        visible: userConfig.boringNotchEnabled
+
+                        // Left tabs: Music / Timer / Shelf
+                        Row {
+                            anchors.left: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: 6
+
+                            Rectangle {
+                                width: tabMusicText.implicitWidth + 16
+                                height: 22
+                                radius: 11
+                                color: root.currentPage === 0 ? "#323236" : "transparent"
+                                border.width: root.currentPage === 0 ? 0 : 1
+                                border.color: "#3a3a3c"
+
+                                Text {
+                                    id: tabMusicText
+                                    anchors.centerIn: parent
+                                    text: "Music"
+                                    color: root.currentPage === 0 ? "white" : "#8e8e93"
+                                    font.pixelSize: 11
+                                    font.family: root.textFontFamily
+                                    font.weight: root.currentPage === 0 ? Font.DemiBold : Font.Normal
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: root.showPage(0)
+                                }
+                            }
+
+                            Rectangle {
+                                width: tabTimerText.implicitWidth + 16
+                                height: 22
+                                radius: 11
+                                color: root.currentPage === 1 ? "#323236" : "transparent"
+                                border.width: root.currentPage === 1 ? 0 : 1
+                                border.color: "#3a3a3c"
+
+                                Text {
+                                    id: tabTimerText
+                                    anchors.centerIn: parent
+                                    text: "Timer"
+                                    color: root.currentPage === 1 ? "white" : "#8e8e93"
+                                    font.pixelSize: 11
+                                    font.family: root.textFontFamily
+                                    font.weight: root.currentPage === 1 ? Font.DemiBold : Font.Normal
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: root.showPage(1)
+                                }
+                            }
+
+                            Rectangle {
+                                width: tabShelfText.implicitWidth + 16
+                                height: 22
+                                radius: 11
+                                color: "transparent"
+                                border.width: 1
+                                border.color: "#3a3a3c"
+
+                                Text {
+                                    id: tabShelfText
+                                    anchors.centerIn: parent
+                                    text: "Shelf"
+                                    color: "#8e8e93"
+                                    font.pixelSize: 11
+                                    font.family: root.textFontFamily
+                                    font.weight: Font.Normal
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: root.shelfRequested()
+                                }
+                            }
+                        }
+
+                        // Right: Battery & Settings
+                        Row {
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: 10
+
+                            Row {
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: 4
+                                visible: root.batteryCapacity >= 0
+
+                                Text {
+                                    text: (root.isCharging ? "󰂄 " : "󰁹 ") + root.batteryCapacity + "%"
+                                    color: root.isCharging ? "#30d158" : (root.batteryCapacity <= 20 ? "#ff453a" : "#8e8e93")
+                                    font.pixelSize: 11
+                                    font.family: root.iconFontFamily
+                                    font.weight: Font.Medium
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                            }
+
+                            Item {
+                                width: 22
+                                height: 22
+                                anchors.verticalCenter: parent.verticalCenter
+
+                                Rectangle {
+                                    anchors.fill: parent
+                                    radius: 11
+                                    color: settingsMouse.containsMouse ? "#323236" : "transparent"
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: "󰒓"
+                                        color: settingsMouse.containsMouse ? "white" : "#8e8e93"
+                                        font.family: root.iconFontFamily
+                                        font.pixelSize: 13
+                                    }
+
+                                    MouseArea {
+                                        id: settingsMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: SystemServices.ensureUserConfigAvailable()
+                                    }
+                                }
+                            }
+
+                            Item {
+                                width: 22
+                                height: 22
+                                anchors.verticalCenter: parent.verticalCenter
+
+                                Rectangle {
+                                    anchors.fill: parent
+                                    radius: 11
+                                    color: closeMouse.containsMouse ? "#323236" : "transparent"
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: "󰅖"
+                                        color: closeMouse.containsMouse ? "white" : "#8e8e93"
+                                        font.family: root.iconFontFamily
+                                        font.pixelSize: 12
+                                    }
+
+                                    MouseArea {
+                                        id: closeMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: root.closeRequested()
+                                    }
+                                }
+                            }
+                        }
+                    }
 
                     Item {
                         width: parent.width
@@ -377,20 +573,42 @@ Item {
                             anchors.verticalCenter: parent.verticalCenter
                             spacing: 16
 
-                            ClippingRectangle {
+                            Item {
+                                id: albumArtWrapper
                                 width: 60
                                 height: 60
-                                radius: 10
-                                color: "#2c2c2e"
-                                antialiasing: true
 
-                                Image {
+                                MultiEffect {
+                                    anchors.centerIn: parent
+                                    width: parent.width * 1.45
+                                    height: parent.height * 1.45
+                                    source: albumArtImage
+                                    blurEnabled: true
+                                    blur: 0.85
+                                    blurMax: 36
+                                    opacity: root.isPlaying && currentArtUrl !== "" ? 0.65 : 0.0
+                                    visible: opacity > 0.001
+
+                                    Behavior on opacity {
+                                        NumberAnimation { duration: 350; easing.type: Easing.InOutQuad }
+                                    }
+                                }
+
+                                ClippingRectangle {
                                     anchors.fill: parent
-                                    source: currentArtUrl
-                                    fillMode: Image.PreserveAspectCrop
-                                    visible: source.toString() !== ""
-                                    sourceSize: Qt.size(120, 120)
-                                    smooth: true
+                                    radius: 12
+                                    color: "#2c2c2e"
+                                    antialiasing: true
+
+                                    Image {
+                                        id: albumArtImage
+                                        anchors.fill: parent
+                                        source: currentArtUrl
+                                        fillMode: Image.PreserveAspectCrop
+                                        visible: source.toString() !== ""
+                                        sourceSize: Qt.size(120, 120)
+                                        smooth: true
+                                    }
                                 }
                             }
 

@@ -946,7 +946,9 @@ PanelWindow {
         readonly property bool splitShowsText: islandState === "split" && osdProgress < 0 && osdCustomText !== ""
         readonly property bool splitShowsIconOnly: islandState === "split" && osdProgress < 0 && osdCustomText === ""
         readonly property bool splitUsesExtendedLayout: splitShowsProgress || splitShowsText
-        readonly property real splitCapsuleWidth: splitShowsProgress ? 248 : (splitShowsText ? 220 : userConfig.islandWidth)
+        readonly property real splitCapsuleWidth: userConfig.boringNotchEnabled
+            ? Math.max(userConfig.notchClosedWidth + 95, 280)
+            : (splitShowsProgress ? 248 : (splitShowsText ? 220 : userConfig.islandWidth))
         readonly property bool canShowSideSwipe: islandState === "normal"
             || islandState === "custom"
             || islandState === "lyrics"
@@ -2360,6 +2362,7 @@ PanelWindow {
                 id: lyricsSwipeLoader
                 anchors.fill: parent
                 active: islandContainer.lyricsSwipeVisible
+                    && (!userConfig.boringNotchEnabled || islandContainer.currentTrack === "" || islandContainer.swipeTransitionProgress > 0.01)
                 asynchronous: false
                 visible: active
 
@@ -2382,6 +2385,30 @@ PanelWindow {
                             && islandContainer.splitOriginSide !== "right"
                         showCondition: true
                         onPreferredWidthChanged: islandContainer.syncLyricsCapsuleWidth()
+                    }
+                }
+            }
+
+            Loader {
+                id: notchLiveActivityLoader
+                anchors.fill: parent
+                active: !root.overviewVisible
+                    && userConfig.boringNotchEnabled
+                    && islandContainer.islandState === "normal"
+                    && islandContainer.currentTrack !== ""
+                    && Math.abs(islandContainer.swipeTransitionProgress) < 0.01
+                asynchronous: false
+                visible: active
+
+                sourceComponent: Component {
+                    NotchLiveActivityLayer {
+                        currentArtUrl: islandContainer.currentArtUrl
+                        currentTrack: islandContainer.currentTrack
+                        currentArtist: islandContainer.currentArtist
+                        isPlaying: islandContainer.activePlayer ? islandContainer.activePlayer.playbackState === MprisPlaybackState.Playing : false
+                        cavaLevels: islandContainer.cavaLevels
+                        iconFontFamily: root.iconFontFamily
+                        textFontFamily: root.textFontFamily
                     }
                 }
             }
@@ -2483,6 +2510,8 @@ PanelWindow {
                         activePlayer: islandContainer.activePlayer
                         iconFontFamily: root.iconFontFamily
                         textFontFamily: root.textFontFamily
+                        batteryCapacity: islandContainer.batteryCapacity
+                        isCharging: islandContainer.isCharging
                         timerSelectedHours: islandContainer.timerSelectedHours
                         timerSelectedMinutes: islandContainer.timerSelectedMinutes
                         timerTotalSeconds: islandContainer.timerTotalSeconds
@@ -2493,6 +2522,7 @@ PanelWindow {
                         onControlPressed: islandContainer.suppressCapsuleClick()
                         onBackgroundClicked: islandContainer.smartRestoreState()
                         onCloseRequested: islandContainer.smartRestoreState()
+                        onShelfRequested: islandContainer.showFileShelf(true)
                         onKeyboardFocusRequested: islandContainer.requestExpandedPlayerKeyboardFocus()
                         onKeyboardFocusReleased: islandContainer.releaseExpandedPlayerKeyboardFocus()
                         onPreviousRequested: mediaController.previous()
