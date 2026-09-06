@@ -35,7 +35,7 @@ Item {
 
             Row {
                 anchors.centerIn: parent
-                spacing: 6
+                spacing: 4
 
                 Repeater {
                     model: 7
@@ -46,8 +46,8 @@ Item {
                         readonly property bool isToday: root.isSameDay(dateObj, root.today)
                         readonly property bool isSelected: root.isSameDay(dateObj, root.selectedDate)
 
-                        width: 26
-                        height: 46
+                        width: 22
+                        height: 44
 
                         Column {
                             anchors.centerIn: parent
