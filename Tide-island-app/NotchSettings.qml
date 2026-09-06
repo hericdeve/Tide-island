@@ -102,11 +102,7 @@ PagePanel {
                     anchors.rightMargin: 18
                     spacing: 16
 
-                    ToggleRow {
-                        title: "Boring Notch Mode"
-                        description: "Use top-anchored notch shell with asymmetric curved corners"
-                        keyName: "boringNotchEnabled"
-                        fallbackState: true
+                    NotchModeSelectionRow {
                         width: parent.width
                     }
 
@@ -114,7 +110,7 @@ PagePanel {
 
                     ConfigRow {
                         title: "Closed Notch Width"
-                        description: "Width of notch when resting (default 185)"
+                        description: "Width of notch when resting in Notch/Pill mode (default 185)"
                         keyName: "notchClosedWidth"
                         fallbackText: "185"
                         numeric: true
@@ -133,6 +129,19 @@ PagePanel {
                         numeric: true
                         minimumValue: 16
                         maximumValue: 200
+                        width: parent.width
+                    }
+
+                    SplitLine { width: parent.width }
+
+                    ConfigRow {
+                        title: "Circle Closed Size"
+                        description: "Diameter of circle when resting in Circle mode (default 44)"
+                        keyName: "notchCircleClosedSize"
+                        fallbackText: "44"
+                        numeric: true
+                        minimumValue: 24
+                        maximumValue: 160
                         width: parent.width
                     }
 
@@ -159,6 +168,19 @@ PagePanel {
                         numeric: true
                         minimumValue: 100
                         maximumValue: 900
+                        width: parent.width
+                    }
+
+                    SplitLine { width: parent.width }
+
+                    ConfigRow {
+                        title: "Circle Mode Expanded Roundness"
+                        description: "Corner radius when expanded in Circle mode (default 48)"
+                        keyName: "notchCircleExpandedRadius"
+                        fallbackText: "48"
+                        numeric: true
+                        minimumValue: 14
+                        maximumValue: 95
                         width: parent.width
                     }
 
@@ -1169,6 +1191,97 @@ PagePanel {
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: calRow.removeCalendar(index)
                             }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    component NotchModeSelectionRow: Item {
+        id: modeRow
+
+        property string selectedMode: {
+            const raw = String(ConfigStore.value("notchMode", "")).toLowerCase()
+            if (raw === "notch" || raw === "pill" || raw === "circle")
+                return raw
+            const legacy = ConfigStore.value("boringNotchEnabled", true)
+            return (legacy === true || legacy === "true") ? "notch" : "pill"
+        }
+
+        height: 49
+
+        Text {
+            id: modeTitle
+            text: "Notch Style"
+            font.family: Theme.textFontFamily
+            font.pixelSize: 18
+            color: Theme.textColor
+            anchors.top: parent.top
+            anchors.left: parent.left
+        }
+
+        Text {
+            text: "Choose between top-anchored Notch, detached floating Pill, or circular Notch"
+            font.family: Theme.textFontFamily
+            font.pixelSize: 14
+            anchors.top: modeTitle.bottom
+            anchors.topMargin: 5
+            anchors.left: modeTitle.left
+            width: Math.max(80, parent.width - buttonGroup.width - 28)
+            elide: Text.ElideRight
+            color: Theme.subtleTextColor
+        }
+
+        Row {
+            id: buttonGroup
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 6
+
+            Repeater {
+                model: [
+                    { label: "Notch", value: "notch" },
+                    { label: "Pill", value: "pill" },
+                    { label: "Circle", value: "circle" }
+                ]
+
+                Rectangle {
+                    id: btn
+                    readonly property bool selected: modeRow.selectedMode === modelData.value
+
+                    width: Math.max(68, btnText.implicitWidth + 20)
+                    height: 36
+                    radius: 7
+                    color: selected ? Theme.cardBgColor
+                                    : btnMouse.pressed ? Theme.controlPressedColor
+                                                       : Theme.componentBgColor
+                    border.width: 1
+                    border.color: Theme.inputBorderColor
+
+                    Behavior on color { ColorAnimation { duration: Theme.animationDuration } }
+                    Behavior on border.color { ColorAnimation { duration: Theme.animationDuration } }
+
+                    Text {
+                        id: btnText
+                        anchors.centerIn: parent
+                        text: modelData.label
+                        color: btn.selected ? Theme.textColor : Theme.secondaryTextColor
+                        font.family: Theme.textFontFamily
+                        font.pixelSize: 14
+                        font.weight: btn.selected ? Font.DemiBold : Font.Normal
+                    }
+
+                    MouseArea {
+                        id: btnMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            modeRow.selectedMode = modelData.value
+                            ConfigStore.setValue("notchMode", modelData.value)
+                            ConfigStore.setValue("boringNotchEnabled", modelData.value === "notch")
+                            ConfigStore.save()
                         }
                     }
                 }

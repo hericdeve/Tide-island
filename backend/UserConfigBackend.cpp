@@ -307,9 +307,14 @@ int UserConfigBackend::islandAutoHideDelayMs() const
     return m_islandAutoHideDelayMs;
 }
 
+QString UserConfigBackend::notchMode() const
+{
+    return m_notchMode;
+}
+
 bool UserConfigBackend::boringNotchEnabled() const
 {
-    return m_boringNotchEnabled;
+    return m_notchMode == QLatin1String("notch");
 }
 
 bool UserConfigBackend::hideNotchInFullscreen() const
@@ -332,6 +337,11 @@ int UserConfigBackend::notchClosedHeight() const
     return m_notchClosedHeight;
 }
 
+int UserConfigBackend::notchCircleClosedSize() const
+{
+    return m_notchCircleClosedSize;
+}
+
 int UserConfigBackend::notchOpenWidth() const
 {
     return m_notchOpenWidth;
@@ -340,6 +350,11 @@ int UserConfigBackend::notchOpenWidth() const
 int UserConfigBackend::notchOpenHeight() const
 {
     return m_notchOpenHeight;
+}
+
+int UserConfigBackend::notchCircleExpandedRadius() const
+{
+    return m_notchCircleExpandedRadius;
 }
 
 int UserConfigBackend::notchTopCornerRadius() const
@@ -544,7 +559,19 @@ void UserConfigBackend::loadConfig()
     updateField(this, m_hoverExpandAction, jsonInt(configObject, QLatin1String("hoverExpandAction"), 1), &UserConfigBackend::hoverExpandActionChanged);
     updateField(this, m_islandAutoHideEnabled, jsonBool(configObject, QLatin1String("islandAutoHideEnabled"), true), &UserConfigBackend::islandAutoHideEnabledChanged);
     updateField(this, m_islandAutoHideDelayMs, jsonBoundedInt(configObject, QLatin1String("islandAutoHideDelayMs"), 1000, 100, 10000), &UserConfigBackend::islandAutoHideDelayMsChanged);
-    updateField(this, m_boringNotchEnabled, jsonBool(configObject, QLatin1String("boringNotchEnabled"), true), &UserConfigBackend::boringNotchEnabledChanged);
+
+    const bool legacyBoringNotch = jsonBool(configObject, QLatin1String("boringNotchEnabled"), true);
+    QString configuredNotchMode = jsonString(configObject, QLatin1String("notchMode"), QString()).trimmed().toLower();
+    if (configuredNotchMode.isEmpty()) {
+        configuredNotchMode = legacyBoringNotch ? QStringLiteral("notch") : QStringLiteral("pill");
+    } else if (configuredNotchMode != QLatin1String("notch") && configuredNotchMode != QLatin1String("pill") && configuredNotchMode != QLatin1String("circle")) {
+        configuredNotchMode = QStringLiteral("notch");
+    }
+    updateField(this, m_notchMode, configuredNotchMode, &UserConfigBackend::notchModeChanged);
+    updateField(this, m_boringNotchEnabled, m_notchMode == QLatin1String("notch"), &UserConfigBackend::boringNotchEnabledChanged);
+    updateField(this, m_notchCircleClosedSize, jsonBoundedInt(configObject, QLatin1String("notchCircleClosedSize"), 44, 24, 160), &UserConfigBackend::notchCircleClosedSizeChanged);
+    updateField(this, m_notchCircleExpandedRadius, jsonBoundedInt(configObject, QLatin1String("notchCircleExpandedRadius"), 48, 14, 95), &UserConfigBackend::notchCircleExpandedRadiusChanged);
+
     updateField(this, m_hideNotchInFullscreen, jsonBool(configObject, QLatin1String("hideNotchInFullscreen"), true), &UserConfigBackend::hideNotchInFullscreenChanged);
     updateField(this, m_showBoringFace, jsonBool(configObject, QLatin1String("showBoringFace"), false), &UserConfigBackend::showBoringFaceChanged);
     updateField(this, m_notchClosedWidth, jsonBoundedInt(configObject, QLatin1String("notchClosedWidth"), 185, 80, 1000), &UserConfigBackend::notchClosedWidthChanged);

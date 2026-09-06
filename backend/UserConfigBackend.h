@@ -50,13 +50,16 @@ class UserConfigBackend final : public QObject {
     Q_PROPERTY(bool islandAutoHideEnabled READ islandAutoHideEnabled NOTIFY islandAutoHideEnabledChanged FINAL)
     Q_PROPERTY(int islandAutoHideDelayMs READ islandAutoHideDelayMs NOTIFY islandAutoHideDelayMsChanged FINAL)
     Q_PROPERTY(bool islandShowWorkspaceOnAutoHide READ islandShowWorkspaceOnAutoHide NOTIFY islandShowWorkspaceOnAutoHideChanged FINAL)
+    Q_PROPERTY(QString notchMode READ notchMode NOTIFY notchModeChanged FINAL)
     Q_PROPERTY(bool boringNotchEnabled READ boringNotchEnabled NOTIFY boringNotchEnabledChanged FINAL)
     Q_PROPERTY(bool hideNotchInFullscreen READ hideNotchInFullscreen NOTIFY hideNotchInFullscreenChanged FINAL)
     Q_PROPERTY(bool showBoringFace READ showBoringFace NOTIFY showBoringFaceChanged FINAL)
     Q_PROPERTY(int notchClosedWidth READ notchClosedWidth NOTIFY notchClosedWidthChanged FINAL)
     Q_PROPERTY(int notchClosedHeight READ notchClosedHeight NOTIFY notchClosedHeightChanged FINAL)
+    Q_PROPERTY(int notchCircleClosedSize READ notchCircleClosedSize NOTIFY notchCircleClosedSizeChanged FINAL)
     Q_PROPERTY(int notchOpenWidth READ notchOpenWidth NOTIFY notchOpenWidthChanged FINAL)
     Q_PROPERTY(int notchOpenHeight READ notchOpenHeight NOTIFY notchOpenHeightChanged FINAL)
+    Q_PROPERTY(int notchCircleExpandedRadius READ notchCircleExpandedRadius NOTIFY notchCircleExpandedRadiusChanged FINAL)
     Q_PROPERTY(int notchTopCornerRadius READ notchTopCornerRadius NOTIFY notchTopCornerRadiusChanged FINAL)
     Q_PROPERTY(int notchBottomCornerRadius READ notchBottomCornerRadius NOTIFY notchBottomCornerRadiusChanged FINAL)
     Q_PROPERTY(int notchHoverOpenDelayMs READ notchHoverOpenDelayMs NOTIFY notchHoverOpenDelayMsChanged FINAL)
@@ -113,13 +116,16 @@ public:
     bool islandShowWorkspaceOnAutoHide() const;
     bool islandAutoHideEnabled() const;
     int islandAutoHideDelayMs() const;
+    QString notchMode() const;
     bool boringNotchEnabled() const;
     bool hideNotchInFullscreen() const;
     bool showBoringFace() const;
     int notchClosedWidth() const;
     int notchClosedHeight() const;
+    int notchCircleClosedSize() const;
     int notchOpenWidth() const;
     int notchOpenHeight() const;
+    int notchCircleExpandedRadius() const;
     int notchTopCornerRadius() const;
     int notchBottomCornerRadius() const;
     int notchHoverOpenDelayMs() const;
@@ -177,13 +183,16 @@ signals:
     void hoverExpandActionChanged();
     void islandAutoHideEnabledChanged();
     void islandAutoHideDelayMsChanged();
+    void notchModeChanged();
     void boringNotchEnabledChanged();
     void hideNotchInFullscreenChanged();
     void showBoringFaceChanged();
     void notchClosedWidthChanged();
     void notchClosedHeightChanged();
+    void notchCircleClosedSizeChanged();
     void notchOpenWidthChanged();
     void notchOpenHeightChanged();
+    void notchCircleExpandedRadiusChanged();
     void notchTopCornerRadiusChanged();
     void notchBottomCornerRadiusChanged();
     void notchHoverOpenDelayMsChanged();
@@ -242,13 +251,16 @@ private:
     int m_hoverExpandAction = 1;
     bool m_islandAutoHideEnabled = true;
     int m_islandAutoHideDelayMs = 1000;
+    QString m_notchMode = QStringLiteral("notch");
     bool m_boringNotchEnabled = true;
     bool m_hideNotchInFullscreen = true;
     bool m_showBoringFace = false;
     int m_notchClosedWidth = 185;
     int m_notchClosedHeight = 32;
+    int m_notchCircleClosedSize = 44;
     int m_notchOpenWidth = 640;
     int m_notchOpenHeight = 190;
+    int m_notchCircleExpandedRadius = 48;
     int m_notchTopCornerRadius = 6;
     int m_notchBottomCornerRadius = 14;
     int m_notchHoverOpenDelayMs = 300;

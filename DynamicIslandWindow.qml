@@ -128,7 +128,7 @@ PanelWindow {
             height: powerConnectivityDetailShell.visible ? Math.ceil(powerConnectivityDetailShell.height) : 0
         }
     }
-    readonly property real capsuleTopMargin: userConfig.boringNotchEnabled ? 0 : Math.max(4, userConfig.islandTopMargin)
+    readonly property real capsuleTopMargin: (userConfig.notchMode === "notch") ? 0 : Math.max(4, userConfig.islandTopMargin)
     readonly property real capsuleWindowHeight: Math.ceil(
         root.capsuleTopMargin + mainCapsule.targetHeight + 12
     )
@@ -1934,6 +1934,8 @@ PanelWindow {
                         Math.min(root.width - 48, notificationLoader.item.maximumWidth, notificationLoader.item.preferredWidth)
                     );
                 default:
+                    if (userConfig.notchMode === "circle")
+                        return userConfig.notchCircleClosedSize;
                     return islandContainer.currentTrack !== ""
                         ? Math.round(userConfig.notchClosedWidth + 2 * Math.max(0, userConfig.notchClosedHeight - 12) + 20)
                         : userConfig.notchClosedWidth;
@@ -1961,6 +1963,8 @@ PanelWindow {
                         ? Math.max(56, notificationLoader.item.preferredHeight)
                         : 56;
                 default:
+                    if (userConfig.notchMode === "circle")
+                        return userConfig.notchCircleClosedSize;
                     return userConfig.notchClosedHeight;
                 }
             }
@@ -1978,11 +1982,15 @@ PanelWindow {
                 case "file_shelf":
                 case "expanded":
                 case "bluetooth_expanded":
-                    return userConfig.notchBottomCornerRadius * 2;
+                    return userConfig.notchMode === "circle"
+                        ? userConfig.notchCircleExpandedRadius
+                        : userConfig.notchBottomCornerRadius * 2;
                 case "notification":
                     return islandContainer.notificationExpanded ? 28 : mainCapsule.targetHeight / 2;
                 default:
-                    return userConfig.boringNotchEnabled ? userConfig.notchBottomCornerRadius : (mainCapsule.targetHeight / 2);
+                    if (userConfig.notchMode === "circle")
+                        return mainCapsule.targetHeight / 2;
+                    return (userConfig.notchMode === "notch") ? userConfig.notchBottomCornerRadius : (mainCapsule.targetHeight / 2);
                 }
             }
             function sideSwipeWidthForProgress(progressValue) {
@@ -1999,7 +2007,7 @@ PanelWindow {
             )
             color: root.overviewContentVisible
                 ? root.overviewCapsuleColor
-                : (userConfig.boringNotchEnabled
+                : ((userConfig.notchMode === "notch")
                     ? StyleTokens.transparent
                     : (notificationHistorySurface ? "#080808" : Qt.rgba(0, 0, 0, userConfig.islandBackgroundOpacity / 100.0)))
             y: root.capsuleTopMargin
@@ -2036,13 +2044,13 @@ PanelWindow {
             Behavior on color { ColorAnimation { duration: 280; easing.type: Easing.InOutQuad } }
             Behavior on outlineWidth { NumberAnimation { duration: 260; easing.type: Easing.InOutQuad } }
             Behavior on outlineColor { ColorAnimation { duration: 260; easing.type: Easing.InOutQuad } }
-            border.width: userConfig.boringNotchEnabled && !root.overviewContentVisible ? 0 : outlineWidth
+            border.width: (userConfig.notchMode === "notch") && !root.overviewContentVisible ? 0 : outlineWidth
             border.color: outlineColor
 
             NotchSurface {
                 anchors.fill: parent
                 z: -2
-                visible: userConfig.boringNotchEnabled && !root.overviewContentVisible
+                visible: (userConfig.notchMode === "notch") && !root.overviewContentVisible
                 color: mainCapsule.notificationHistorySurface ? "#080808" : Qt.rgba(0, 0, 0, userConfig.islandBackgroundOpacity / 100.0)
                 borderColor: mainCapsule.outlineColor
                 borderWidth: mainCapsule.outlineWidth
@@ -2399,6 +2407,7 @@ PanelWindow {
                 id: notchLiveActivityLoader
                 anchors.fill: parent
                 active: !root.overviewVisible
+                    && userConfig.notchMode !== "circle"
                     && islandContainer.islandState === "normal"
                     && islandContainer.currentTrack !== ""
                     && Math.abs(islandContainer.swipeTransitionProgress) < 0.01
@@ -2422,6 +2431,7 @@ PanelWindow {
                 id: boringFaceLoader
                 anchors.centerIn: parent
                 active: !root.overviewVisible
+                    && userConfig.notchMode !== "circle"
                     && userConfig.showBoringFace
                     && islandContainer.islandState === "normal"
                     && islandContainer.currentTrack === ""
@@ -2431,6 +2441,29 @@ PanelWindow {
 
                 sourceComponent: Component {
                     BoringFaceAnimation {}
+                }
+            }
+
+            Loader {
+                id: circleClosedLoader
+                anchors.fill: parent
+                active: !root.overviewVisible
+                    && userConfig.notchMode === "circle"
+                    && islandContainer.islandState === "normal"
+                    && Math.abs(islandContainer.swipeTransitionProgress) < 0.01
+                asynchronous: false
+                visible: active
+
+                sourceComponent: Component {
+                    CircleClosedLayer {
+                        currentArtUrl: islandContainer.currentArtUrl
+                        currentTrack: islandContainer.currentTrack
+                        currentArtist: islandContainer.currentArtist
+                        isPlaying: islandContainer.activePlayer ? islandContainer.activePlayer.playbackState === MprisPlaybackState.Playing : false
+                        showBoringFace: userConfig.showBoringFace
+                        iconFontFamily: root.iconFontFamily
+                        textFontFamily: root.textFontFamily
+                    }
                 }
             }
 
