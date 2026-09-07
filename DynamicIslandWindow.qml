@@ -1982,6 +1982,10 @@ PanelWindow {
                             notificationLoader.item.minimumWidth,
                             Math.min(root.width - 48, notificationLoader.item.maximumWidth, notificationLoader.item.preferredWidth)
                         );
+                    case "long_capsule":
+                        return Math.max(userConfig.notchCircleClosedSize + 110, 190);
+                    case "split":
+                        return islandContainer.splitCapsuleWidth;
                     default:
                         return userConfig.notchCircleClosedSize;
                     }
@@ -2569,6 +2573,8 @@ PanelWindow {
                     && islandContainer.islandState !== "application_launcher"
                     && islandContainer.islandState !== "file_shelf"
                     && islandContainer.islandState !== "notification"
+                    && islandContainer.islandState !== "long_capsule"
+                    && islandContainer.islandState !== "split"
                 asynchronous: false
                 visible: active
 
