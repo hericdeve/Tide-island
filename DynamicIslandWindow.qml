@@ -88,6 +88,15 @@ PanelWindow {
             height: Math.ceil(root.topGestureInputHeight)
         }
 
+        // Keep input active across the entire window when dragging a widget from the library
+        Region {
+            intersection: Intersection.Combine
+            x: 0
+            y: 0
+            width: islandContainer.isDraggingWidgetFromLibrary ? root.width : 0
+            height: islandContainer.isDraggingWidgetFromLibrary ? root.height : 0
+        }
+
         Region {
             intersection: Intersection.Combine
             x: Math.floor(mainCapsule.x)
@@ -144,7 +153,8 @@ PanelWindow {
         root.capsuleWindowHeight,
         root.connectivityDetailWindowHeight,
         root.overviewWindowHeight,
-        Math.ceil(root.controlCenterWindowHeight)
+        Math.ceil(root.controlCenterWindowHeight),
+        islandContainer.isDraggingWidgetFromLibrary ? 560 : 0
     )
     // Grow the layer surface immediately, but keep the old extent while the
     // capsule finishes its collapse animation. A later expansion interrupts
@@ -179,7 +189,8 @@ PanelWindow {
         if (islandContainer.wallpaperPickerLayerVisible
                 || islandContainer.applicationLauncherLayerVisible
                 || islandContainer.fileShelfLayerVisible
-                || islandContainer.islandState === "widget_library")
+                || islandContainer.islandState === "widget_library"
+                || islandContainer.isDraggingWidgetFromLibrary)
             return WlrLayer.Overlay;
         return WlrLayer.Top;
     }
@@ -1070,6 +1081,7 @@ PanelWindow {
                             && islandContainer.islandState !== "notification_center"
                             && islandContainer.islandState !== "wallpaper_picker"
                             && islandContainer.islandState !== "application_launcher"
+                            && islandContainer.islandState !== "widget_library"
                             && islandContainer.islandState !== "file_shelf"
                             && islandContainer.islandState !== "notification") {
                         islandContainer.islandState = "normal";
@@ -1802,6 +1814,7 @@ PanelWindow {
             if (sizeType === "full") {
                 // Show expanded notch on the page the user was on when opening library
                 islandState = "expanded";
+                mainCapsule.displayedWidth = mainCapsule.baseTargetWidth;
                 if (expandedPlayerLoader.item && expandedPlayerLoader.item.showPage) {
                     expandedPlayerLoader.item.showPage(preDragExpandedPage);
                 }
@@ -1809,10 +1822,12 @@ PanelWindow {
                 // Show closed/pill notch
                 userConfig.notchMode = "pill";
                 islandState = "normal";
+                mainCapsule.displayedWidth = mainCapsule.baseTargetWidth;
             } else if (sizeType === "circle") {
                 // Show circle notch
                 userConfig.notchMode = "circle";
                 islandState = "normal";
+                mainCapsule.displayedWidth = mainCapsule.baseTargetWidth;
             }
             updateDragHitTest(winX, winY);
         }
@@ -1844,7 +1859,8 @@ PanelWindow {
                 const contentW = Math.max(100, capW - 32);
                 const currentPages = (userConfig.widgetLayouts && userConfig.widgetLayouts.expanded)
                     ? userConfig.widgetLayouts.expanded.pages : [];
-                const curPage = currentPages[rememberedPlayerPage];
+                const curPageIdx = Math.max(0, Math.min((currentPages ? currentPages.length - 1 : 0), rememberedPlayerPage));
+                const curPage = (currentPages && currentPages.length > 0) ? currentPages[curPageIdx] : null;
                 const slots = (curPage && curPage.slots) ? curPage.slots : 3;
                 const relX = winX - contentX;
                 const slotW = contentW / slots;
@@ -1867,21 +1883,25 @@ PanelWindow {
 
             if (hit) {
                 if (wData.sizeType === "full") {
-                    const targetPage = rememberedPlayerPage;
+                    const targetPage = widgetLibraryTargetMode === "expanded" && widgetLibraryTargetPageIndex >= 0
+                        ? widgetLibraryTargetPageIndex : rememberedPlayerPage;
                     const targetSlot = hoveredSlotIndex >= 0 ? hoveredSlotIndex : 0;
                     userConfig.setSlotWidget("expanded", targetPage, targetSlot, wData.widgetId, wData.slotSpan);
                 } else if (wData.sizeType === "minimum") {
-                    const targetPage = (closedWidgetLoader.item ? closedWidgetLoader.item.currentPageIndex : 0);
+                    const targetPage = widgetLibraryTargetMode === "minimum" && widgetLibraryTargetPageIndex >= 0
+                        ? widgetLibraryTargetPageIndex : (closedWidgetLoader.item ? closedWidgetLoader.item.currentPageIndex : 0);
                     userConfig.setSlotWidget("minimum", targetPage, 0, wData.widgetId, 1);
                     restoreRestingCapsule(true);
                 } else if (wData.sizeType === "circle") {
-                    const targetPage = (circleClosedLoader.item ? circleClosedLoader.item.currentPageIndex : 0);
+                    const targetPage = widgetLibraryTargetPageIndex >= 0
+                        ? widgetLibraryTargetPageIndex : (circleClosedLoader.item ? circleClosedLoader.item.currentPageIndex : 0);
                     userConfig.setSlotWidget("circle", targetPage, 0, wData.widgetId, 1);
                     restoreRestingCapsule(true);
                 }
             } else {
                 userConfig.notchMode = preDragNotchMode;
                 islandState = preDragIslandState;
+                mainCapsule.displayedWidth = mainCapsule.baseTargetWidth;
             }
 
             isDraggingWidgetFromLibrary = false;
@@ -2229,9 +2249,7 @@ PanelWindow {
                 case "file_shelf":
                 case "expanded":
                 case "bluetooth_expanded":
-                    return userConfig.notchMode === "circle"
-                        ? userConfig.notchCircleExpandedRadius
-                        : userConfig.notchBottomCornerRadius * 2;
+                    return userConfig.notchBottomCornerRadius * 2;
                 case "notification":
                     return islandContainer.notificationExpanded ? 28 : mainCapsule.targetHeight / 2;
                 default:
@@ -3037,7 +3055,7 @@ PanelWindow {
                 anchors.fill: parent
                 active: islandContainer.islandState === "widget_library" || islandContainer.isDraggingWidgetFromLibrary
                 asynchronous: false
-                visible: active && !islandContainer.isDraggingWidgetFromLibrary
+                visible: active
                 opacity: islandContainer.isDraggingWidgetFromLibrary ? 0.0 : 1.0
                 z: 100
 
@@ -3048,7 +3066,7 @@ PanelWindow {
                         targetMode: islandContainer.widgetLibraryTargetMode
                         targetPageIndex: islandContainer.widgetLibraryTargetPageIndex
                         targetSlotIndex: islandContainer.widgetLibraryTargetSlotIndex
-                        showCondition: islandContainer.islandState === "widget_library" && !islandContainer.isDraggingWidgetFromLibrary
+                        showCondition: islandContainer.islandState === "widget_library"
                         currentArtUrl: islandContainer.currentArtUrl
                         currentTrack: islandContainer.currentTrack
                         currentArtist: islandContainer.currentArtist
@@ -3576,6 +3594,67 @@ PanelWindow {
             iconFontFamily: root.iconFontFamily
             textFontFamily: root.textFontFamily
             heroFontFamily: root.heroFontFamily
+        }
+
+        // Drag proxy / ghost following pointer during widget library drag
+        Item {
+            id: dragGhostBadge
+            z: 99999
+            visible: islandContainer.isDraggingWidgetFromLibrary && islandContainer.draggedWidgetData !== null
+            x: Math.round(islandContainer.dragPointerPos.x - width / 2)
+            y: Math.round(islandContainer.dragPointerPos.y - height - 14)
+            width: ghostRow.implicitWidth + 24
+            height: 34
+
+            Rectangle {
+                anchors.fill: parent
+                radius: 17
+                color: "#16141f"
+                border.width: 1.5
+                border.color: "#b56cff"
+                opacity: 0.95
+
+                Row {
+                    id: ghostRow
+                    anchors.centerIn: parent
+                    spacing: 6
+
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: {
+                            if (!islandContainer.draggedWidgetData) return "";
+                            const w = WidgetRegistry.getWidget(islandContainer.draggedWidgetData.widgetId);
+                            return w ? w.name : islandContainer.draggedWidgetData.widgetId;
+                        }
+                        font.family: root.textFontFamily
+                        font.pixelSize: 11
+                        font.weight: Font.Bold
+                        color: "white"
+                    }
+
+                    Rectangle {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: sizeBadgeText.implicitWidth + 10
+                        height: 18
+                        radius: 9
+                        color: "#b56cff"
+
+                        Text {
+                            id: sizeBadgeText
+                            anchors.centerIn: parent
+                            text: {
+                                if (!islandContainer.draggedWidgetData) return "";
+                                const st = islandContainer.draggedWidgetData.sizeType;
+                                return st === "full" ? "Full" : (st === "minimum" ? "Min" : "Circle");
+                            }
+                            font.family: root.textFontFamily
+                            font.pixelSize: 9
+                            font.weight: Font.Bold
+                            color: "white"
+                        }
+                    }
+                }
+            }
         }
     }
 

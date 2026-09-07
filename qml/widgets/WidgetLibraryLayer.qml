@@ -8,6 +8,7 @@ import "."
 // Only displays the size variations each widget actually implements.
 Item {
     id: root
+    anchors.fill: parent
 
     property bool showCondition: false
     property string targetMode: "expanded" // "expanded" | "minimum" | "circle"
@@ -62,25 +63,17 @@ Item {
         && currentWidget.supportedSizes.indexOf("circle") !== -1
         && !!currentWidget.circleComponent && currentWidget.circleComponent !== ""
 
-    readonly property real contentHeight: mainCol.implicitHeight + 28
+    readonly property real contentHeight: 520
 
     // ── Widget Switching Transition Animation ─────────────────────────────
+    readonly property real slideDistance: 280
     property real animOffset: 0
     property real animOpacity: 1.0
     property int transitionDirection: 1
     property int pendingIndex: 0
 
-    NumberAnimation {
-        id: dragSettleAnim
-        target: root
-        property: "animOffset"
-        to: 0
-        duration: 140
-        easing.type: Easing.OutQuad
-    }
-
     ParallelAnimation {
-        id: enterAnim
+        id: dragSettleAnim
         NumberAnimation {
             target: root
             property: "animOffset"
@@ -97,6 +90,24 @@ Item {
         }
     }
 
+    ParallelAnimation {
+        id: enterAnim
+        NumberAnimation {
+            target: root
+            property: "animOffset"
+            to: 0
+            duration: 220
+            easing.type: Easing.OutCubic
+        }
+        NumberAnimation {
+            target: root
+            property: "animOpacity"
+            to: 1.0
+            duration: 180
+            easing.type: Easing.OutQuad
+        }
+    }
+
     SequentialAnimation {
         id: switchSequence
 
@@ -104,15 +115,15 @@ Item {
             NumberAnimation {
                 target: root
                 property: "animOffset"
-                to: -root.transitionDirection * 24
-                duration: 90
-                easing.type: Easing.InQuad
+                to: -root.transitionDirection * root.slideDistance
+                duration: 150
+                easing.type: Easing.InCubic
             }
             NumberAnimation {
                 target: root
                 property: "animOpacity"
-                to: 0.0
-                duration: 90
+                to: 0.35
+                duration: 150
                 easing.type: Easing.InQuad
             }
         }
@@ -120,8 +131,8 @@ Item {
         ScriptAction {
             script: {
                 root.currentIndex = root.pendingIndex;
-                root.animOffset = root.transitionDirection * 28;
-                root.animOpacity = 0.0;
+                root.animOffset = root.transitionDirection * root.slideDistance;
+                root.animOpacity = 0.35;
             }
         }
 
@@ -130,14 +141,14 @@ Item {
                 target: root
                 property: "animOffset"
                 to: 0
-                duration: 180
+                duration: 220
                 easing.type: Easing.OutCubic
             }
             NumberAnimation {
                 target: root
                 property: "animOpacity"
                 to: 1.0
-                duration: 160
+                duration: 180
                 easing.type: Easing.OutQuad
             }
         }
@@ -152,8 +163,8 @@ Item {
         if (switchSequence.running) {
             switchSequence.stop();
             currentIndex = targetIdx;
-            animOffset = direction * 28;
-            animOpacity = 0.0;
+            animOffset = direction * root.slideDistance;
+            animOpacity = 0.35;
             enterAnim.restart();
             return;
         }
@@ -200,15 +211,15 @@ Item {
     })
 
     opacity: (showCondition && !isDraggingWidget) ? 1.0 : 0.0
-    scale: (showCondition && !isDraggingWidget) ? 1.0 : 0.96
-    visible: opacity > 0.001
+    y: (showCondition || isDraggingWidget) ? 0 : -28
+    visible: showCondition || isDraggingWidget
     focus: showCondition && !isDraggingWidget
 
     Behavior on opacity {
-        NumberAnimation { duration: 200; easing.type: Easing.OutQuad }
+        NumberAnimation { duration: 220; easing.type: Easing.OutQuad }
     }
-    Behavior on scale {
-        NumberAnimation { duration: 200; easing.type: Easing.OutBack }
+    Behavior on y {
+        NumberAnimation { duration: 260; easing.type: Easing.OutCubic }
     }
 
     Keys.onLeftPressed: root.prevWidget()
@@ -249,17 +260,22 @@ Item {
         border.width: 1
         border.color: "#242426"
         clip: true
+        opacity: root.isDraggingWidget ? 0.0 : 1.0
 
-        Column {
-            id: mainCol
-            anchors.fill: parent
-            anchors.margins: 14
-            spacing: 12
+        Behavior on opacity {
+            NumberAnimation { duration: 180; easing.type: Easing.OutQuad }
+        }
 
-            // ── Minimal Top Navigation Bar ──────────────────────────────────
-            Item {
-                width: parent.width
-                height: 24
+        // ── Minimal Top Navigation Bar ──────────────────────────────────
+        Item {
+            id: topNavBar
+            anchors.top: parent.top
+            anchors.topMargin: 14
+            anchors.left: parent.left
+            anchors.leftMargin: 16
+            anchors.right: parent.right
+            anchors.rightMargin: 16
+            height: 24
 
                 // Dot pagination indicator & counter
                 Row {
@@ -377,7 +393,12 @@ Item {
             // ── Widget Card (Describes Widget & Shows Available Variations) ──
             Rectangle {
                 id: widgetCard
-                width: parent.width
+                anchors.top: topNavBar.bottom
+                anchors.topMargin: 10
+                anchors.left: parent.left
+                anchors.leftMargin: 16
+                anchors.right: parent.right
+                anchors.rightMargin: 16
                 height: 74
                 radius: 14
                 color: "#0d0d0f"
@@ -401,13 +422,14 @@ Item {
                         if (Math.abs(dx) > 6) {
                             moved = true;
                             if (!switchSequence.running) {
-                                root.animOffset = Math.max(-40, Math.min(40, dx * 0.35));
+                                root.animOffset = Math.max(-160, Math.min(160, dx * 0.7));
+                                root.animOpacity = Math.max(0.65, 1.0 - Math.abs(root.animOffset) / 360.0);
                             }
                         }
                     }
                     onReleased: (mouse) => {
                         const dx = mouse.x - startX;
-                        if (moved && Math.abs(dx) > 24) {
+                        if (moved && Math.abs(dx) > 28) {
                             if (dx < 0)
                                 root.nextWidget();
                             else
@@ -558,156 +580,185 @@ Item {
                 }
             }
 
-            // ── Stacked Widget Variations Previews (Only Implemented Ones, No Titles) ──
-            Flickable {
-                id: previewsFlickable
-                width: parent.width
-                height: Math.max(80, parent.height - 24 - 74 - 24)
-                contentWidth: width
-                contentHeight: previewsColumn.implicitHeight
-                clip: true
-                boundsBehavior: Flickable.StopAtBounds
+        // ── Stacked Widget Variations Previews (Only Implemented Ones, No Titles) ──
+        Flickable {
+            id: previewsFlickable
+            anchors.top: widgetCard.bottom
+            anchors.topMargin: 10
+            anchors.left: parent.left
+            anchors.leftMargin: 16
+            anchors.right: parent.right
+            anchors.rightMargin: 16
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: 14
+            contentWidth: width
+            contentHeight: previewsColumn.implicitHeight
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
 
-                Column {
-                    id: previewsColumn
-                    width: parent.width
-                    spacing: 8
-                    x: Math.round(root.animOffset * 1.25)
-                    opacity: root.animOpacity
+            Column {
+                id: previewsColumn
+                width: previewsFlickable.width
+                spacing: 10
+                x: Math.round(root.animOffset * 1.25)
+                opacity: root.animOpacity
 
-                    Repeater {
-                        model: {
-                            if (!root.currentWidget) return [];
-                            const list = [];
-                            if (root.currentSupportsFull) {
-                                list.push({
-                                    type: "full",
-                                    source: root.currentWidget.fullComponent,
-                                    itemHeight: 134,
-                                    cardWidth: previewsColumn.width,
-                                    cardHeight: 134,
-                                    cardRadius: 12,
-                                    slotSpan: root.currentWidget.defaultSlotSpan || 2
-                                });
-                            }
-                            if (root.currentSupportsMinimum) {
-                                list.push({
-                                    type: "minimum",
-                                    source: root.currentWidget.minimumComponent,
-                                    itemHeight: 38,
-                                    cardWidth: Math.min(previewsColumn.width - 24, 240),
-                                    cardHeight: 34,
-                                    cardRadius: 17,
-                                    slotSpan: 1
-                                });
-                            }
-                            if (root.currentSupportsCircle) {
-                                list.push({
-                                    type: "circle",
-                                    source: root.currentWidget.circleComponent,
-                                    itemHeight: 62,
-                                    cardWidth: 58,
-                                    cardHeight: 58,
-                                    cardRadius: 29,
-                                    slotSpan: 1
-                                });
-                            }
-                            return list;
+                Repeater {
+                    model: {
+                        if (!root.currentWidget) return [];
+                        const list = [];
+                        if (root.currentSupportsFull) {
+                            const span = root.currentWidget.defaultSlotSpan || 1;
+                            list.push({
+                                type: "full",
+                                source: root.currentWidget.fullComponent,
+                                itemHeight: 134,
+                                cardWidth: span >= 2 ? Math.min(previewsColumn.width, 520) : Math.min(previewsColumn.width, 320),
+                                cardHeight: 130,
+                                cardRadius: 16,
+                                slotSpan: span
+                            });
                         }
+                        if (root.currentSupportsMinimum) {
+                            list.push({
+                                type: "minimum",
+                                source: root.currentWidget.minimumComponent,
+                                itemHeight: 44,
+                                cardWidth: Math.min(previewsColumn.width - 24, 260),
+                                cardHeight: 38,
+                                cardRadius: 19,
+                                slotSpan: 1
+                            });
+                        }
+                        if (root.currentSupportsCircle) {
+                            list.push({
+                                type: "circle",
+                                source: root.currentWidget.circleComponent,
+                                itemHeight: 74,
+                                cardWidth: 68,
+                                cardHeight: 68,
+                                cardRadius: 34,
+                                slotSpan: 1
+                            });
+                        }
+                        return list;
+                    }
 
-                        Item {
-                            id: previewDelegate
-                            required property var modelData
-                            width: previewsColumn.width
-                            height: previewDelegate.modelData.itemHeight
+                    Item {
+                        id: previewDelegate
+                        required property var modelData
+                        width: previewsColumn.width
+                        height: previewDelegate.modelData.itemHeight
 
-                            Rectangle {
-                                id: cardRect
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: previewDelegate.modelData.cardWidth
-                                height: previewDelegate.modelData.cardHeight
-                                radius: previewDelegate.modelData.cardRadius
-                                color: "#08080a"
-                                border.width: 1
-                                border.color: cardMouse.containsMouse ? "#b56cff" : "#1c1c20"
-                                clip: true
+                        Rectangle {
+                            id: cardRect
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: previewDelegate.modelData.cardWidth
+                            height: previewDelegate.modelData.cardHeight
+                            radius: previewDelegate.modelData.cardRadius
+                            color: "#08080a"
+                            border.width: 1
+                            border.color: cardMouse.containsMouse ? "#b56cff" : "#1c1c20"
+                            clip: true
 
-                                Loader {
-                                    anchors.fill: parent
-                                    anchors.margins: previewDelegate.modelData.type === "full" ? 4 : 0
-                                    source: previewDelegate.modelData.source
+                            Loader {
+                                anchors.fill: parent
+                                anchors.margins: previewDelegate.modelData.type === "full" ? 4 : 0
+                                source: previewDelegate.modelData.source
 
-                                    onLoaded: {
-                                        if (item) {
-                                            item.widgetContext = root.previewWidgetContext;
-                                            item.slotSpan = previewDelegate.modelData.slotSpan;
-                                            item.isEditMode = false;
-                                        }
+                                onLoaded: {
+                                    if (item) {
+                                        item.widgetContext = root.previewWidgetContext;
+                                        item.slotSpan = previewDelegate.modelData.slotSpan;
+                                        item.isEditMode = false;
                                     }
-                                    onStatusChanged: {
-                                        if (status === Loader.Ready && item) {
-                                            item.widgetContext = root.previewWidgetContext;
-                                            item.slotSpan = previewDelegate.modelData.slotSpan;
-                                            item.isEditMode = false;
-                                        }
+                                }
+                                onStatusChanged: {
+                                    if (status === Loader.Ready && item) {
+                                        item.widgetContext = root.previewWidgetContext;
+                                        item.slotSpan = previewDelegate.modelData.slotSpan;
+                                        item.isEditMode = false;
+                                    }
+                                }
+                            }
+
+                            // Interactive Drag & Direct Click Handler
+                            MouseArea {
+                                id: cardMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: dragging ? Qt.ClosedHandCursor : Qt.PointingHandCursor
+                                preventStealing: dragging
+                                propagateComposedEvents: true
+
+                                property real startX: 0
+                                property real startY: 0
+                                property bool dragging: false
+                                property bool wasDragging: false
+
+                                onPressed: (mouse) => {
+                                    if (mouse.button !== Qt.LeftButton) return;
+                                    startX = mouse.x;
+                                    startY = mouse.y;
+                                    dragging = false;
+                                    wasDragging = false;
+                                }
+
+                                onPositionChanged: (mouse) => {
+                                    if (!pressed || (mouse.buttons & Qt.LeftButton) === 0) return;
+                                    const dx = mouse.x - startX;
+                                    const dy = mouse.y - startY;
+                                    if (!dragging && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) {
+                                        dragging = true;
+                                        wasDragging = true;
+                                        root.isDraggingWidget = true;
+                                        const winPos = cardRect.mapToItem(null, mouse.x, mouse.y);
+                                        root.widgetDragStarted(
+                                            root.currentWidget.id,
+                                            previewDelegate.modelData.type,
+                                            previewDelegate.modelData.slotSpan || 1,
+                                            winPos.x,
+                                            winPos.y
+                                        );
+                                    } else if (dragging) {
+                                        const winPos = cardRect.mapToItem(null, mouse.x, mouse.y);
+                                        root.widgetDragMoved(winPos.x, winPos.y);
                                     }
                                 }
 
-                                // Interactive Drag Handler to drag widget directly from library into notch
-                                MouseArea {
-                                    id: cardMouse
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: dragging ? Qt.ClosedHandCursor : Qt.OpenHandCursor
-                                    preventStealing: dragging
-                                    propagateComposedEvents: true
-
-                                    property real startX: 0
-                                    property real startY: 0
-                                    property bool dragging: false
-
-                                    onPressed: (mouse) => {
-                                        startX = mouse.x;
-                                        startY = mouse.y;
+                                onReleased: (mouse) => {
+                                    if (dragging) {
+                                        const winPos = cardRect.mapToItem(null, mouse.x, mouse.y);
+                                        root.widgetDragEnded(winPos.x, winPos.y);
                                         dragging = false;
+                                        root.isDraggingWidget = false;
                                     }
+                                }
 
-                                    onPositionChanged: (mouse) => {
-                                        const dx = mouse.x - startX;
-                                        const dy = mouse.y - startY;
-                                        if (!dragging && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) {
-                                            dragging = true;
-                                            root.isDraggingWidget = true;
-                                            const winPos = cardRect.mapToItem(null, mouse.x, mouse.y);
-                                            root.widgetDragStarted(
-                                                root.currentWidget.id,
-                                                previewDelegate.modelData.type,
-                                                previewDelegate.modelData.slotSpan || 1,
-                                                winPos.x,
-                                                winPos.y
-                                            );
-                                        } else if (dragging) {
-                                            const winPos = cardRect.mapToItem(null, mouse.x, mouse.y);
-                                            root.widgetDragMoved(winPos.x, winPos.y);
-                                        }
+                                onCanceled: {
+                                    if (dragging) {
+                                        dragging = false;
+                                        root.isDraggingWidget = false;
+                                        root.widgetDragEnded(-1000, -1000);
                                     }
+                                }
 
-                                    onReleased: (mouse) => {
-                                        if (dragging) {
-                                            const winPos = cardRect.mapToItem(null, mouse.x, mouse.y);
-                                            root.widgetDragEnded(winPos.x, winPos.y);
-                                            dragging = false;
-                                            root.isDraggingWidget = false;
-                                        }
-                                    }
-
-                                    onCanceled: {
-                                        if (dragging) {
-                                            dragging = false;
-                                            root.isDraggingWidget = false;
-                                            root.widgetDragEnded(-1000, -1000);
-                                        }
+                                onClicked: (mouse) => {
+                                    if (!wasDragging && !dragging && mouse.button === Qt.LeftButton && root.currentWidget && userConfig) {
+                                        const targetModeForType = (previewDelegate.modelData.type === "full") ? "expanded"
+                                                               : (previewDelegate.modelData.type === "minimum") ? "minimum" : "circle";
+                                        const targetPage = (root.targetMode === targetModeForType) ? root.targetPageIndex : 0;
+                                        const targetSlot = (root.targetMode === targetModeForType) ? root.targetSlotIndex : 0;
+                                        userConfig.setSlotWidget(
+                                            targetModeForType,
+                                            targetPage,
+                                            targetSlot,
+                                            root.currentWidget.id,
+                                            previewDelegate.modelData.slotSpan || 1
+                                        );
+                                        root.widgetSelected(root.currentWidget.id);
+                                        root.closeRequested();
                                     }
                                 }
                             }

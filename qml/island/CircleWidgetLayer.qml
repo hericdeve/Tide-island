@@ -218,6 +218,7 @@ Item {
         anchors.fill: parent
         cursorShape: Qt.PointingHandCursor
         hoverEnabled: true
+        acceptedButtons: Qt.LeftButton | Qt.RightButton
         pressAndHoldInterval: 520
 
         property real startX: 0
@@ -226,6 +227,9 @@ Item {
         property bool isHoldTriggered: false
 
         onPressed: (mouse) => {
+            if (mouse.button === Qt.RightButton) {
+                return;
+            }
             startX = mouse.x;
             startY = mouse.y;
             moved = false;
@@ -234,28 +238,34 @@ Item {
         }
 
         onPositionChanged: (mouse) => {
-            if (Math.abs(mouse.x - startX) > 8 || Math.abs(mouse.y - startY) > 8) {
-                moved = true;
-                holdProgressAnim.stop();
-                root.holdProgress = 0.0;
+            if (mouse.buttons & Qt.LeftButton) {
+                if (Math.abs(mouse.x - startX) > 8 || Math.abs(mouse.y - startY) > 8) {
+                    moved = true;
+                    holdProgressAnim.stop();
+                    root.holdProgress = 0.0;
+                }
             }
         }
 
         onPressAndHold: (mouse) => {
-            if (!moved) {
+            if (mouse.button === Qt.LeftButton && !moved) {
                 isHoldTriggered = true;
                 holdProgressAnim.stop();
                 root.holdProgress = 0.0;
                 if (userConfig) {
                     const nextTitle = "Page " + (root.pageCount + 1);
                     userConfig.addPage("circle", nextTitle, 1);
-                    root.currentPageIndex = root.pageCount;
+                    root.currentPageIndex = Math.max(0, root.pageCount - 1);
                 }
                 popAnim.restart();
             }
         }
 
         onReleased: (mouse) => {
+            if (mouse.button === Qt.RightButton) {
+                root.widgetLibraryRequested("circle", root.currentPageIndex, 0);
+                return;
+            }
             holdProgressAnim.stop();
             root.holdProgress = 0.0;
             if (isHoldTriggered) {
@@ -364,50 +374,46 @@ Item {
                 }
             }
 
-            // Custom Page Empty State: Tap to add widget or delete page
+            // Custom Page Empty State: Centered icon and Delete button at top
+            // Leaving background open so clicks/swipes pass through to expandRequested and wheel navigation
             Item {
                 id: customEmptyPage
                 readonly property int pageIndex: parent.pIdx
                 anchors.fill: parent
                 visible: parent.widgetId === "" && parent.pIdx > 0
 
+                // Centered subtle empty state placeholder
                 Rectangle {
+                    id: addBtnRect
                     anchors.centerIn: parent
-                    width: parent.width - 4
-                    height: parent.height - 4
+                    width: Math.min(44, parent.width - 24)
+                    height: width
                     radius: width / 2
-                    color: addCustomMouse.containsMouse ? "#1c1c22" : "#121215"
+                    color: "#161220"
                     border.width: 1.5
-                    border.color: addCustomMouse.containsMouse ? "#b56cff" : "#303038"
+                    border.color: "#b56cff"
+                    z: 20
 
                     Column {
                         anchors.centerIn: parent
-                        spacing: 2
+                        spacing: 1
 
                         Text {
                             anchors.horizontalCenter: parent.horizontalCenter
                             text: "󰐕"
                             font.family: root.iconFontFamily
-                            font.pixelSize: 18
-                            color: addCustomMouse.containsMouse ? "#b56cff" : "#8e8e93"
+                            font.pixelSize: 14
+                            color: "#b56cff"
                         }
 
                         Text {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: "Add"
+                            text: "Empty"
                             font.family: root.textFontFamily
-                            font.pixelSize: 10
-                            font.weight: Font.Medium
-                            color: addCustomMouse.containsMouse ? "white" : "#8e8e93"
+                            font.pixelSize: 8
+                            font.weight: Font.Bold
+                            color: "#88888e"
                         }
-                    }
-
-                    MouseArea {
-                        id: addCustomMouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: root.widgetLibraryRequested("circle", customEmptyPage.pageIndex, 0)
                     }
                 }
 
