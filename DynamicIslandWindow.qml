@@ -2855,6 +2855,10 @@ PanelWindow {
                         isDropTargetActive: islandContainer.isDraggingWidgetFromLibrary
                             && islandContainer.draggedWidgetData !== null
                             && islandContainer.draggedWidgetData.sizeType === "minimum"
+                        onExpandRequested: islandContainer.showExpandedPlayer(false)
+                        onWidgetLibraryRequested: function(mode, pageIndex, slotIndex) {
+                            islandContainer.showWidgetLibrary(mode, pageIndex, slotIndex);
+                        }
                     }
                 }
             }

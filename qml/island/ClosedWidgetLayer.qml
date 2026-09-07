@@ -30,6 +30,11 @@ Item {
     property real pageProgress: 0
     property bool isDropTargetActive: false
 
+    // Hold-to-add-page progress (0.0 to 1.0)
+    property real holdProgress: 0.0
+
+    signal expandRequested()
+    signal widgetLibraryRequested(string mode, int pageIndex, int slotIndex)
     signal pageChanged(int newPage)
 
     readonly property var minimumLayouts: (userConfig && userConfig.widgetLayouts && userConfig.widgetLayouts.minimum)
@@ -84,6 +89,179 @@ Item {
         uiScale: 1.0,
         isEditMode: false
     })
+
+    // Hold-to-add-page animations (matching circle mode with 250ms pause delay)
+    SequentialAnimation {
+        id: holdProgressAnim
+
+        PauseAnimation {
+            duration: 250
+        }
+
+        NumberAnimation {
+            target: root
+            property: "holdProgress"
+            from: 0.0
+            to: 1.0
+            duration: 450
+            easing.type: Easing.Linear
+        }
+
+        ScriptAction {
+            script: {
+                if (tapArea.pressed && !tapArea.moved) {
+                    tapArea.isHoldTriggered = true;
+                    root.holdProgress = 0.0;
+                    if (userConfig) {
+                        const nextTitle = "Page " + (root.pageCount + 1);
+                        userConfig.addPage("minimum", nextTitle, 1);
+                        root.settlePage(Math.max(0, root.pageCount - 1));
+                    }
+                    popAnim.restart();
+                }
+            }
+        }
+    }
+
+    SequentialAnimation {
+        id: popAnim
+        NumberAnimation {
+            target: root
+            property: "scale"
+            to: 1.05
+            duration: 110
+            easing.type: Easing.OutQuad
+        }
+        NumberAnimation {
+            target: root
+            property: "scale"
+            to: 1.0
+            duration: 150
+            easing.type: Easing.OutBack
+        }
+    }
+
+    // Capsule hold progress perimeter canvas
+    Canvas {
+        id: holdProgressCanvas
+        anchors.fill: parent
+        z: 90
+        visible: root.holdProgress > 0.01
+
+        onPaint: {
+            const ctx = getContext("2d");
+            ctx.reset();
+            if (root.holdProgress <= 0.01) return;
+            const W = width;
+            const H = height;
+            const m = 2;
+            const r = (H - 2 * m) / 2;
+            const x1 = m + r;
+            const x2 = W - m - r;
+            const y1 = m;
+            const y2 = H - m;
+            const L = Math.max(0, x2 - x1);
+            const P = 2 * L + 2 * Math.PI * r;
+
+            ctx.beginPath();
+            ctx.moveTo(W / 2, y1);
+            ctx.lineTo(x2, y1);
+            ctx.arc(x2, y1 + r, r, -Math.PI / 2, Math.PI / 2, false);
+            ctx.lineTo(x1, y2);
+            ctx.arc(x1, y1 + r, r, Math.PI / 2, 3 * Math.PI / 2, false);
+            ctx.lineTo(W / 2, y1);
+            ctx.closePath();
+
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = "#d9ffffff";
+            ctx.lineCap = "round";
+            ctx.setLineDash([P * root.holdProgress, P]);
+            ctx.stroke();
+        }
+
+        Connections {
+            target: root
+            function onHoldProgressChanged() {
+                holdProgressCanvas.requestPaint();
+            }
+        }
+    }
+
+    // Interactive tap/hold area for closed pill mode:
+    // - Click expands the notch (or primary action)
+    // - Right-click opens widget library for minimum widgets
+    // - Click & hold (with delay) adds a new page
+    // - Dragging cancels hold and lets DragHandler take over for page swiping
+    MouseArea {
+        id: tapArea
+        anchors.fill: parent
+        cursorShape: Qt.PointingHandCursor
+        hoverEnabled: true
+        acceptedButtons: Qt.LeftButton | Qt.RightButton
+        z: 0
+
+        property real startX: 0
+        property real startY: 0
+        property bool moved: false
+        property bool isHoldTriggered: false
+
+        onPressed: (mouse) => {
+            if (mouse.button === Qt.RightButton) {
+                return;
+            }
+            startX = mouse.x;
+            startY = mouse.y;
+            moved = false;
+            isHoldTriggered = false;
+            root.holdProgress = 0.0;
+            holdProgressAnim.restart();
+        }
+
+        onPositionChanged: (mouse) => {
+            if (mouse.buttons & Qt.LeftButton) {
+                if (Math.abs(mouse.x - startX) > 8 || Math.abs(mouse.y - startY) > 8) {
+                    moved = true;
+                    holdProgressAnim.stop();
+                    root.holdProgress = 0.0;
+                }
+            }
+        }
+
+        onCanceled: {
+            holdProgressAnim.stop();
+            root.holdProgress = 0.0;
+            moved = false;
+            isHoldTriggered = false;
+        }
+
+        onReleased: (mouse) => {
+            if (mouse.button === Qt.RightButton) {
+                root.widgetLibraryRequested("minimum", root.currentPage, 0);
+                return;
+            }
+            holdProgressAnim.stop();
+            root.holdProgress = 0.0;
+            if (isHoldTriggered) {
+                isHoldTriggered = false;
+                moved = false;
+                return;
+            }
+
+            const dx = mouse.x - startX;
+            const dy = mouse.y - startY;
+            if (moved) {
+                if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 12) {
+                    if (dx < 0)
+                        root.settlePage(root.currentPage + 1);
+                    else
+                        root.settlePage(root.currentPage - 1);
+                }
+            } else {
+                root.expandRequested();
+            }
+            moved = false;
+        }
+    }
 
     anchors.fill: parent
     clip: true
@@ -257,6 +435,8 @@ Item {
                 readonly property var pageData: root.minimumPages[pIdx] || null
                 readonly property int slotCount: Math.max(1, Math.min(6, (pageData && pageData.slots !== undefined) ? pageData.slots : 1))
                 readonly property var items: (pageData && pageData.items) ? pageData.items : []
+                readonly property bool isCustomPage: pIdx > 0
+                readonly property bool isPageEmpty: (items || []).length === 0
 
                 readonly property real pageOffset: (pIdx - root.clampedPageProgress) * root.pageSlideDistance
                 width: pageStrip.width
@@ -265,6 +445,41 @@ Item {
                 opacity: Math.max(0, 1 - Math.abs(pIdx - root.clampedPageProgress))
                 visible: opacity > 0.001
                 enabled: pIdx === root.currentPage
+
+                // Delete custom page button on empty custom pages
+                Rectangle {
+                    anchors.right: parent.right
+                    anchors.rightMargin: 8
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 18
+                    height: 18
+                    radius: 9
+                    color: delCustomPageMouse.containsMouse ? "#ff453a" : "#2a2a2e"
+                    z: 50
+                    visible: pageDelegateItem.isCustomPage && pageDelegateItem.isPageEmpty
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: "󰅖"
+                        font.family: root.iconFontFamily
+                        font.pixelSize: 9
+                        color: "white"
+                    }
+
+                    MouseArea {
+                        id: delCustomPageMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            if (userConfig) {
+                                const targetIdx = pageDelegateItem.pIdx;
+                                userConfig.removePage("minimum", targetIdx);
+                                root.settlePage(Math.max(0, targetIdx - 1));
+                            }
+                        }
+                    }
+                }
 
                 // Horizontal row of Minimum slots for this page
                 Row {
@@ -316,14 +531,59 @@ Item {
                                 }
                             }
 
-                            // Empty slot placeholder in closed mode — subtle dash
+                            // Empty slot button in closed mode for custom pages
+                            Rectangle {
+                                anchors.centerIn: parent
+                                width: Math.min(parent.width - 12, 64)
+                                height: 20
+                                radius: 10
+                                color: emptySlotMouse.containsMouse ? "#2effffff" : "#14ffffff"
+                                border.width: 1
+                                border.color: emptySlotMouse.containsMouse ? "#44ffffff" : "#22ffffff"
+                                visible: parent.widgetId === "" && pageDelegateItem.isCustomPage
+                                z: 20
+
+                                Row {
+                                    anchors.centerIn: parent
+                                    spacing: 3
+
+                                    Text {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: "󰐕"
+                                        font.family: root.iconFontFamily
+                                        font.pixelSize: 10
+                                        color: "#ffffff"
+                                    }
+
+                                    Text {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: "Empty"
+                                        font.family: root.textFontFamily
+                                        font.pixelSize: 9
+                                        font.weight: Font.Medium
+                                        color: "#8e8e93"
+                                    }
+                                }
+
+                                MouseArea {
+                                    id: emptySlotMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        root.widgetLibraryRequested("minimum", pageDelegateItem.pIdx, parent.sIdx);
+                                    }
+                                }
+                            }
+
+                            // Empty slot placeholder in closed mode for home page — subtle dash
                             Rectangle {
                                 anchors.centerIn: parent
                                 width: Math.min(parent.width - 8, 32)
                                 height: 2
                                 radius: 1
                                 color: "#48484a"
-                                visible: parent.widgetId === ""
+                                visible: parent.widgetId === "" && !pageDelegateItem.isCustomPage
                             }
                         }
                     }
