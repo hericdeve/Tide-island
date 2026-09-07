@@ -351,6 +351,51 @@ void UserConfigBackend::setNotchMode(const QString &mode)
     }
 }
 
+QString UserConfigBackend::notchPosition() const
+{
+    return m_notchPosition;
+}
+
+void UserConfigBackend::setNotchPosition(const QString &position)
+{
+    QString nextPos = position.trimmed().toLower();
+    if (nextPos != QLatin1String("top-center") &&
+        nextPos != QLatin1String("bottom-center") &&
+        nextPos != QLatin1String("top-left") &&
+        nextPos != QLatin1String("top-right") &&
+        nextPos != QLatin1String("bottom-left") &&
+        nextPos != QLatin1String("bottom-right")) {
+        nextPos = QStringLiteral("top-center");
+    }
+    if (m_notchPosition == nextPos)
+        return;
+
+    m_notchPosition = nextPos;
+    emit notchPositionChanged();
+
+    QJsonObject configObject;
+    QFile configFile(m_userConfigPath);
+    if (configFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        const QByteArray bytes = configFile.readAll();
+        configFile.close();
+        if (!bytes.trimmed().isEmpty()) {
+            const QByteArray stripped = stripJsonComments(bytes);
+            QJsonDocument doc = QJsonDocument::fromJson(stripped);
+            if (doc.isObject()) {
+                configObject = doc.object();
+            }
+        }
+    }
+
+    configObject[QStringLiteral("notchPosition")] = m_notchPosition;
+
+    QSaveFile saveFile(m_userConfigPath);
+    if (saveFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        saveFile.write(QJsonDocument(configObject).toJson(QJsonDocument::Indented));
+        saveFile.commit();
+    }
+}
+
 bool UserConfigBackend::boringNotchEnabled() const
 {
     return m_notchMode == QLatin1String("notch");
@@ -837,6 +882,17 @@ void UserConfigBackend::loadConfig()
     }
     updateField(this, m_notchMode, configuredNotchMode, &UserConfigBackend::notchModeChanged);
     updateField(this, m_boringNotchEnabled, m_notchMode == QLatin1String("notch"), &UserConfigBackend::boringNotchEnabledChanged);
+
+    QString configuredNotchPosition = jsonString(configObject, QLatin1String("notchPosition"), QStringLiteral("top-center")).trimmed().toLower();
+    if (configuredNotchPosition != QLatin1String("top-center") &&
+        configuredNotchPosition != QLatin1String("bottom-center") &&
+        configuredNotchPosition != QLatin1String("top-left") &&
+        configuredNotchPosition != QLatin1String("top-right") &&
+        configuredNotchPosition != QLatin1String("bottom-left") &&
+        configuredNotchPosition != QLatin1String("bottom-right")) {
+        configuredNotchPosition = QStringLiteral("top-center");
+    }
+    updateField(this, m_notchPosition, configuredNotchPosition, &UserConfigBackend::notchPositionChanged);
     updateField(this, m_notchCircleClosedSize, jsonBoundedInt(configObject, QLatin1String("notchCircleClosedSize"), 44, 24, 160), &UserConfigBackend::notchCircleClosedSizeChanged);
     updateField(this, m_notchCircleExpandedRadius, jsonBoundedInt(configObject, QLatin1String("notchCircleExpandedRadius"), 48, 14, 95), &UserConfigBackend::notchCircleExpandedRadiusChanged);
 

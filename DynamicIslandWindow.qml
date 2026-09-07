@@ -60,6 +60,11 @@ PanelWindow {
     property string autoHideRevealSource: "none"
 
     readonly property var userConfig: UserConfig
+    readonly property string notchPosition: userConfig.notchPosition || "top-center"
+    readonly property bool isBottom: notchPosition === "bottom-center" || notchPosition === "bottom-left" || notchPosition === "bottom-right"
+    readonly property bool isLeftAligned: notchPosition === "top-left" || notchPosition === "bottom-left"
+    readonly property bool isRightAligned: notchPosition === "top-right" || notchPosition === "bottom-right"
+    readonly property real capsuleSideMargin: 16
 
     Loader {
         id: hyprlandIntegrationLoader
@@ -77,13 +82,18 @@ PanelWindow {
     }
 
     color: StyleTokens.transparent
-    anchors { top: true; left: true; right: true }
+    anchors {
+        top: !root.isBottom
+        bottom: root.isBottom
+        left: true
+        right: true
+    }
     mask: Region {
         // Input is the union of the island's visible surfaces plus a compact top
         // gesture strip. The gesture strip must not grow with expanded content.
         Region {
             x: Math.floor(root.topGestureInputX)
-            y: 0
+            y: root.isBottom ? Math.floor(root.height - root.topGestureInputHeight) : 0
             width: Math.ceil(root.topGestureInputWidth)
             height: Math.ceil(root.topGestureInputHeight)
         }
@@ -148,14 +158,16 @@ PanelWindow {
         }
     }
     readonly property real capsuleTopMargin: (userConfig.notchMode === "notch") ? 0 : Math.max(4, userConfig.islandTopMargin)
+    readonly property real capsuleBottomMargin: (userConfig.notchMode === "notch") ? 0 : Math.max(4, userConfig.islandTopMargin)
+    readonly property real capsuleVerticalMargin: root.isBottom ? root.capsuleBottomMargin : root.capsuleTopMargin
     readonly property real capsuleWindowHeight: Math.ceil(
-        root.capsuleTopMargin + mainCapsule.targetHeight + 12
+        root.capsuleVerticalMargin + mainCapsule.targetHeight + 12
     )
     readonly property real connectivityDetailWindowHeight: root.anyConnectivityDetailMounted
-        ? Math.ceil(userConfig.islandTopMargin + root.connectivityDetailHeight + 12)
+        ? Math.ceil(root.capsuleVerticalMargin + root.connectivityDetailHeight + 12)
         : 0
     readonly property real overviewWindowHeight: root.overviewVisible
-        ? Math.ceil(userConfig.islandTopMargin + root.overviewCapsuleHeight + 8)
+        ? Math.ceil(root.capsuleVerticalMargin + root.overviewCapsuleHeight + 8)
         : 0
     readonly property real requestedWindowHeight: Math.max(
         root.notificationCenterWindowHeight,
@@ -164,7 +176,7 @@ PanelWindow {
         root.overviewWindowHeight,
         Math.ceil(root.controlCenterWindowHeight),
         islandContainer.isDraggingWidgetFromLibrary ? 560 : 0,
-        islandContainer.widgetStagingActive ? Math.ceil(mainCapsule.y + mainCapsule.height + 14 + (stagingTrayItem.height > 0 ? stagingTrayItem.height : 76) + 24) : 0
+        islandContainer.widgetStagingActive ? Math.ceil(root.capsuleVerticalMargin + mainCapsule.targetHeight + 14 + (stagingTrayItem.height > 0 ? stagingTrayItem.height : 76) + 24) : 0
     )
     // Grow the layer surface immediately, but keep the old extent while the
     // capsule finishes its collapse animation. A later expansion interrupts
@@ -288,10 +300,16 @@ PanelWindow {
     property real exclusiveZoneProgress: exclusiveZoneTargetActive ? 1 : 0
     readonly property real autoHideRevealWidth: Math.min(root.width, Math.max(userConfig.islandWidth + 120, 240))
     readonly property real autoHideRevealHeight: autoHideEnabled ? 10 : 0
-    readonly property real autoHideRevealX: Math.max(
-        0,
-        Math.min(root.width - autoHideRevealWidth, root.width * userConfig.islandPositionX / 100 - autoHideRevealWidth / 2)
-    )
+    readonly property real autoHideRevealX: {
+        if (root.isLeftAligned)
+            return root.capsuleSideMargin;
+        if (root.isRightAligned)
+            return root.width - autoHideRevealWidth - root.capsuleSideMargin;
+        return Math.max(
+            0,
+            Math.min(root.width - autoHideRevealWidth, root.width * userConfig.islandPositionX / 100 - autoHideRevealWidth / 2)
+        );
+    }
     readonly property real topGestureInputX: autoHideEnabled ? autoHideRevealX : 0
     readonly property real topGestureInputWidth: topGestureInputActive
         ? (autoHideEnabled ? autoHideRevealWidth : root.width)
@@ -323,11 +341,11 @@ PanelWindow {
         ? controlCenterLoader.item.controlCenterMaximumExtraHeight
         : 120
     readonly property real controlCenterWindowHeight: islandContainer.controlCenterLayerVisible
-        ? userConfig.islandTopMargin + 320 + root.controlCenterMaximumExtraHeight + 12
+        ? root.capsuleVerticalMargin + 320 + root.controlCenterMaximumExtraHeight + 12
         : 0
 
     readonly property real notificationCenterWindowHeight: islandContainer.notificationCenterLayerVisible
-        ? userConfig.islandTopMargin + (notificationCenterLoader.item ? notificationCenterLoader.item.contentHeight : 400) + 6
+        ? root.capsuleVerticalMargin + (notificationCenterLoader.item ? notificationCenterLoader.item.contentHeight : 400) + 6
         : 0
     readonly property real connectivityDetailGap: 16
     readonly property int connectivityDetailAnimationDuration: 360
@@ -2408,16 +2426,26 @@ PanelWindow {
                 : ((userConfig.notchMode === "notch")
                     ? StyleTokens.transparent
                     : (notificationHistorySurface ? "#080808" : Qt.rgba(0, 0, 0, userConfig.islandBackgroundOpacity / 100.0)))
-            y: root.capsuleTopMargin
-                - (1 - root.autoHideProgress) * (targetHeight + root.capsuleTopMargin + 8)
-            x: parent ? parent.width * userConfig.islandPositionX / 100 - width / 2 : 0
+            y: root.isBottom
+                ? (parent ? parent.height - height - root.capsuleBottomMargin + (1 - root.autoHideProgress) * (targetHeight + root.capsuleBottomMargin + 8) : 0)
+                : (root.capsuleTopMargin - (1 - root.autoHideProgress) * (targetHeight + root.capsuleTopMargin + 8))
+            x: {
+                if (!parent) return 0;
+                if (root.isLeftAligned)
+                    return root.capsuleSideMargin;
+                if (root.isRightAligned)
+                    return parent.width - displayedWidth - root.capsuleSideMargin;
+                return userConfig.islandPositionX === 50
+                    ? parent.width * 0.5 - displayedWidth / 2
+                    : parent.width * userConfig.islandPositionX / 100 - displayedWidth / 2;
+            }
             clip: true
             width: displayedWidth
             height: targetHeight
             radius: targetRadius
             opacity: root.autoHideProgress
             scale: 0.96 + root.autoHideProgress * 0.04
-            transformOrigin: Item.Top
+            transformOrigin: root.isBottom ? Item.Bottom : Item.Top
 
             onBaseTargetWidthChanged: {
                 if (!capsuleMouseArea.sideSwipeInteractive && !islandContainer.sideSwipeDragging && !islandContainer.sideSwipeSettling)
@@ -2448,9 +2476,11 @@ PanelWindow {
             border.color: outlineColor
 
             NotchSurface {
+                id: notchSurfaceItem
                 anchors.fill: parent
                 z: -2
                 visible: (userConfig.notchMode === "notch") && !root.overviewContentVisible
+                transform: Scale { yScale: root.isBottom ? -1 : 1; origin.y: notchSurfaceItem.height / 2 }
                 color: mainCapsule.notificationHistorySurface ? "#080808" : Qt.rgba(0, 0, 0, userConfig.islandBackgroundOpacity / 100.0)
                 borderColor: mainCapsule.outlineColor
                 borderWidth: mainCapsule.outlineWidth
@@ -3391,7 +3421,17 @@ PanelWindow {
 
             width: bubbleSize
             height: bubbleSize
-            x: mainCapsule.x - width - 8
+            x: {
+                if (root.isLeftAligned) {
+                    return mainCapsule.x + mainCapsule.width + 8;
+                }
+                if (root.isRightAligned) {
+                    return (timerBubble.mounted && timerBubble.reveal > 0.1)
+                        ? (mainCapsule.x - width - timerBubble.width - 16)
+                        : (mainCapsule.x - width - 8);
+                }
+                return mainCapsule.x - width - 8;
+            }
             y: mainCapsule.y + mainCapsule.height / 2 - height / 2
             z: 6
             visible: islandContainer.fileShelfBubbleWanted
@@ -3462,8 +3502,23 @@ PanelWindow {
             property bool mounted: islandContainer.timerBubbleWanted
             property real reveal: islandContainer.timerBubbleWanted ? 1 : 0
             readonly property int bubbleSize: 34
-            readonly property real hiddenX: mainCapsule.x + mainCapsule.width - width * 0.62
-            readonly property real shownX: mainCapsule.x + mainCapsule.width + 8
+            readonly property real shownX: {
+                if (root.isRightAligned) {
+                    return mainCapsule.x - width - 8;
+                }
+                if (root.isLeftAligned) {
+                    return fileShelfBubble.visible
+                        ? (mainCapsule.x + mainCapsule.width + fileShelfBubble.width + 16)
+                        : (mainCapsule.x + mainCapsule.width + 8);
+                }
+                return mainCapsule.x + mainCapsule.width + 8;
+            }
+            readonly property real hiddenX: {
+                if (root.isRightAligned) {
+                    return mainCapsule.x - width * 0.38;
+                }
+                return mainCapsule.x + mainCapsule.width - width * 0.62;
+            }
             readonly property real centerY: mainCapsule.y + mainCapsule.height / 2 - height / 2
 
             width: bubbleSize
@@ -3703,7 +3758,7 @@ PanelWindow {
 
             open: root.wifiConnectivityDetailOpen
             mounted: root.wifiConnectivityDetailMounted
-            rightSide: false
+            rightSide: root.isLeftAligned ? true : (root.isRightAligned ? false : false)
             panelKind: "wifi"
             provider: controlCenterLoader.item
             mainCapsule: mainCapsule
@@ -3721,7 +3776,7 @@ PanelWindow {
 
             open: root.bluetoothConnectivityDetailOpen
             mounted: root.bluetoothConnectivityDetailMounted
-            rightSide: true
+            rightSide: root.isLeftAligned ? true : (root.isRightAligned ? false : true)
             panelKind: "bluetooth"
             provider: controlCenterLoader.item
             mainCapsule: mainCapsule
@@ -3739,7 +3794,7 @@ PanelWindow {
 
             open: root.powerConnectivityDetailOpen
             mounted: root.powerConnectivityDetailMounted
-            rightSide: true
+            rightSide: root.isLeftAligned ? true : (root.isRightAligned ? false : true)
             panelKind: "power"
             provider: controlCenterLoader.item
             mainCapsule: mainCapsule
@@ -3824,8 +3879,10 @@ PanelWindow {
             scale: visible ? 1.0 : 0.94
             width: trayContentRow.implicitWidth + 24
             height: trayContentRow.implicitHeight + 16
-            x: Math.round(mainCapsule.x + mainCapsule.width / 2 - width / 2)
-            y: Math.round(mainCapsule.y + mainCapsule.height + 12)
+            x: Math.max(16, Math.min(root.width - width - 16, Math.round(mainCapsule.x + mainCapsule.width / 2 - width / 2)))
+            y: root.isBottom
+                ? Math.round(mainCapsule.y - height - 12)
+                : Math.round(mainCapsule.y + mainCapsule.height + 12)
 
             Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutQuad } }
             Behavior on scale { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
@@ -3992,7 +4049,7 @@ PanelWindow {
         id: autoHideRevealArea
 
         x: root.autoHideRevealX
-        y: 0
+        y: root.isBottom ? root.height - height : 0
         z: 20
         width: root.autoHideRevealWidth
         height: root.autoHideRevealHeight

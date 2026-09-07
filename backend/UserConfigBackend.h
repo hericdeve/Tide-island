@@ -52,6 +52,7 @@ class UserConfigBackend final : public QObject {
     Q_PROPERTY(int islandAutoHideDelayMs READ islandAutoHideDelayMs NOTIFY islandAutoHideDelayMsChanged FINAL)
     Q_PROPERTY(bool islandShowWorkspaceOnAutoHide READ islandShowWorkspaceOnAutoHide NOTIFY islandShowWorkspaceOnAutoHideChanged FINAL)
     Q_PROPERTY(QString notchMode READ notchMode WRITE setNotchMode NOTIFY notchModeChanged FINAL)
+    Q_PROPERTY(QString notchPosition READ notchPosition WRITE setNotchPosition NOTIFY notchPositionChanged FINAL)
     Q_PROPERTY(bool boringNotchEnabled READ boringNotchEnabled NOTIFY boringNotchEnabledChanged FINAL)
     Q_PROPERTY(bool hideNotchInFullscreen READ hideNotchInFullscreen NOTIFY hideNotchInFullscreenChanged FINAL)
     Q_PROPERTY(bool showBoringFace READ showBoringFace NOTIFY showBoringFaceChanged FINAL)
@@ -120,6 +121,8 @@ public:
     int islandAutoHideDelayMs() const;
     QString notchMode() const;
     Q_INVOKABLE void setNotchMode(const QString &mode);
+    QString notchPosition() const;
+    Q_INVOKABLE void setNotchPosition(const QString &position);
     bool boringNotchEnabled() const;
     bool hideNotchInFullscreen() const;
     bool showBoringFace() const;
@@ -197,6 +200,7 @@ signals:
     void islandAutoHideEnabledChanged();
     void islandAutoHideDelayMsChanged();
     void notchModeChanged();
+    void notchPositionChanged();
     void boringNotchEnabledChanged();
     void hideNotchInFullscreenChanged();
     void showBoringFaceChanged();
@@ -267,6 +271,7 @@ private:
     bool m_islandAutoHideEnabled = true;
     int m_islandAutoHideDelayMs = 1000;
     QString m_notchMode = QStringLiteral("notch");
+    QString m_notchPosition = QStringLiteral("top-center");
     bool m_boringNotchEnabled = true;
     bool m_hideNotchInFullscreen = true;
     bool m_showBoringFace = false;

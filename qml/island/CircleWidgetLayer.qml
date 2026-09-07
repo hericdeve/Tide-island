@@ -359,42 +359,6 @@ Item {
         }
     }
 
-    // Done button in edit mode
-    Rectangle {
-        id: circleDoneBtn
-        visible: root.isEditMode
-        anchors.top: parent.top
-        anchors.topMargin: 2
-        anchors.horizontalCenter: parent.horizontalCenter
-        width: 32
-        height: 13
-        radius: 6.5
-        color: circleDoneMouse.containsMouse ? "#50ffffff" : "#30ffffff"
-        border.width: 1
-        border.color: "#55ffffff"
-        z: 100
-
-        Text {
-            anchors.centerIn: parent
-            text: "Done"
-            font.family: root.textFontFamily
-            font.pixelSize: 8
-            font.weight: Font.Bold
-            color: "white"
-        }
-
-        MouseArea {
-            id: circleDoneMouse
-            anchors.fill: parent
-            cursorShape: Qt.PointingHandCursor
-            onClicked: {
-                root.isEditMode = false;
-                if (root.currentPageIndex >= root.realPageCount)
-                    root.currentPageIndex = Math.max(0, root.realPageCount - 1);
-            }
-        }
-    }
-
     // Widget faces — each page renders its widget filling the circle (or Add Widget, or Offer Page)
     Repeater {
         model: root.pageCount
@@ -605,12 +569,28 @@ Item {
                 }
             }
 
-            // 3. Empty page state (Home page in edit mode with no widget, or any custom page without a widget)
+            // 3. Fallback subtle outline ring on empty custom pages when NOT in edit mode
+            Item {
+                anchors.fill: parent
+                visible: !pageItem.hasWidget && !pageItem.isOfferPage && pageItem.pIdx > 0 && !root.isEditMode
+
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: parent.width - 2
+                    height: parent.height - 2
+                    radius: width / 2
+                    color: "transparent"
+                    border.width: 1
+                    border.color: "#28282a"
+                }
+            }
+
+            // 4. Empty page state in edit mode (Home or custom page with Add Widget and Delete buttons)
             Item {
                 id: customEmptyPage
                 readonly property int pageIndex: pageItem.pIdx
                 anchors.fill: parent
-                visible: !pageItem.hasWidget && !pageItem.isOfferPage && (root.isEditMode || pageItem.pIdx > 0)
+                visible: !pageItem.hasWidget && !pageItem.isOfferPage && root.isEditMode
 
                 // Centered prominent Add Widget button
                 Rectangle {
@@ -668,7 +648,7 @@ Item {
                     color: delCircleMouse.containsMouse ? "#ff453a" : "#382a2a2e"
                     border.width: 1
                     border.color: "#33ffffff"
-                    visible: pageItem.pIdx > 0
+                    visible: pageItem.pIdx > 0 && root.isEditMode
                     z: 50
 
                     Text {
@@ -695,7 +675,7 @@ Item {
                 }
             }
 
-            // 4. Offer Page at the end (shown in edit mode to offer adding that last page)
+            // 5. Offer Page at the end (shown in edit mode to offer adding that last page)
             Item {
                 id: offerPageItem
                 anchors.fill: parent
@@ -725,9 +705,9 @@ Item {
 
                         Text {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: "Add Page"
+                            text: "Page"
                             font.family: root.textFontFamily
-                            font.pixelSize: 7
+                            font.pixelSize: 8
                             font.weight: Font.Bold
                             color: "white"
                         }

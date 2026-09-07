@@ -299,43 +299,6 @@ Item {
         }
     }
 
-    // Done button in edit mode
-    Rectangle {
-        id: pillDoneBtn
-        visible: root.isEditMode
-        anchors.top: parent.top
-        anchors.topMargin: 2
-        anchors.right: parent.right
-        anchors.rightMargin: 8
-        width: 38
-        height: 14
-        radius: 7
-        color: pillDoneMouse.containsMouse ? "#50ffffff" : "#30ffffff"
-        border.width: 1
-        border.color: "#55ffffff"
-        z: 100
-
-        Text {
-            anchors.centerIn: parent
-            text: "Done"
-            font.family: root.textFontFamily
-            font.pixelSize: 8
-            font.weight: Font.Bold
-            color: "white"
-        }
-
-        MouseArea {
-            id: pillDoneMouse
-            anchors.fill: parent
-            cursorShape: Qt.PointingHandCursor
-            onClicked: {
-                root.isEditMode = false;
-                if (root.currentPage >= root.realPageCount)
-                    root.settlePage(Math.max(0, root.realPageCount - 1));
-            }
-        }
-    }
-
     anchors.fill: parent
     clip: true
     opacity: showCondition ? 1 : 0
@@ -530,7 +493,7 @@ Item {
                     radius: 9
                     color: delCustomPageMouse.containsMouse ? "#ff453a" : "#2a2a2e"
                     z: 50
-                    visible: !pageDelegateItem.isOfferPage && pageDelegateItem.isCustomPage && pageDelegateItem.isPageEmpty
+                    visible: root.isEditMode && !pageDelegateItem.isOfferPage && pageDelegateItem.isCustomPage && pageDelegateItem.isPageEmpty
 
                     Text {
                         anchors.centerIn: parent
@@ -741,7 +704,7 @@ Item {
                                 color: emptySlotMouse.containsMouse ? "#30ffffff" : (root.isEditMode ? "#22ffffff" : "#14ffffff")
                                 border.width: 1
                                 border.color: emptySlotMouse.containsMouse ? "#55ffffff" : (root.isEditMode ? "#3affffff" : "#22ffffff")
-                                visible: !parent.hasWidget && (pageDelegateItem.isCustomPage || root.isEditMode)
+                                visible: !parent.hasWidget && root.isEditMode
                                 z: 20
 
                                 Row {
@@ -777,14 +740,14 @@ Item {
                                 }
                             }
 
-                            // Empty slot placeholder in closed mode for home page when NOT in edit mode — subtle dash
+                            // Empty slot placeholder in closed mode when NOT in edit mode — subtle dash
                             Rectangle {
                                 anchors.centerIn: parent
                                 width: Math.min(parent.width - 8, 32)
                                 height: 2
                                 radius: 1
                                 color: "#48484a"
-                                visible: !parent.hasWidget && !pageDelegateItem.isCustomPage && !root.isEditMode
+                                visible: !parent.hasWidget && !root.isEditMode
                             }
                         }
                     }
@@ -817,7 +780,7 @@ Item {
 
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
-                            text: "Add Page"
+                            text: "Page"
                             font.family: root.textFontFamily
                             font.pixelSize: 10
                             font.weight: Font.DemiBold

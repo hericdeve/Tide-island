@@ -108,6 +108,12 @@ PagePanel {
 
                     SplitLine { width: parent.width }
 
+                    NotchPositionSelectionRow {
+                        width: parent.width
+                    }
+
+                    SplitLine { width: parent.width }
+
                     ConfigRow {
                         title: "Closed Notch Width"
                         description: "Width of notch when resting in Notch/Pill mode (default 185)"
@@ -1283,6 +1289,118 @@ PagePanel {
                             ConfigStore.setValue("boringNotchEnabled", modelData.value === "notch")
                             ConfigStore.save()
                         }
+                    }
+                }
+            }
+        }
+    }
+
+    component NotchPositionSelectionRow: Item {
+        id: posRow
+
+        property string selectedPosition: {
+            const raw = String(ConfigStore.value("notchPosition", "top-center")).toLowerCase()
+            if (raw === "top-center" || raw === "bottom-center" ||
+                raw === "top-left" || raw === "top-right" ||
+                raw === "bottom-left" || raw === "bottom-right")
+                return raw
+            return "top-center"
+        }
+
+        height: Math.max(76, buttonCol.implicitHeight)
+
+        Column {
+            id: textCol
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+            width: Math.max(80, parent.width - buttonCol.width - 24)
+            spacing: 4
+
+            Text {
+                text: "Notch Placement"
+                font.family: Theme.textFontFamily
+                font.pixelSize: 18
+                color: Theme.textColor
+            }
+
+            Text {
+                text: "Screen position and directional expansion behavior"
+                font.family: Theme.textFontFamily
+                font.pixelSize: 14
+                width: parent.width
+                elide: Text.ElideRight
+                color: Theme.subtleTextColor
+            }
+        }
+
+        Column {
+            id: buttonCol
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 6
+
+            Row {
+                spacing: 6
+                Repeater {
+                    model: [
+                        { label: "Top Left", value: "top-left" },
+                        { label: "Top Center", value: "top-center" },
+                        { label: "Top Right", value: "top-right" }
+                    ]
+                    delegate: positionButtonComponent
+                }
+            }
+
+            Row {
+                spacing: 6
+                Repeater {
+                    model: [
+                        { label: "Bottom Left", value: "bottom-left" },
+                        { label: "Bottom Center", value: "bottom-center" },
+                        { label: "Bottom Right", value: "bottom-right" }
+                    ]
+                    delegate: positionButtonComponent
+                }
+            }
+        }
+
+        Component {
+            id: positionButtonComponent
+            Rectangle {
+                id: posBtn
+                readonly property bool selected: posRow.selectedPosition === modelData.value
+
+                width: Math.max(92, posBtnText.implicitWidth + 18)
+                height: 32
+                radius: 6
+                color: selected ? Theme.cardBgColor
+                                : posBtnMouse.pressed ? Theme.controlPressedColor
+                                                      : Theme.componentBgColor
+                border.width: 1
+                border.color: Theme.inputBorderColor
+
+                Behavior on color { ColorAnimation { duration: Theme.animationDuration } }
+                Behavior on border.color { ColorAnimation { duration: Theme.animationDuration } }
+
+                Text {
+                    id: posBtnText
+                    anchors.centerIn: parent
+                    text: modelData.label
+                    color: posBtn.selected ? Theme.textColor : Theme.secondaryTextColor
+                    font.family: Theme.textFontFamily
+                    font.pixelSize: 13
+                    font.weight: posBtn.selected ? Font.DemiBold : Font.Normal
+                }
+
+                MouseArea {
+                    id: posBtnMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        posRow.selectedPosition = modelData.value
+                        ConfigStore.setValue("notchPosition", modelData.value)
+                        ConfigStore.save()
                     }
                 }
             }
