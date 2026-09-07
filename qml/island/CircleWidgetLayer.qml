@@ -9,6 +9,7 @@ Item {
     id: root
 
     signal expandRequested()
+    signal widgetLibraryRequested(string mode, int pageIndex, int slotIndex)
 
     readonly property var userConfig: UserConfig
 
@@ -27,6 +28,10 @@ Item {
     property string textFontFamily: "Sans Serif"
 
     property int currentPageIndex: 0
+    property bool isDropTargetActive: false
+
+    // Hold-to-add-page progress (0.0 to 1.0)
+    property real holdProgress: 0.0
 
     readonly property real circleDiameter: Math.min(width, height)
     readonly property real faceScale: Math.max(0.5, Math.min(1.0, 0.62 + (circleDiameter - 44.0) * 0.008))
@@ -131,28 +136,134 @@ Item {
         }
     }
 
+    NumberAnimation {
+        id: holdProgressAnim
+        target: root
+        property: "holdProgress"
+        from: 0.0
+        to: 1.0
+        duration: 520
+        easing.type: Easing.Linear
+    }
+
+    SequentialAnimation {
+        id: popAnim
+        NumberAnimation {
+            target: root
+            property: "scale"
+            to: 1.08
+            duration: 110
+            easing.type: Easing.OutQuad
+        }
+        NumberAnimation {
+            target: root
+            property: "scale"
+            to: 1.0
+            duration: 150
+            easing.type: Easing.OutBack
+        }
+    }
+
+    // Circular hold progress ring canvas
+    Canvas {
+        id: holdProgressCanvas
+        anchors.fill: parent
+        z: 90
+        visible: root.holdProgress > 0.01
+
+        onPaint: {
+            const ctx = getContext("2d");
+            ctx.reset();
+            if (root.holdProgress <= 0.01) return;
+            const center = width / 2;
+            const radius = Math.max(8, center - 3);
+            ctx.beginPath();
+            ctx.arc(center, center, radius, -Math.PI / 2, -Math.PI / 2 + 2 * Math.PI * root.holdProgress, false);
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = "#b56cff";
+            ctx.lineCap = "round";
+            ctx.stroke();
+        }
+
+        Connections {
+            target: root
+            function onHoldProgressChanged() {
+                holdProgressCanvas.requestPaint();
+            }
+        }
+    }
+
+    // Drop target highlight when dragging a circle widget over circle mode
+    Rectangle {
+        anchors.centerIn: parent
+        width: parent.width
+        height: parent.height
+        radius: width / 2
+        color: "transparent"
+        border.width: 2.5
+        border.color: "#b56cff"
+        visible: root.isDropTargetActive
+        z: 95
+
+        SequentialAnimation on border.color {
+            running: root.isDropTargetActive
+            loops: Animation.Infinite
+            ColorAnimation { from: "#b56cff"; to: "#e879f9"; duration: 600 }
+            ColorAnimation { from: "#e879f9"; to: "#b56cff"; duration: 600 }
+        }
+    }
+
     MouseArea {
         id: tapArea
         anchors.fill: parent
         cursorShape: Qt.PointingHandCursor
         hoverEnabled: true
+        pressAndHoldInterval: 520
 
         property real startX: 0
         property real startY: 0
         property bool moved: false
+        property bool isHoldTriggered: false
 
         onPressed: (mouse) => {
             startX = mouse.x;
             startY = mouse.y;
             moved = false;
+            isHoldTriggered = false;
+            holdProgressAnim.restart();
         }
 
         onPositionChanged: (mouse) => {
-            if (Math.abs(mouse.x - startX) > 8 || Math.abs(mouse.y - startY) > 8)
+            if (Math.abs(mouse.x - startX) > 8 || Math.abs(mouse.y - startY) > 8) {
                 moved = true;
+                holdProgressAnim.stop();
+                root.holdProgress = 0.0;
+            }
+        }
+
+        onPressAndHold: (mouse) => {
+            if (!moved) {
+                isHoldTriggered = true;
+                holdProgressAnim.stop();
+                root.holdProgress = 0.0;
+                if (userConfig) {
+                    const nextTitle = "Page " + (root.pageCount + 1);
+                    userConfig.addPage("circle", nextTitle, 1);
+                    root.currentPageIndex = root.pageCount;
+                }
+                popAnim.restart();
+            }
         }
 
         onReleased: (mouse) => {
+            holdProgressAnim.stop();
+            root.holdProgress = 0.0;
+            if (isHoldTriggered) {
+                isHoldTriggered = false;
+                moved = false;
+                return;
+            }
+
             const dx = mouse.x - startX;
             const dy = mouse.y - startY;
             if (moved) {
@@ -211,10 +322,10 @@ Item {
                 }
             }
 
-            // Fallback: if no widget configured, show the original clock face inline
+            // Fallback: if Home page has no widget configured, show the original clock face inline
             Item {
                 anchors.fill: parent
-                visible: parent.widgetId === ""
+                visible: parent.widgetId === "" && parent.pIdx === 0
 
                 Rectangle {
                     anchors.centerIn: parent
@@ -249,6 +360,88 @@ Item {
                         font.weight: Font.Medium
                         elide: Text.ElideRight
                         maximumLineCount: 1
+                    }
+                }
+            }
+
+            // Custom Page Empty State: Tap to add widget or delete page
+            Item {
+                id: customEmptyPage
+                readonly property int pageIndex: parent.pIdx
+                anchors.fill: parent
+                visible: parent.widgetId === "" && parent.pIdx > 0
+
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: parent.width - 4
+                    height: parent.height - 4
+                    radius: width / 2
+                    color: addCustomMouse.containsMouse ? "#1c1c22" : "#121215"
+                    border.width: 1.5
+                    border.color: addCustomMouse.containsMouse ? "#b56cff" : "#303038"
+
+                    Column {
+                        anchors.centerIn: parent
+                        spacing: 2
+
+                        Text {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            text: "󰐕"
+                            font.family: root.iconFontFamily
+                            font.pixelSize: 18
+                            color: addCustomMouse.containsMouse ? "#b56cff" : "#8e8e93"
+                        }
+
+                        Text {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            text: "Add"
+                            font.family: root.textFontFamily
+                            font.pixelSize: 10
+                            font.weight: Font.Medium
+                            color: addCustomMouse.containsMouse ? "white" : "#8e8e93"
+                        }
+                    }
+
+                    MouseArea {
+                        id: addCustomMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root.widgetLibraryRequested("circle", customEmptyPage.pageIndex, 0)
+                    }
+                }
+
+                // Delete custom page button at top
+                Rectangle {
+                    anchors.top: parent.top
+                    anchors.topMargin: 4
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: 18
+                    height: 18
+                    radius: 9
+                    color: delCircleMouse.containsMouse ? "#ff453a" : "#2a2a2e"
+                    z: 50
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: "󰅖"
+                        font.family: root.iconFontFamily
+                        font.pixelSize: 9
+                        color: "white"
+                    }
+
+                    MouseArea {
+                        id: delCircleMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            if (userConfig) {
+                                const targetIdx = customEmptyPage.pageIndex;
+                                userConfig.removePage("circle", targetIdx);
+                                root.currentPageIndex = Math.max(0, targetIdx - 1);
+                            }
+                        }
                     }
                 }
             }

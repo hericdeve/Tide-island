@@ -25,6 +25,7 @@ Item {
 
     // Current page index — wheel/swipe advances through minimum pages
     property int currentPageIndex: 0
+    property bool isDropTargetActive: false
 
     readonly property var minimumLayouts: (userConfig && userConfig.widgetLayouts && userConfig.widgetLayouts.minimum)
         ? userConfig.widgetLayouts.minimum : null
@@ -204,6 +205,24 @@ Item {
                     ColorAnimation { duration: 180 }
                 }
             }
+        }
+    }
+
+    // Drop target highlight when dragging a minimum widget over closed pill
+    Rectangle {
+        anchors.fill: parent
+        radius: height / 2
+        color: "transparent"
+        border.width: 2
+        border.color: "#b56cff"
+        visible: root.isDropTargetActive
+        z: 95
+
+        SequentialAnimation on border.color {
+            running: root.isDropTargetActive
+            loops: Animation.Infinite
+            ColorAnimation { from: "#b56cff"; to: "#e879f9"; duration: 600 }
+            ColorAnimation { from: "#e879f9"; to: "#b56cff"; duration: 600 }
         }
     }
 }

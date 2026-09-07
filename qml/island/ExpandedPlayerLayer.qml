@@ -25,6 +25,14 @@ Item {
     property bool isCharging: false
     property bool cameraMirrorActive: false
     property bool isEditMode: false
+    property int hoveredSlotIndex: -1
+    property bool isDraggingWidget: false
+
+    function showPage(pageIdx) {
+        if (expandedPageStrip) {
+            expandedPageStrip.settlePage(pageIdx);
+        }
+    }
 
     property int initialPage: 0
     property bool showCondition: false
@@ -151,6 +159,8 @@ Item {
                 isEditMode: root.isEditMode
                 cameraMirrorActive: root.cameraMirrorActive
                 widgetContext: root.sharedWidgetContext
+                hoveredSlotIndex: root.hoveredSlotIndex
+                isDraggingWidget: root.isDraggingWidget
 
                 onPageChanged: (newPage) => root.pageChanged(newPage)
                 onAddWidgetRequested: (pIdx, sIdx) => root.widgetLibraryRequested("expanded", pIdx, sIdx)

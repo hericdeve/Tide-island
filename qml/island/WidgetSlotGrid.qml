@@ -9,6 +9,8 @@ Item {
     property bool isEditMode: false
     property bool cameraMirrorActive: false
     property var widgetContext: null
+    property int hoveredSlotIndex: -1
+    property bool isDraggingWidget: false
 
     signal removeSlotWidgetRequested(int pageIndex, int slotIndex)
     signal addWidgetRequested(int pageIndex, int slotIndex)
@@ -199,6 +201,10 @@ Item {
                     widgetId: slotWrapper.placedItem ? slotWrapper.placedItem.widgetId : ""
                     size: "full"
                     isEditMode: root.isEditMode
+                    isDropTarget: root.isDraggingWidget && (
+                        slotWrapper.currentSlotIndex === root.hoveredSlotIndex ||
+                        (slotWrapper.currentSlotIndex <= root.hoveredSlotIndex && slotWrapper.currentSlotIndex + slotWrapper.span > root.hoveredSlotIndex)
+                    )
                     widgetContext: root.widgetContext
 
                     onAddWidgetRequested: (sIdx) => root.addWidgetRequested(root.pageIndex, sIdx)

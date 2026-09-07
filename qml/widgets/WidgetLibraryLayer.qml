@@ -29,6 +29,11 @@ Item {
 
     signal widgetSelected(string widgetId)
     signal closeRequested()
+    signal widgetDragStarted(string widgetId, string sizeType, int slotSpan, real winX, real winY)
+    signal widgetDragMoved(real winX, real winY)
+    signal widgetDragEnded(real winX, real winY)
+
+    property bool isDraggingWidget: false
 
     readonly property var userConfig: UserConfig
     readonly property var catalog: WidgetRegistry.catalog
@@ -194,10 +199,10 @@ Item {
         circleDiameter: 64
     })
 
-    opacity: showCondition ? 1.0 : 0.0
-    scale: showCondition ? 1.0 : 0.96
+    opacity: (showCondition && !isDraggingWidget) ? 1.0 : 0.0
+    scale: (showCondition && !isDraggingWidget) ? 1.0 : 0.96
     visible: opacity > 0.001
-    focus: showCondition
+    focus: showCondition && !isDraggingWidget
 
     Behavior on opacity {
         NumberAnimation { duration: 200; easing.type: Easing.OutQuad }
@@ -617,6 +622,7 @@ Item {
                             height: previewDelegate.modelData.itemHeight
 
                             Rectangle {
+                                id: cardRect
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 anchors.verticalCenter: parent.verticalCenter
                                 width: previewDelegate.modelData.cardWidth
@@ -624,7 +630,7 @@ Item {
                                 radius: previewDelegate.modelData.cardRadius
                                 color: "#08080a"
                                 border.width: 1
-                                border.color: "#1c1c20"
+                                border.color: cardMouse.containsMouse ? "#b56cff" : "#1c1c20"
                                 clip: true
 
                                 Loader {
@@ -644,6 +650,63 @@ Item {
                                             item.widgetContext = root.previewWidgetContext;
                                             item.slotSpan = previewDelegate.modelData.slotSpan;
                                             item.isEditMode = false;
+                                        }
+                                    }
+                                }
+
+                                // Interactive Drag Handler to drag widget directly from library into notch
+                                MouseArea {
+                                    id: cardMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: dragging ? Qt.ClosedHandCursor : Qt.OpenHandCursor
+                                    preventStealing: dragging
+                                    propagateComposedEvents: true
+
+                                    property real startX: 0
+                                    property real startY: 0
+                                    property bool dragging: false
+
+                                    onPressed: (mouse) => {
+                                        startX = mouse.x;
+                                        startY = mouse.y;
+                                        dragging = false;
+                                    }
+
+                                    onPositionChanged: (mouse) => {
+                                        const dx = mouse.x - startX;
+                                        const dy = mouse.y - startY;
+                                        if (!dragging && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) {
+                                            dragging = true;
+                                            root.isDraggingWidget = true;
+                                            const winPos = cardRect.mapToItem(null, mouse.x, mouse.y);
+                                            root.widgetDragStarted(
+                                                root.currentWidget.id,
+                                                previewDelegate.modelData.type,
+                                                previewDelegate.modelData.slotSpan || 1,
+                                                winPos.x,
+                                                winPos.y
+                                            );
+                                        } else if (dragging) {
+                                            const winPos = cardRect.mapToItem(null, mouse.x, mouse.y);
+                                            root.widgetDragMoved(winPos.x, winPos.y);
+                                        }
+                                    }
+
+                                    onReleased: (mouse) => {
+                                        if (dragging) {
+                                            const winPos = cardRect.mapToItem(null, mouse.x, mouse.y);
+                                            root.widgetDragEnded(winPos.x, winPos.y);
+                                            dragging = false;
+                                            root.isDraggingWidget = false;
+                                        }
+                                    }
+
+                                    onCanceled: {
+                                        if (dragging) {
+                                            dragging = false;
+                                            root.isDraggingWidget = false;
+                                            root.widgetDragEnded(-1000, -1000);
                                         }
                                     }
                                 }

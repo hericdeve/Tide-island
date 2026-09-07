@@ -10,6 +10,8 @@ Item {
     property bool isEditMode: false
     property bool cameraMirrorActive: false
     property var widgetContext: null
+    property int hoveredSlotIndex: -1
+    property bool isDraggingWidget: false
 
     signal pageChanged(int newPage)
     signal removeSlotWidgetRequested(int pageIndex, int slotIndex)
@@ -72,6 +74,8 @@ Item {
                 isEditMode: root.isEditMode
                 cameraMirrorActive: root.cameraMirrorActive && (pageWrapper.pIdx === root.currentPage)
                 widgetContext: root.widgetContext
+                hoveredSlotIndex: root.hoveredSlotIndex
+                isDraggingWidget: root.isDraggingWidget && (pageWrapper.pIdx === root.currentPage)
 
                 onAddWidgetRequested: (pI, sI) => root.addWidgetRequested(pI, sI)
                 onRemoveSlotWidgetRequested: (pI, sI) => root.removeSlotWidgetRequested(pI, sI)

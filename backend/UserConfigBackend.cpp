@@ -828,7 +828,26 @@ void UserConfigBackend::loadConfig()
     updateField(this, m_iconFontSize, jsonInt(configObject, QLatin1String("iconFontSize"), 18), &UserConfigBackend::iconFontSizeChanged);
 
     if (configObject.contains(QLatin1String("widgetLayouts")) && configObject.value(QLatin1String("widgetLayouts")).isObject()) {
-        updateField(this, m_widgetLayouts, configObject.value(QLatin1String("widgetLayouts")).toObject(), &UserConfigBackend::widgetLayoutsChanged);
+        QJsonObject layouts = configObject.value(QLatin1String("widgetLayouts")).toObject();
+        const QJsonObject defaults = defaultWidgetLayouts();
+        bool changed = false;
+        for (const QString &mode : {QStringLiteral("expanded"), QStringLiteral("minimum"), QStringLiteral("circle")}) {
+            if (!layouts.contains(mode) || !layouts.value(mode).isObject()) {
+                layouts[mode] = defaults.value(mode);
+                changed = true;
+            } else {
+                QJsonObject modeObj = layouts.value(mode).toObject();
+                if (!modeObj.contains(QStringLiteral("pages")) || modeObj.value(QStringLiteral("pages")).toArray().isEmpty()) {
+                    modeObj = defaults.value(mode).toObject();
+                    layouts[mode] = modeObj;
+                    changed = true;
+                }
+            }
+        }
+        updateField(this, m_widgetLayouts, layouts, &UserConfigBackend::widgetLayoutsChanged);
+        if (changed) {
+            saveWidgetLayouts(layouts);
+        }
     } else {
         updateField(this, m_widgetLayouts, defaultWidgetLayouts(), &UserConfigBackend::widgetLayoutsChanged);
     }

@@ -1777,12 +1777,132 @@ PanelWindow {
         property int widgetLibraryTargetPageIndex: 0
         property int widgetLibraryTargetSlotIndex: 0
 
+        // Drag-and-drop from Widget Library into notch
+        property bool isDraggingWidgetFromLibrary: false
+        property var draggedWidgetData: null
+        property point dragPointerPos: Qt.point(0, 0)
+        property int hoveredSlotIndex: -1
+        property string preDragIslandState: "normal"
+        property string preDragNotchMode: "pill"
+        property int preDragExpandedPage: 0
+
+        function handleWidgetDragStarted(widgetId, sizeType, slotSpan, winX, winY) {
+            preDragIslandState = islandState;
+            preDragNotchMode = userConfig.notchMode;
+            preDragExpandedPage = rememberedPlayerPage;
+
+            draggedWidgetData = {
+                widgetId: widgetId,
+                sizeType: sizeType,
+                slotSpan: slotSpan || 1
+            };
+            dragPointerPos = Qt.point(winX, winY);
+            isDraggingWidgetFromLibrary = true;
+
+            if (sizeType === "full") {
+                // Show expanded notch on the page the user was on when opening library
+                islandState = "expanded";
+                if (expandedPlayerLoader.item && expandedPlayerLoader.item.showPage) {
+                    expandedPlayerLoader.item.showPage(preDragExpandedPage);
+                }
+            } else if (sizeType === "minimum") {
+                // Show closed/pill notch
+                userConfig.notchMode = "pill";
+                islandState = "normal";
+            } else if (sizeType === "circle") {
+                // Show circle notch
+                userConfig.notchMode = "circle";
+                islandState = "normal";
+            }
+            updateDragHitTest(winX, winY);
+        }
+
+        function handleWidgetDragMoved(winX, winY) {
+            dragPointerPos = Qt.point(winX, winY);
+            updateDragHitTest(winX, winY);
+        }
+
+        function isPointOverCapsule(winX, winY) {
+            const capX = mainCapsule.x;
+            const capY = mainCapsule.y;
+            const capW = mainCapsule.width;
+            const capH = mainCapsule.height;
+            return winX >= capX - 30 && winX <= capX + capW + 30
+                && winY >= capY - 30 && winY <= capY + capH + 30;
+        }
+
+        function updateDragHitTest(winX, winY) {
+            if (!isPointOverCapsule(winX, winY)) {
+                hoveredSlotIndex = -1;
+                return;
+            }
+
+            if (draggedWidgetData && draggedWidgetData.sizeType === "full") {
+                const capX = mainCapsule.x;
+                const capW = mainCapsule.width;
+                const contentX = capX + 16;
+                const contentW = Math.max(100, capW - 32);
+                const currentPages = (userConfig.widgetLayouts && userConfig.widgetLayouts.expanded)
+                    ? userConfig.widgetLayouts.expanded.pages : [];
+                const curPage = currentPages[rememberedPlayerPage];
+                const slots = (curPage && curPage.slots) ? curPage.slots : 3;
+                const relX = winX - contentX;
+                const slotW = contentW / slots;
+                const sIdx = Math.max(0, Math.min(slots - 1, Math.floor(relX / slotW)));
+                hoveredSlotIndex = sIdx;
+            } else {
+                hoveredSlotIndex = 0;
+            }
+        }
+
+        function handleWidgetDragEnded(winX, winY) {
+            if (!isDraggingWidgetFromLibrary || !draggedWidgetData) {
+                isDraggingWidgetFromLibrary = false;
+                draggedWidgetData = null;
+                return;
+            }
+
+            const wData = draggedWidgetData;
+            const hit = isPointOverCapsule(winX, winY);
+
+            if (hit) {
+                if (wData.sizeType === "full") {
+                    const targetPage = rememberedPlayerPage;
+                    const targetSlot = hoveredSlotIndex >= 0 ? hoveredSlotIndex : 0;
+                    userConfig.setSlotWidget("expanded", targetPage, targetSlot, wData.widgetId, wData.slotSpan);
+                } else if (wData.sizeType === "minimum") {
+                    const targetPage = (closedWidgetLoader.item ? closedWidgetLoader.item.currentPageIndex : 0);
+                    userConfig.setSlotWidget("minimum", targetPage, 0, wData.widgetId, 1);
+                    restoreRestingCapsule(true);
+                } else if (wData.sizeType === "circle") {
+                    const targetPage = (circleClosedLoader.item ? circleClosedLoader.item.currentPageIndex : 0);
+                    userConfig.setSlotWidget("circle", targetPage, 0, wData.widgetId, 1);
+                    restoreRestingCapsule(true);
+                }
+            } else {
+                userConfig.notchMode = preDragNotchMode;
+                islandState = preDragIslandState;
+            }
+
+            isDraggingWidgetFromLibrary = false;
+            draggedWidgetData = null;
+            hoveredSlotIndex = -1;
+        }
+
         function showWidgetLibrary(mode, pageIndex, slotIndex) {
             cancelSideSwipeSettle();
             abortSideTransientMode();
             clearTransientCapsule();
             widgetLibraryTargetMode = mode !== undefined ? mode : (userConfig.notchMode === "circle" ? "circle" : (islandContainer.islandState === "expanded" ? "expanded" : "minimum"));
-            widgetLibraryTargetPageIndex = pageIndex !== undefined ? pageIndex : 0;
+            if (pageIndex !== undefined) {
+                widgetLibraryTargetPageIndex = pageIndex;
+            } else if (widgetLibraryTargetMode === "circle" && circleClosedLoader.item) {
+                widgetLibraryTargetPageIndex = circleClosedLoader.item.currentPageIndex;
+            } else if (widgetLibraryTargetMode === "expanded") {
+                widgetLibraryTargetPageIndex = rememberedPlayerPage;
+            } else {
+                widgetLibraryTargetPageIndex = 0;
+            }
             widgetLibraryTargetSlotIndex = slotIndex !== undefined ? slotIndex : 0;
             islandState = "widget_library";
             mainCapsule.displayedWidth = mainCapsule.baseTargetWidth;
@@ -2618,6 +2738,9 @@ PanelWindow {
                         iconFontFamily: root.iconFontFamily
                         textFontFamily: root.textFontFamily
                         heroFontFamily: root.heroFontFamily
+                        isDropTargetActive: islandContainer.isDraggingWidgetFromLibrary
+                            && islandContainer.draggedWidgetData !== null
+                            && islandContainer.draggedWidgetData.sizeType === "minimum"
                     }
                 }
             }
@@ -2637,7 +2760,7 @@ PanelWindow {
                     && islandContainer.islandState !== "notification"
                     && islandContainer.islandState !== "long_capsule"
                     && islandContainer.islandState !== "split"
-                    && islandContainer.islandState !== "widget_library"
+                    && (islandContainer.islandState !== "widget_library" || islandContainer.isDraggingWidgetFromLibrary)
                 asynchronous: false
                 visible: active
 
@@ -2656,7 +2779,13 @@ PanelWindow {
                         currentDateLabel: timeObj.currentDateLabel
                         iconFontFamily: root.iconFontFamily
                         textFontFamily: root.textFontFamily
+                        isDropTargetActive: islandContainer.isDraggingWidgetFromLibrary
+                            && islandContainer.draggedWidgetData !== null
+                            && islandContainer.draggedWidgetData.sizeType === "circle"
                         onExpandRequested: islandContainer.showExpandedPlayer(false)
+                        onWidgetLibraryRequested: function(mode, pageIndex, slotIndex) {
+                            islandContainer.showWidgetLibrary(mode, pageIndex, slotIndex);
+                        }
                     }
                 }
             }
@@ -2749,6 +2878,8 @@ PanelWindow {
                         onPageChanged: function(page) {
                             islandContainer.rememberedPlayerPage = page;
                         }
+                        hoveredSlotIndex: islandContainer.hoveredSlotIndex
+                        isDraggingWidget: islandContainer.isDraggingWidgetFromLibrary && islandContainer.draggedWidgetData !== null && islandContainer.draggedWidgetData.sizeType === "full"
                         currentArtUrl: islandContainer.currentArtUrl
                         currentTrack: islandContainer.currentTrack
                         currentArtist: islandContainer.currentArtist
@@ -2904,9 +3035,10 @@ PanelWindow {
             Loader {
                 id: widgetLibraryLoader
                 anchors.fill: parent
-                active: islandContainer.islandState === "widget_library"
+                active: islandContainer.islandState === "widget_library" || islandContainer.isDraggingWidgetFromLibrary
                 asynchronous: false
-                visible: active
+                visible: active && !islandContainer.isDraggingWidgetFromLibrary
+                opacity: islandContainer.isDraggingWidgetFromLibrary ? 0.0 : 1.0
                 z: 100
 
                 sourceComponent: Component {
@@ -2916,7 +3048,7 @@ PanelWindow {
                         targetMode: islandContainer.widgetLibraryTargetMode
                         targetPageIndex: islandContainer.widgetLibraryTargetPageIndex
                         targetSlotIndex: islandContainer.widgetLibraryTargetSlotIndex
-                        showCondition: islandContainer.islandState === "widget_library"
+                        showCondition: islandContainer.islandState === "widget_library" && !islandContainer.isDraggingWidgetFromLibrary
                         currentArtUrl: islandContainer.currentArtUrl
                         currentTrack: islandContainer.currentTrack
                         currentArtist: islandContainer.currentArtist
@@ -2927,6 +3059,15 @@ PanelWindow {
                         currentTime: timeObj.currentTime
                         currentDateLabel: timeObj.currentDateLabel
                         onCloseRequested: islandContainer.smartRestoreState()
+                        onWidgetDragStarted: function(widgetId, sizeType, slotSpan, winX, winY) {
+                            islandContainer.handleWidgetDragStarted(widgetId, sizeType, slotSpan, winX, winY);
+                        }
+                        onWidgetDragMoved: function(winX, winY) {
+                            islandContainer.handleWidgetDragMoved(winX, winY);
+                        }
+                        onWidgetDragEnded: function(winX, winY) {
+                            islandContainer.handleWidgetDragEnded(winX, winY);
+                        }
                     }
                 }
             }
@@ -3466,5 +3607,72 @@ PanelWindow {
         enabled: root.topGestureInputActive
         islandController: islandContainer
         capsule: mainCapsule
+    }
+
+    // Floating drag proxy item following mouse when dragging widget from library
+    Item {
+        id: widgetDragProxy
+        visible: islandContainer.isDraggingWidgetFromLibrary && islandContainer.draggedWidgetData !== null
+        z: 999999
+        width: 140
+        height: 38
+        x: islandContainer.dragPointerPos.x - width / 2
+        y: islandContainer.dragPointerPos.y - height / 2
+
+        Rectangle {
+            anchors.fill: parent
+            radius: 19
+            color: "#1c1c1e"
+            border.width: 1.5
+            border.color: "#b56cff"
+            opacity: 0.95
+
+            Row {
+                anchors.centerIn: parent
+                spacing: 8
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    font.family: root.iconFontFamily
+                    font.pixelSize: 14
+                    color: "#b56cff"
+                    text: {
+                        if (!islandContainer.draggedWidgetData) return "";
+                        const info = WidgetRegistry.getWidget(islandContainer.draggedWidgetData.widgetId);
+                        return info ? info.icon : "󰐕";
+                    }
+                }
+
+                Column {
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 1
+
+                    Text {
+                        text: {
+                            if (!islandContainer.draggedWidgetData) return "";
+                            const info = WidgetRegistry.getWidget(islandContainer.draggedWidgetData.widgetId);
+                            return info ? info.name : islandContainer.draggedWidgetData.widgetId;
+                        }
+                        font.family: root.textFontFamily
+                        font.pixelSize: 11
+                        font.weight: Font.DemiBold
+                        color: "white"
+                        elide: Text.ElideRight
+                        maximumLineCount: 1
+                    }
+
+                    Text {
+                        text: {
+                            if (!islandContainer.draggedWidgetData) return "";
+                            const st = islandContainer.draggedWidgetData.sizeType;
+                            return st === "full" ? "Full size" : (st === "minimum" ? "Minimum" : "Circle dial");
+                        }
+                        font.family: root.textFontFamily
+                        font.pixelSize: 9
+                        color: "#a1a1aa"
+                    }
+                }
+            }
+        }
     }
 }

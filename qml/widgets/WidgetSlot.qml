@@ -11,6 +11,7 @@ Item {
     property int slotSpan: 1
     property int maxSlots: 6
     property bool isEditMode: false
+    property bool isDropTarget: false
     property var widgetContext: null
 
     signal removeRequested(int slotIndex)
@@ -219,6 +220,48 @@ Item {
                     cursorShape: Qt.PointingHandCursor
                     onClicked: root.removeRequested(root.slotIndex)
                 }
+            }
+        }
+    }
+
+    // 4. Drag & Drop target highlight
+    Rectangle {
+        id: dropTargetHighlight
+        anchors.fill: parent
+        anchors.margins: 2
+        radius: 10
+        visible: root.isDropTarget
+        color: "#24b56cff"
+        border.width: 2
+        border.color: "#b56cff"
+        z: 110
+
+        SequentialAnimation on border.color {
+            running: root.isDropTarget
+            loops: Animation.Infinite
+            ColorAnimation { from: "#b56cff"; to: "#d8b4fe"; duration: 450 }
+            ColorAnimation { from: "#d8b4fe"; to: "#b56cff"; duration: 450 }
+        }
+
+        Row {
+            anchors.centerIn: parent
+            spacing: 6
+
+            Text {
+                text: "󰐕"
+                font.family: root.widgetContext ? root.widgetContext.iconFontFamily : "Sans Serif"
+                font.pixelSize: 14
+                color: "#d8b4fe"
+                anchors.verticalCenter: parent.verticalCenter
+            }
+
+            Text {
+                text: "Drop Here"
+                font.family: root.widgetContext ? root.widgetContext.textFontFamily : "Sans Serif"
+                font.pixelSize: 11
+                font.weight: Font.Bold
+                color: "white"
+                anchors.verticalCenter: parent.verticalCenter
             }
         }
     }
