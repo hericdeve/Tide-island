@@ -98,6 +98,41 @@ Item {
         }
     }
 
+    // Direct multi-touch swipe support (when 2 fingers are detected on touch input)
+    MultiPointTouchArea {
+        id: twoFingerTouchStrip
+        anchors.fill: parent
+        enabled: root.pageCount > 1 && !root.isDraggingWidget
+        mouseEnabled: false
+        minimumTouchPoints: 2
+        maximumTouchPoints: 2
+
+        property real startTouchX: 0
+        property real startPageProgress: 0
+
+        onPressed: (touchPoints) => {
+            settleAnimation.stop();
+            startTouchX = (touchPoints[0].x + touchPoints[1].x) / 2;
+            startPageProgress = root.pageProgress;
+        }
+
+        onUpdated: (touchPoints) => {
+            const currentTouchX = (touchPoints[0].x + touchPoints[1].x) / 2;
+            const deltaPages = -(currentTouchX - startTouchX) / root.pageSlideDistance;
+            let newProgress = startPageProgress + deltaPages;
+            if (newProgress < 0) {
+                newProgress = newProgress * 0.25;
+            } else if (newProgress > root.pageCount - 1) {
+                newProgress = (root.pageCount - 1) + (newProgress - (root.pageCount - 1)) * 0.25;
+            }
+            root.pageProgress = newProgress;
+        }
+
+        onReleased: (touchPoints) => {
+            root.settlePage(Math.round(root.pageProgress));
+        }
+    }
+
     Repeater {
         model: root.pageCount
 

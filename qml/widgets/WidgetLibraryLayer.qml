@@ -228,26 +228,65 @@ Item {
     Keys.onEscapePressed: root.closeRequested()
 
     // Horizontal wheel navigation between widgets
+    Timer {
+        id: libWheelResetTimer
+        interval: 200
+        repeat: false
+        onTriggered: {
+            wheelHandler.accumulatedX = 0;
+            wheelHandler.gestureLocked = false;
+        }
+    }
+
     WheelHandler {
         id: wheelHandler
         target: null
-        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+        orientation: Qt.Horizontal | Qt.Vertical
+        acceptedDevices: PointerDevice.AllDevices
         property real accumulatedX: 0
+        property bool gestureLocked: false
 
         onWheel: function(event) {
-            if (event.phase === Qt.ScrollMomentum) return;
-            const dx = event.pixelDelta.x !== 0 ? event.pixelDelta.x : (event.angleDelta.x / 5);
-            if (Math.abs(dx) > 1) {
-                accumulatedX += dx;
-                if (accumulatedX < -20) {
-                    root.nextWidget();
-                    accumulatedX = 0;
-                    event.accepted = true;
-                } else if (accumulatedX > 20) {
-                    root.prevWidget();
-                    accumulatedX = 0;
-                    event.accepted = true;
-                }
+            if (event.phase === Qt.ScrollMomentum) {
+                event.accepted = true;
+                return;
+            }
+            if (event.phase === Qt.ScrollEnd) {
+                wheelHandler.accumulatedX = 0;
+                wheelHandler.gestureLocked = false;
+                event.accepted = true;
+                return;
+            }
+            if (wheelHandler.gestureLocked) {
+                libWheelResetTimer.restart();
+                event.accepted = true;
+                return;
+            }
+
+            const px = (event.pixelDelta && event.pixelDelta.x !== undefined) ? event.pixelDelta.x : 0;
+            const py = (event.pixelDelta && event.pixelDelta.y !== undefined) ? event.pixelDelta.y : 0;
+            const ax = (event.angleDelta && event.angleDelta.x !== undefined) ? (event.angleDelta.x / 5) : 0;
+            const ay = (event.angleDelta && event.angleDelta.y !== undefined) ? (event.angleDelta.y / 5) : 0;
+
+            const dx = Math.abs(px) > 0.001 ? px : ax;
+            const dy = Math.abs(py) > 0.001 ? py : ay;
+
+            if (Math.abs(dx) < 0.5) return;
+            if (Math.abs(dy) > Math.abs(dx) * 1.5) return;
+
+            libWheelResetTimer.restart();
+            wheelHandler.accumulatedX += dx;
+
+            if (wheelHandler.accumulatedX < -14) {
+                root.nextWidget();
+                wheelHandler.accumulatedX = 0;
+                wheelHandler.gestureLocked = true;
+                event.accepted = true;
+            } else if (wheelHandler.accumulatedX > 14) {
+                root.prevWidget();
+                wheelHandler.accumulatedX = 0;
+                wheelHandler.gestureLocked = true;
+                event.accepted = true;
             }
         }
     }

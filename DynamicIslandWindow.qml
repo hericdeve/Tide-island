@@ -992,8 +992,7 @@ PanelWindow {
         readonly property bool splitUsesExtendedLayout: splitShowsProgress || splitShowsText
         readonly property real splitCapsuleWidth: Math.max(userConfig.notchClosedWidth + 95, 280)
         readonly property bool canShowSideSwipe: userConfig.notchMode !== "circle"
-            && (islandState === "normal"
-                || islandState === "custom"
+            && (islandState === "custom"
                 || islandState === "lyrics"
                 || (islandState === "long_capsule" && workspaceOriginSide === "none"))
         readonly property real rightSwipeProgress: Math.max(0, swipeTransitionProgress)
@@ -2478,7 +2477,7 @@ PanelWindow {
                 z: -1
                 enabled: !root.overviewVisible && twoFingerTouchArea.touchPoints.length < 2
                 acceptedButtons: root.dynamicIslandAcceptedButtons
-                preventStealing: true
+                preventStealing: swipeArmed
                 hoverEnabled: false
                 property real swipeStartX: 0
                 property real swipeStartY: 0
@@ -2643,7 +2642,7 @@ PanelWindow {
                 id: twoFingerTouchArea
                 anchors.fill: parent
                 z: 0
-                enabled: !root.overviewVisible
+                enabled: !root.overviewVisible && islandContainer.canShowSideSwipe
                 mouseEnabled: false
                 minimumTouchPoints: 2
                 maximumTouchPoints: 2

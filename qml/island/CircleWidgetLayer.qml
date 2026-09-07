@@ -89,7 +89,7 @@ Item {
     // Gesture navigation
     Timer {
         id: wheelResetTimer
-        interval: 160
+        interval: 200
         repeat: false
         onTriggered: {
             circleWheelHandler.accumulated = 0;
@@ -100,7 +100,8 @@ Item {
     WheelHandler {
         id: circleWheelHandler
         target: null
-        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+        orientation: Qt.Horizontal | Qt.Vertical
+        acceptedDevices: PointerDevice.AllDevices
         property real accumulated: 0
         property bool gestureLocked: false
 
@@ -109,25 +110,38 @@ Item {
                 event.accepted = true;
                 return;
             }
-            const dx = event.pixelDelta.x !== 0 ? event.pixelDelta.x : (event.angleDelta.x / 5);
-            const dy = event.pixelDelta.y !== 0 ? event.pixelDelta.y : (event.angleDelta.y / 5);
-            const delta = Math.abs(dx) >= Math.abs(dy) ? dx : dy;
-
+            if (event.phase === Qt.ScrollEnd) {
+                circleWheelHandler.accumulated = 0;
+                circleWheelHandler.gestureLocked = false;
+                event.accepted = true;
+                return;
+            }
             if (circleWheelHandler.gestureLocked) {
                 wheelResetTimer.restart();
                 event.accepted = true;
                 return;
             }
 
+            const px = (event.pixelDelta && event.pixelDelta.x !== undefined) ? event.pixelDelta.x : 0;
+            const py = (event.pixelDelta && event.pixelDelta.y !== undefined) ? event.pixelDelta.y : 0;
+            const ax = (event.angleDelta && event.angleDelta.x !== undefined) ? (event.angleDelta.x / 5) : 0;
+            const ay = (event.angleDelta && event.angleDelta.y !== undefined) ? (event.angleDelta.y / 5) : 0;
+
+            const dx = Math.abs(px) > 0.001 ? px : ax;
+            const dy = Math.abs(py) > 0.001 ? py : ay;
+            const delta = Math.abs(dx) >= Math.abs(dy) ? dx : dy;
+
+            if (Math.abs(delta) < 0.5) return;
+
             wheelResetTimer.restart();
             accumulated += delta;
 
-            if (accumulated < -16) {
+            if (accumulated < -12) {
                 root.currentPageIndex = Math.min(root.pageCount - 1, root.currentPageIndex + 1);
                 accumulated = 0;
                 gestureLocked = true;
                 event.accepted = true;
-            } else if (accumulated > 16) {
+            } else if (accumulated > 12) {
                 root.currentPageIndex = Math.max(0, root.currentPageIndex - 1);
                 accumulated = 0;
                 gestureLocked = true;

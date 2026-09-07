@@ -104,7 +104,7 @@ Item {
 
         Timer {
             id: wheelResetTimer
-            interval: 180
+            interval: 200
             repeat: false
             onTriggered: {
                 horizontalWheelHandler.accumulated = 0;
@@ -115,7 +115,8 @@ Item {
         WheelHandler {
             id: horizontalWheelHandler
             target: null
-            acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+            orientation: Qt.Horizontal | Qt.Vertical
+            acceptedDevices: PointerDevice.AllDevices
             property real accumulated: 0
             property bool gestureLocked: false
 
@@ -125,24 +126,38 @@ Item {
                     event.accepted = true;
                     return;
                 }
+                if (event.phase === Qt.ScrollEnd) {
+                    horizontalWheelHandler.accumulated = 0;
+                    horizontalWheelHandler.gestureLocked = false;
+                    event.accepted = true;
+                    return;
+                }
                 if (horizontalWheelHandler.gestureLocked) {
                     wheelResetTimer.restart();
                     event.accepted = true;
                     return;
                 }
 
-                const deltaX = event.pixelDelta ? event.pixelDelta.x : (event.angleDelta ? event.angleDelta.x / 5 : 0);
-                if (Math.abs(deltaX) < 1) return;
+                const px = (event.pixelDelta && event.pixelDelta.x !== undefined) ? event.pixelDelta.x : 0;
+                const py = (event.pixelDelta && event.pixelDelta.y !== undefined) ? event.pixelDelta.y : 0;
+                const ax = (event.angleDelta && event.angleDelta.x !== undefined) ? (event.angleDelta.x / 5) : 0;
+                const ay = (event.angleDelta && event.angleDelta.y !== undefined) ? (event.angleDelta.y / 5) : 0;
+
+                const dx = Math.abs(px) > 0.001 ? px : ax;
+                const dy = Math.abs(py) > 0.001 ? py : ay;
+
+                if (Math.abs(dx) < 0.5) return;
+                if (Math.abs(dy) > Math.abs(dx) * 1.5) return;
 
                 wheelResetTimer.restart();
-                horizontalWheelHandler.accumulated += deltaX;
+                horizontalWheelHandler.accumulated += dx;
 
-                if (horizontalWheelHandler.accumulated < -20) {
+                if (horizontalWheelHandler.accumulated < -12) {
                     expandedPageStrip.settlePage(expandedPageStrip.currentPage + 1);
                     horizontalWheelHandler.accumulated = 0;
                     horizontalWheelHandler.gestureLocked = true;
                     event.accepted = true;
-                } else if (horizontalWheelHandler.accumulated > 20) {
+                } else if (horizontalWheelHandler.accumulated > 12) {
                     expandedPageStrip.settlePage(expandedPageStrip.currentPage - 1);
                     horizontalWheelHandler.accumulated = 0;
                     horizontalWheelHandler.gestureLocked = true;
