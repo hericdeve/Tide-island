@@ -1231,16 +1231,19 @@ PanelWindow {
                     smartRestoreState();
                 return;
             case "toggleControlCenter":
-                if (islandState === "control_center")
+            case "toggleWidgetLibrary":
+                if (islandState === "widget_library")
                     smartRestoreState();
                 else
-                    showControlCenter();
+                    showWidgetLibrary();
                 return;
             case "openControlCenter":
-                showControlCenter();
+            case "openWidgetLibrary":
+                showWidgetLibrary();
                 return;
             case "closeControlCenter":
-                if (islandState === "control_center")
+            case "closeWidgetLibrary":
+                if (islandState === "widget_library")
                     smartRestoreState();
                 return;
             case "toggleOverview":
@@ -1766,6 +1769,22 @@ PanelWindow {
             stopAutoHideTimer();
         }
 
+        property string widgetLibraryTargetMode: "expanded"
+        property int widgetLibraryTargetPageIndex: 0
+        property int widgetLibraryTargetSlotIndex: 0
+
+        function showWidgetLibrary(mode, pageIndex, slotIndex) {
+            cancelSideSwipeSettle();
+            abortSideTransientMode();
+            clearTransientCapsule();
+            widgetLibraryTargetMode = mode !== undefined ? mode : (userConfig.notchMode === "circle" ? "circle" : (islandContainer.islandState === "expanded" ? "expanded" : "minimum"));
+            widgetLibraryTargetPageIndex = pageIndex !== undefined ? pageIndex : 0;
+            widgetLibraryTargetSlotIndex = slotIndex !== undefined ? slotIndex : 0;
+            islandState = "widget_library";
+            mainCapsule.displayedWidth = mainCapsule.baseTargetWidth;
+            stopAutoHideTimer();
+        }
+
         function showNotificationCenter() {
             cancelSideSwipeSettle();
             abortSideTransientMode();
@@ -1972,6 +1991,8 @@ PanelWindow {
                     case "wallpaper_picker":
                     case "application_launcher":
                         return 1100;
+                    case "widget_library":
+                        return Math.min(root.width - 48, 860);
                     case "file_shelf":
                     case "expanded":
                     case "bluetooth_expanded":
@@ -2021,6 +2042,8 @@ PanelWindow {
                 case "wallpaper_picker":
                 case "application_launcher":
                     return 1100;
+                case "widget_library":
+                    return Math.min(root.width - 48, 860);
                 case "file_shelf":
                 case "expanded":
                 case "bluetooth_expanded":
@@ -2050,6 +2073,8 @@ PanelWindow {
                 case "wallpaper_picker":
                 case "application_launcher":
                     return 260;
+                case "widget_library":
+                    return 270;
                 case "file_shelf":
                 case "expanded":
                 case "bluetooth_expanded":
@@ -2075,6 +2100,8 @@ PanelWindow {
                 case "wallpaper_picker":
                 case "application_launcher":
                     return 34;
+                case "widget_library":
+                    return 24;
                 case "file_shelf":
                 case "expanded":
                 case "bluetooth_expanded":
@@ -2709,6 +2736,9 @@ PanelWindow {
                         onControlPressed: islandContainer.suppressCapsuleClick()
                         onBackgroundClicked: islandContainer.smartRestoreState()
                         onCloseRequested: islandContainer.smartRestoreState()
+                        onWidgetLibraryRequested: function(mode, pageIndex, slotIndex) {
+                            islandContainer.showWidgetLibrary(mode, pageIndex, slotIndex);
+                        }
                         onShelfRequested: islandContainer.showFileShelf(true)
                         onKeyboardFocusRequested: islandContainer.requestExpandedPlayerKeyboardFocus()
                         onKeyboardFocusReleased: islandContainer.releaseExpandedPlayerKeyboardFocus()
@@ -2832,6 +2862,27 @@ PanelWindow {
                         onClearAllRequested: {
                             islandContainer.notificationHistoryModel.clear();
                         }
+                    }
+                }
+            }
+
+            Loader {
+                id: widgetLibraryLoader
+                anchors.fill: parent
+                active: islandContainer.islandState === "widget_library"
+                asynchronous: false
+                visible: active
+                source: "widgets/WidgetLibraryLayer.qml"
+
+                onLoaded: {
+                    if (item) {
+                        item.iconFontFamily = root.iconFontFamily;
+                        item.textFontFamily = root.textFontFamily;
+                        item.targetMode = islandContainer.widgetLibraryTargetMode;
+                        item.targetPageIndex = islandContainer.widgetLibraryTargetPageIndex;
+                        item.targetSlotIndex = islandContainer.widgetLibraryTargetSlotIndex;
+                        item.showCondition = true;
+                        item.closeRequested.connect(() => islandContainer.smartRestoreState());
                     }
                 }
             }

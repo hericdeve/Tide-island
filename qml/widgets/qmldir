@@ -1,0 +1,3 @@
+singleton WidgetRegistry 1.0 WidgetRegistry.qml
+WidgetSlot 1.0 WidgetSlot.qml
+WidgetLibraryLayer 1.0 WidgetLibraryLayer.qml

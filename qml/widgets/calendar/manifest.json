@@ -1,0 +1,8 @@
+{
+  "id": "calendar",
+  "name": "Calendar",
+  "description": "Month date strip with synced Google Calendar events",
+  "icon": "󰸗",
+  "supportedSizes": ["full", "minimum", "circle"],
+  "defaultSlotSpan": 1
+}

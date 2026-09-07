@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QFileSystemWatcher>
+#include <QJsonObject>
 #include <QObject>
 #include <QTimer>
 #include <QVariantList>
@@ -76,6 +77,7 @@ class UserConfigBackend final : public QObject {
     Q_PROPERTY(int bodyFontSize READ bodyFontSize NOTIFY bodyFontSizeChanged FINAL)
     Q_PROPERTY(int titleFontSize READ titleFontSize NOTIFY titleFontSizeChanged FINAL)
     Q_PROPERTY(int iconFontSize READ iconFontSize NOTIFY iconFontSizeChanged FINAL)
+    Q_PROPERTY(QJsonObject widgetLayouts READ widgetLayouts NOTIFY widgetLayoutsChanged FINAL)
 
 public:
     explicit UserConfigBackend(QObject *parent = nullptr);
@@ -141,11 +143,21 @@ public:
     int bodyFontSize() const;
     int titleFontSize() const;
     int iconFontSize() const;
+    QJsonObject widgetLayouts() const;
+    QJsonObject defaultWidgetLayouts() const;
     void setDefaultWallpaperPath(const QString &path);
 
     Q_INVOKABLE int mouseButton(const QVariant &button) const;
     Q_INVOKABLE int mouseButtonsMask(const QVariant &buttons) const;
     Q_INVOKABLE void reload();
+
+    Q_INVOKABLE void setWidgetLayouts(const QJsonObject &layouts);
+    Q_INVOKABLE void addPage(const QString &mode, const QString &title = QString(), int slotCount = 1);
+    Q_INVOKABLE void removePage(const QString &mode, int pageIndex);
+    Q_INVOKABLE void setPageSlots(const QString &mode, int pageIndex, int slotCount);
+    Q_INVOKABLE void setSlotWidget(const QString &mode, int pageIndex, int slotIndex, const QString &widgetId, int slotSpan = 1);
+    Q_INVOKABLE void removeSlotWidget(const QString &mode, int pageIndex, int slotIndex);
+    Q_INVOKABLE void resetWidgetLayouts();
 
 signals:
     void configErrorChanged();
@@ -208,11 +220,13 @@ signals:
     void bodyFontSizeChanged();
     void titleFontSizeChanged();
     void iconFontSizeChanged();
+    void widgetLayoutsChanged();
 
 private:
     void scheduleReload();
     void loadConfig();
     void updateWatchedPaths();
+    void saveWidgetLayouts(const QJsonObject &layouts);
     QString configHome() const;
 
     QString m_userConfigPath;
@@ -276,6 +290,7 @@ private:
     int m_bodyFontSize = 16;
     int m_titleFontSize = 20;
     int m_iconFontSize = 18;
+    QJsonObject m_widgetLayouts;
 
     QFileSystemWatcher m_watcher;
     QTimer m_reloadTimer;

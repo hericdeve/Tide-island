@@ -1,0 +1,8 @@
+{
+  "id": "clock",
+  "name": "Clock & Date",
+  "description": "Digital time display with current date and timezone",
+  "icon": "󰥔",
+  "supportedSizes": ["full", "minimum", "circle"],
+  "defaultSlotSpan": 1
+}

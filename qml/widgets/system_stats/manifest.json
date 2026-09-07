@@ -1,0 +1,8 @@
+{
+  "id": "system_stats",
+  "name": "System Stats",
+  "description": "Live CPU, RAM, storage, and battery resource monitors",
+  "icon": "󰍛",
+  "supportedSizes": ["full", "minimum", "circle"],
+  "defaultSlotSpan": 1
+}

@@ -1,0 +1,8 @@
+{
+  "id": "media_player",
+  "name": "Media Player",
+  "description": "Now playing track with album art, scrubber, lyrics, and controls",
+  "icon": "󰎆",
+  "supportedSizes": ["full", "minimum", "circle"],
+  "defaultSlotSpan": 2
+}

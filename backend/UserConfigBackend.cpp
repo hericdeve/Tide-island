@@ -1,5 +1,6 @@
 #include "UserConfigBackend.h"
 
+#include <QDateTime>
 #include <QFile>
 #include <QFileInfo>
 #include <QJsonArray>
@@ -7,6 +8,7 @@
 #include <QJsonObject>
 #include <QJsonParseError>
 #include <QJsonValue>
+#include <QSaveFile>
 #include <QSet>
 #include <QVariant>
 #include <Qt>
@@ -432,6 +434,235 @@ int UserConfigBackend::iconFontSize() const
     return m_iconFontSize;
 }
 
+QJsonObject UserConfigBackend::widgetLayouts() const
+{
+    return m_widgetLayouts;
+}
+
+QJsonObject UserConfigBackend::defaultWidgetLayouts() const
+{
+    QJsonObject root;
+
+    // 1. Expanded layout
+    QJsonObject expanded;
+    expanded[QStringLiteral("activePageIndex")] = 0;
+    QJsonArray expandedPages;
+    {
+        QJsonObject homePage;
+        homePage[QStringLiteral("id")] = QStringLiteral("home");
+        homePage[QStringLiteral("title")] = QStringLiteral("Home");
+        homePage[QStringLiteral("isHome")] = true;
+        homePage[QStringLiteral("slots")] = 3;
+        QJsonArray items;
+        {
+            QJsonObject mediaItem;
+            mediaItem[QStringLiteral("slotIndex")] = 0;
+            mediaItem[QStringLiteral("widgetId")] = QStringLiteral("media_player");
+            mediaItem[QStringLiteral("slotSpan")] = 2;
+            items.append(mediaItem);
+        }
+        {
+            QJsonObject calItem;
+            calItem[QStringLiteral("slotIndex")] = 2;
+            calItem[QStringLiteral("widgetId")] = QStringLiteral("calendar");
+            calItem[QStringLiteral("slotSpan")] = 1;
+            items.append(calItem);
+        }
+        homePage[QStringLiteral("items")] = items;
+        expandedPages.append(homePage);
+    }
+    expanded[QStringLiteral("pages")] = expandedPages;
+    root[QStringLiteral("expanded")] = expanded;
+
+    // 2. Minimum layout (closed pill/notch)
+    QJsonObject minimum;
+    minimum[QStringLiteral("activePageIndex")] = 0;
+    QJsonArray minimumPages;
+    {
+        QJsonObject homePage;
+        homePage[QStringLiteral("id")] = QStringLiteral("home");
+        homePage[QStringLiteral("title")] = QStringLiteral("Home");
+        homePage[QStringLiteral("isHome")] = true;
+        homePage[QStringLiteral("slots")] = 1;
+        QJsonArray items;
+        {
+            QJsonObject clockItem;
+            clockItem[QStringLiteral("slotIndex")] = 0;
+            clockItem[QStringLiteral("widgetId")] = QStringLiteral("clock");
+            clockItem[QStringLiteral("slotSpan")] = 1;
+            items.append(clockItem);
+        }
+        homePage[QStringLiteral("items")] = items;
+        minimumPages.append(homePage);
+    }
+    minimum[QStringLiteral("pages")] = minimumPages;
+    root[QStringLiteral("minimum")] = minimum;
+
+    // 3. Circle layout (circle mode dial)
+    QJsonObject circle;
+    circle[QStringLiteral("activePageIndex")] = 0;
+    QJsonArray circlePages;
+    {
+        QJsonObject homePage;
+        homePage[QStringLiteral("id")] = QStringLiteral("home");
+        homePage[QStringLiteral("title")] = QStringLiteral("Home");
+        homePage[QStringLiteral("isHome")] = true;
+        homePage[QStringLiteral("slots")] = 1;
+        QJsonArray items;
+        {
+            QJsonObject clockItem;
+            clockItem[QStringLiteral("slotIndex")] = 0;
+            clockItem[QStringLiteral("widgetId")] = QStringLiteral("clock");
+            clockItem[QStringLiteral("slotSpan")] = 1;
+            items.append(clockItem);
+        }
+        homePage[QStringLiteral("items")] = items;
+        circlePages.append(homePage);
+    }
+    circle[QStringLiteral("pages")] = circlePages;
+    root[QStringLiteral("circle")] = circle;
+
+    return root;
+}
+
+void UserConfigBackend::saveWidgetLayouts(const QJsonObject &layouts)
+{
+    m_widgetLayouts = layouts;
+    emit widgetLayoutsChanged();
+
+    QJsonObject configObject;
+    QFile configFile(m_userConfigPath);
+    if (configFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        const QByteArray bytes = configFile.readAll();
+        configFile.close();
+        if (!bytes.trimmed().isEmpty()) {
+            const QByteArray stripped = stripJsonComments(bytes);
+            QJsonDocument doc = QJsonDocument::fromJson(stripped);
+            if (doc.isObject()) {
+                configObject = doc.object();
+            }
+        }
+    }
+
+    configObject[QStringLiteral("widgetLayouts")] = m_widgetLayouts;
+
+    QSaveFile saveFile(m_userConfigPath);
+    if (saveFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        saveFile.write(QJsonDocument(configObject).toJson(QJsonDocument::Indented));
+        saveFile.commit();
+    }
+}
+
+void UserConfigBackend::setWidgetLayouts(const QJsonObject &layouts)
+{
+    saveWidgetLayouts(layouts);
+}
+
+void UserConfigBackend::addPage(const QString &mode, const QString &title, int slotCount)
+{
+    QJsonObject layouts = m_widgetLayouts;
+    QJsonObject modeObj = layouts.value(mode).toObject();
+    QJsonArray pages = modeObj.value(QStringLiteral("pages")).toArray();
+
+    QJsonObject newPage;
+    newPage[QStringLiteral("id")] = QStringLiteral("page_%1").arg(QDateTime::currentMSecsSinceEpoch());
+    newPage[QStringLiteral("title")] = title.trimmed().isEmpty() ? QStringLiteral("Page %1").arg(pages.size() + 1) : title.trimmed();
+    newPage[QStringLiteral("isHome")] = false;
+    newPage[QStringLiteral("slots")] = qMax(1, qMin(6, slotCount));
+    newPage[QStringLiteral("items")] = QJsonArray();
+
+    pages.append(newPage);
+    modeObj[QStringLiteral("pages")] = pages;
+    layouts[mode] = modeObj;
+
+    saveWidgetLayouts(layouts);
+}
+
+void UserConfigBackend::removePage(const QString &mode, int pageIndex)
+{
+    QJsonObject layouts = m_widgetLayouts;
+    QJsonObject modeObj = layouts.value(mode).toObject();
+    QJsonArray pages = modeObj.value(QStringLiteral("pages")).toArray();
+
+    if (pageIndex <= 0 || pageIndex >= pages.size()) {
+        // Cannot delete home page (page 0) or invalid index
+        return;
+    }
+
+    pages.removeAt(pageIndex);
+    modeObj[QStringLiteral("pages")] = pages;
+
+    int activePage = modeObj.value(QStringLiteral("activePageIndex")).toInt(0);
+    if (activePage >= pages.size()) {
+        modeObj[QStringLiteral("activePageIndex")] = qMax(0, pages.size() - 1);
+    }
+
+    layouts[mode] = modeObj;
+    saveWidgetLayouts(layouts);
+}
+
+void UserConfigBackend::setPageSlots(const QString &mode, int pageIndex, int slotCount)
+{
+    QJsonObject layouts = m_widgetLayouts;
+    QJsonObject modeObj = layouts.value(mode).toObject();
+    QJsonArray pages = modeObj.value(QStringLiteral("pages")).toArray();
+
+    if (pageIndex < 0 || pageIndex >= pages.size())
+        return;
+
+    QJsonObject page = pages[pageIndex].toObject();
+    page[QStringLiteral("slots")] = qMax(1, qMin(6, slotCount));
+    pages[pageIndex] = page;
+
+    modeObj[QStringLiteral("pages")] = pages;
+    layouts[mode] = modeObj;
+    saveWidgetLayouts(layouts);
+}
+
+void UserConfigBackend::setSlotWidget(const QString &mode, int pageIndex, int slotIndex, const QString &widgetId, int slotSpan)
+{
+    QJsonObject layouts = m_widgetLayouts;
+    QJsonObject modeObj = layouts.value(mode).toObject();
+    QJsonArray pages = modeObj.value(QStringLiteral("pages")).toArray();
+
+    if (pageIndex < 0 || pageIndex >= pages.size())
+        return;
+
+    QJsonObject page = pages[pageIndex].toObject();
+    QJsonArray items = page.value(QStringLiteral("items")).toArray();
+
+    for (int i = items.size() - 1; i >= 0; --i) {
+        QJsonObject item = items[i].toObject();
+        if (item.value(QStringLiteral("slotIndex")).toInt() == slotIndex) {
+            items.removeAt(i);
+        }
+    }
+
+    if (!widgetId.trimmed().isEmpty()) {
+        QJsonObject newItem;
+        newItem[QStringLiteral("slotIndex")] = slotIndex;
+        newItem[QStringLiteral("widgetId")] = widgetId.trimmed();
+        newItem[QStringLiteral("slotSpan")] = qMax(1, slotSpan);
+        items.append(newItem);
+    }
+
+    page[QStringLiteral("items")] = items;
+    pages[pageIndex] = page;
+    modeObj[QStringLiteral("pages")] = pages;
+    layouts[mode] = modeObj;
+    saveWidgetLayouts(layouts);
+}
+
+void UserConfigBackend::removeSlotWidget(const QString &mode, int pageIndex, int slotIndex)
+{
+    setSlotWidget(mode, pageIndex, slotIndex, QString(), 1);
+}
+
+void UserConfigBackend::resetWidgetLayouts()
+{
+    saveWidgetLayouts(defaultWidgetLayouts());
+}
+
 void UserConfigBackend::setDefaultWallpaperPath(const QString &path)
 {
     if (m_defaultWallpaperPath == path)
@@ -595,6 +826,12 @@ void UserConfigBackend::loadConfig()
     updateField(this, m_bodyFontSize, jsonInt(configObject, QLatin1String("bodyFontSize"), 16), &UserConfigBackend::bodyFontSizeChanged);
     updateField(this, m_titleFontSize, jsonInt(configObject, QLatin1String("titleFontSize"), 20), &UserConfigBackend::titleFontSizeChanged);
     updateField(this, m_iconFontSize, jsonInt(configObject, QLatin1String("iconFontSize"), 18), &UserConfigBackend::iconFontSizeChanged);
+
+    if (configObject.contains(QLatin1String("widgetLayouts")) && configObject.value(QLatin1String("widgetLayouts")).isObject()) {
+        updateField(this, m_widgetLayouts, configObject.value(QLatin1String("widgetLayouts")).toObject(), &UserConfigBackend::widgetLayoutsChanged);
+    } else {
+        updateField(this, m_widgetLayouts, defaultWidgetLayouts(), &UserConfigBackend::widgetLayoutsChanged);
+    }
 
     updateWatchedPaths();
 }
