@@ -374,6 +374,8 @@ Item {
             circleWheelHandler.accumulatedX = 0;
             circleWheelHandler.accumulatedY = 0;
             circleWheelHandler.gestureLocked = false;
+            circleWheelHandler.lockedDirX = 0;
+            circleWheelHandler.lockedDirY = 0;
         }
     }
 
@@ -385,6 +387,8 @@ Item {
         property real accumulatedX: 0
         property real accumulatedY: 0
         property bool gestureLocked: false
+        property real lockedDirX: 0
+        property real lockedDirY: 0
 
         onWheel: function(event) {
             // Ignore kinetic momentum
@@ -393,34 +397,39 @@ Item {
                 return;
             }
 
-            // Fingers lifted from touchpad: stroke ended, clear lock immediately
-            if (event.phase === Qt.ScrollEnd) {
-                circleWheelHandler.accumulatedX = 0;
-                circleWheelHandler.accumulatedY = 0;
-                circleWheelHandler.gestureLocked = false;
-                wheelResetTimer.stop();
-                event.accepted = true;
-                return;
-            }
+            const dx = event.pixelDelta.x !== 0 ? event.pixelDelta.x : (event.angleDelta.x / 5);
+            const dy = event.pixelDelta.y !== 0 ? event.pixelDelta.y : (event.angleDelta.y / 5);
 
-            // If a face change already occurred in this swipe stroke, absorb remaining stroke events
+            // If locked out after changing a face in this swipe stroke:
             if (circleWheelHandler.gestureLocked) {
-                wheelResetTimer.restart();
-                event.accepted = true;
-                return;
+                // If user reversed direction, allow immediate opposite swipe!
+                const reversedX = (circleWheelHandler.lockedDirX > 0 && dx < -2) || (circleWheelHandler.lockedDirX < 0 && dx > 2);
+                const reversedY = (circleWheelHandler.lockedDirY > 0 && dy < -2) || (circleWheelHandler.lockedDirY < 0 && dy > 2);
+                if (reversedX || reversedY) {
+                    circleWheelHandler.gestureLocked = false;
+                    circleWheelHandler.accumulatedX = 0;
+                    circleWheelHandler.accumulatedY = 0;
+                    circleWheelHandler.lockedDirX = 0;
+                    circleWheelHandler.lockedDirY = 0;
+                    wheelResetTimer.stop();
+                } else {
+                    // Continuing in same direction during the same stroke: absorb and keep timer alive until stroke ends
+                    wheelResetTimer.restart();
+                    event.accepted = true;
+                    return;
+                }
             }
 
             wheelResetTimer.restart();
 
-            const dx = event.pixelDelta.x !== 0 ? event.pixelDelta.x : (event.angleDelta.x / 5);
-            const dy = event.pixelDelta.y !== 0 ? event.pixelDelta.y : (event.angleDelta.y / 5);
-
             circleWheelHandler.accumulatedX += dx;
             circleWheelHandler.accumulatedY += dy;
 
-            // Horizontal swipe: change EXACTLY ONE face per stroke, then lock out until the stroke finishes
+            // Horizontal swipe: change EXACTLY ONE face per stroke in any direction
             if (Math.abs(circleWheelHandler.accumulatedX) > 16 && Math.abs(circleWheelHandler.accumulatedX) > Math.abs(circleWheelHandler.accumulatedY) * 1.1) {
                 circleWheelHandler.gestureLocked = true;
+                circleWheelHandler.lockedDirX = circleWheelHandler.accumulatedX;
+                circleWheelHandler.lockedDirY = 0;
                 if (circleWheelHandler.accumulatedX < 0) {
                     root.nextFace();
                 } else {
@@ -432,25 +441,18 @@ Item {
                 return;
             }
 
-            // Two-finger vertical pull down on touchpad: expand player (once per stroke)
-            if (circleWheelHandler.accumulatedY > 28 && Math.abs(circleWheelHandler.accumulatedY) > Math.abs(circleWheelHandler.accumulatedX) * 1.2) {
+            // Vertical swipe / scroll wheel: change EXACTLY ONE face per stroke in any direction
+            if (Math.abs(circleWheelHandler.accumulatedY) > 16 && Math.abs(circleWheelHandler.accumulatedY) > Math.abs(circleWheelHandler.accumulatedX) * 1.1) {
                 circleWheelHandler.gestureLocked = true;
-                circleWheelHandler.accumulatedX = 0;
-                circleWheelHandler.accumulatedY = 0;
-                root.expandRequested();
-                event.accepted = true;
-                return;
-            }
-
-            // Discrete mouse wheel click fallback
-            const discreteDelta = event.angleDelta.y !== 0 ? event.angleDelta.y : event.angleDelta.x;
-            if (Math.abs(discreteDelta) >= 60) {
-                circleWheelHandler.gestureLocked = true;
-                if (discreteDelta < 0) {
+                circleWheelHandler.lockedDirX = 0;
+                circleWheelHandler.lockedDirY = circleWheelHandler.accumulatedY;
+                if (circleWheelHandler.accumulatedY < 0) {
                     root.nextFace();
-                } else if (discreteDelta > 0) {
+                } else {
                     root.prevFace();
                 }
+                circleWheelHandler.accumulatedX = 0;
+                circleWheelHandler.accumulatedY = 0;
                 event.accepted = true;
                 return;
             }
