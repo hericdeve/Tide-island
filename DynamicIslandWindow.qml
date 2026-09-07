@@ -162,7 +162,14 @@ PanelWindow {
     }
 
     onRequestedWindowHeightChanged: root.reconcileWindowHeight()
-    Component.onCompleted: root.retainedWindowHeight = root.requestedWindowHeight
+    Component.onCompleted: {
+        root.retainedWindowHeight = root.requestedWindowHeight;
+        if (userConfig.notchMode === "circle") {
+            islandContainer.islandState = "normal";
+            islandContainer.restingState = "normal";
+            mainCapsule.displayedWidth = userConfig.notchCircleClosedSize;
+        }
+    }
 
     exclusiveZone: Math.ceil(root.baseExclusiveZone * root.exclusiveZoneProgress)
     WlrLayershell.layer: {
@@ -1047,6 +1054,27 @@ PanelWindow {
             }
         }
 
+        Connections {
+            target: userConfig
+
+            function onNotchModeChanged() {
+                if (userConfig.notchMode === "circle") {
+                    islandContainer.restingState = "normal";
+                    if (islandContainer.islandState !== "expanded"
+                            && islandContainer.islandState !== "bluetooth_expanded"
+                            && islandContainer.islandState !== "control_center"
+                            && islandContainer.islandState !== "notification_center"
+                            && islandContainer.islandState !== "wallpaper_picker"
+                            && islandContainer.islandState !== "application_launcher"
+                            && islandContainer.islandState !== "file_shelf"
+                            && islandContainer.islandState !== "notification") {
+                        islandContainer.islandState = "normal";
+                        mainCapsule.displayedWidth = userConfig.notchCircleClosedSize;
+                    }
+                }
+            }
+        }
+
         IslandMprisController {
             id: mediaController
 
@@ -1248,6 +1276,7 @@ PanelWindow {
         }
 
         function normalizeRestingState(nextState) {
+            if (userConfig.notchMode === "circle") return "normal";
             if (nextState === "lyrics") return "lyrics";
             if (nextState === "custom" && hasCustomLeftItems) return "custom";
             return "normal";
@@ -1933,6 +1962,31 @@ PanelWindow {
             property real displayedWidth: baseTargetWidth
             readonly property real baseTargetWidth: {
                 if (root.overviewVisible) return root.overviewCapsuleWidth;
+
+                if (userConfig.notchMode === "circle") {
+                    switch (islandContainer.islandState) {
+                    case "control_center":
+                        return 420;
+                    case "notification_center":
+                        return 410;
+                    case "wallpaper_picker":
+                    case "application_launcher":
+                        return 1100;
+                    case "file_shelf":
+                    case "expanded":
+                    case "bluetooth_expanded":
+                        return userConfig.notchOpenWidth;
+                    case "notification":
+                        if (!notificationLoader.item) return 272;
+                        return Math.max(
+                            notificationLoader.item.minimumWidth,
+                            Math.min(root.width - 48, notificationLoader.item.maximumWidth, notificationLoader.item.preferredWidth)
+                        );
+                    default:
+                        return userConfig.notchCircleClosedSize;
+                    }
+                }
+
                 if (sideTransientRestoreTimer.running) {
                     if (islandContainer.restingState === "lyrics"
                             && ((islandContainer.islandState === "split" && islandContainer.splitOriginSide === "right")
@@ -1974,8 +2028,6 @@ PanelWindow {
                         Math.min(root.width - 48, notificationLoader.item.maximumWidth, notificationLoader.item.preferredWidth)
                     );
                 default:
-                    if (userConfig.notchMode === "circle")
-                        return userConfig.notchCircleClosedSize;
                     return islandContainer.currentTrack !== ""
                         ? Math.round(userConfig.notchClosedWidth + 2 * Math.max(0, userConfig.notchClosedHeight - 12) + 20)
                         : userConfig.notchClosedWidth;
@@ -2509,7 +2561,14 @@ PanelWindow {
                 anchors.fill: parent
                 active: !root.overviewVisible
                     && userConfig.notchMode === "circle"
-                    && islandContainer.islandState === "normal"
+                    && islandContainer.islandState !== "expanded"
+                    && islandContainer.islandState !== "bluetooth_expanded"
+                    && islandContainer.islandState !== "control_center"
+                    && islandContainer.islandState !== "notification_center"
+                    && islandContainer.islandState !== "wallpaper_picker"
+                    && islandContainer.islandState !== "application_launcher"
+                    && islandContainer.islandState !== "file_shelf"
+                    && islandContainer.islandState !== "notification"
                 asynchronous: false
                 visible: active
 
