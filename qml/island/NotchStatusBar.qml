@@ -8,6 +8,7 @@ Item {
     property var pages: []
     property bool isEditMode: false
     property bool cameraMirrorActive: false
+    property bool fileShelfActive: false
     property int batteryCapacity: -1
     property bool isCharging: false
     property string iconFontFamily: "Sans Serif"
@@ -54,7 +55,7 @@ Item {
                     Rectangle {
                         id: pageDot
                         readonly property int dotIndex: index
-                        readonly property bool isActive: dotIndex === root.currentPage
+                        readonly property bool isActive: !root.fileShelfActive && dotIndex === root.currentPage
                         width: isActive ? 14 : 4
                         height: 4
                         radius: 2
@@ -207,9 +208,9 @@ Item {
             width: 24
             height: 24
             radius: 12
-            color: shelfMouse.pressed ? "#38ffffff" : (shelfMouse.containsMouse ? "#1fffffff" : "transparent")
+            color: root.fileShelfActive ? "#38ffffff" : (shelfMouse.pressed ? "#38ffffff" : (shelfMouse.containsMouse ? "#1fffffff" : "transparent"))
             border.width: 1
-            border.color: shelfMouse.containsMouse ? "#2effffff" : "transparent"
+            border.color: root.fileShelfActive ? "#4dffffff" : (shelfMouse.containsMouse ? "#2effffff" : "transparent")
 
             Behavior on color { ColorAnimation { duration: 120 } }
             Behavior on border.color { ColorAnimation { duration: 120 } }
@@ -217,7 +218,7 @@ Item {
             Text {
                 anchors.centerIn: parent
                 text: "󰉋"
-                color: shelfMouse.containsMouse ? "#ffffff" : "#8e8e93"
+                color: root.fileShelfActive ? "#ffffff" : (shelfMouse.containsMouse ? "#ffffff" : "#8e8e93")
                 font.family: root.iconFontFamily
                 font.pixelSize: 13
             }
@@ -296,7 +297,7 @@ Item {
             }
         }
 
-        // Closed Notch Style Toggle (Pill vs. Circle)
+        // Closed Notch Style Toggle (Notch vs. Pill vs. Circle)
         Rectangle {
             id: notchModeToggleBtn
             width: 24
@@ -306,23 +307,77 @@ Item {
             border.width: 1
             border.color: modeToggleMouse.containsMouse ? "#2effffff" : "transparent"
 
+            readonly property string activeMode: (userConfig && userConfig.notchMode) ? userConfig.notchMode : "notch"
+
             Behavior on color { ColorAnimation { duration: 120 } }
             Behavior on border.color { ColorAnimation { duration: 120 } }
 
+            // Top screen bezel line (visible in Notch mode, faint in Pill mode, hidden in Circle mode)
             Rectangle {
-                anchors.centerIn: parent
-                readonly property bool isCircle: userConfig && userConfig.notchMode === "circle"
-                width: isCircle ? 10 : 14
-                height: isCircle ? 10 : 7
-                radius: isCircle ? 5 : 3.5
+                id: bezelLine
+                anchors.horizontalCenter: parent.horizontalCenter
+                y: 3.5
+                width: 15
+                height: 1.5
+                radius: 0.75
+                color: modeToggleMouse.containsMouse ? "#ffffff" : "#8e8e93"
+                opacity: notchModeToggleBtn.activeMode === "notch" ? 1.0 : (notchModeToggleBtn.activeMode === "pill" ? 0.35 : 0.0)
+
+                Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+                Behavior on color { ColorAnimation { duration: 120 } }
+            }
+
+            // Morphing shape representing Notch (attached to bezel), Pill (floating capsule), or Circle (compact dial)
+            Rectangle {
+                id: modeShape
+                anchors.horizontalCenter: parent.horizontalCenter
+                y: notchModeToggleBtn.activeMode === "notch" ? 4.5 : (notchModeToggleBtn.activeMode === "pill" ? 9 : 7.25)
+                width: notchModeToggleBtn.activeMode === "notch" ? 9 : (notchModeToggleBtn.activeMode === "pill" ? 14 : 9.5)
+                height: notchModeToggleBtn.activeMode === "notch" ? 6.5 : (notchModeToggleBtn.activeMode === "pill" ? 6 : 9.5)
+                radius: notchModeToggleBtn.activeMode === "notch" ? 2 : (notchModeToggleBtn.activeMode === "pill" ? 3 : 4.75)
                 color: "transparent"
                 border.width: 1.5
                 border.color: modeToggleMouse.containsMouse ? "#ffffff" : "#8e8e93"
 
+                Behavior on y { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
                 Behavior on width { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
                 Behavior on height { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
                 Behavior on radius { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
                 Behavior on border.color { ColorAnimation { duration: 120 } }
+            }
+
+            // Tooltip badge showing active closed notch style name on hover
+            Rectangle {
+                id: modeTooltipBadge
+                visible: opacity > 0.001
+                opacity: modeToggleMouse.containsMouse ? 1.0 : 0.0
+                anchors.top: parent.bottom
+                anchors.topMargin: 5
+                anchors.horizontalCenter: parent.horizontalCenter
+                height: 18
+                width: modeTooltipText.implicitWidth + 12
+                radius: 9
+                color: "#f01c1c1e"
+                border.width: 1
+                border.color: "#33ffffff"
+                z: 100
+
+                Behavior on opacity { NumberAnimation { duration: 120 } }
+
+                Text {
+                    id: modeTooltipText
+                    anchors.centerIn: parent
+                    text: {
+                        if (notchModeToggleBtn.activeMode === "notch") return "Notch";
+                        if (notchModeToggleBtn.activeMode === "pill") return "Pill";
+                        if (notchModeToggleBtn.activeMode === "circle") return "Circle";
+                        return "Notch";
+                    }
+                    color: "#ffffff"
+                    font.family: root.textFontFamily
+                    font.pixelSize: 10
+                    font.weight: Font.Medium
+                }
             }
 
             MouseArea {
@@ -330,13 +385,18 @@ Item {
                 anchors.fill: parent
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                    if (userConfig) {
-                        if (userConfig.notchMode === "circle") {
-                            userConfig.setNotchMode("notch");
-                        } else {
-                            userConfig.setNotchMode("circle");
-                        }
+                acceptedButtons: Qt.LeftButton | Qt.RightButton
+                onClicked: (mouse) => {
+                    if (!userConfig) return;
+                    const cur = userConfig.notchMode;
+                    if (mouse.button === Qt.RightButton) {
+                        if (cur === "notch") userConfig.setNotchMode("circle");
+                        else if (cur === "circle") userConfig.setNotchMode("pill");
+                        else userConfig.setNotchMode("notch");
+                    } else {
+                        if (cur === "notch") userConfig.setNotchMode("pill");
+                        else if (cur === "pill") userConfig.setNotchMode("circle");
+                        else userConfig.setNotchMode("notch");
                     }
                 }
             }

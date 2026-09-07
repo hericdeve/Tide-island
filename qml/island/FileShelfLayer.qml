@@ -8,6 +8,7 @@ FocusScope {
     id: root
 
     signal closeRequested
+    signal shelfRequested
     signal pageSelected(int pageIndex)
     signal addPageRequested()
     signal setSlotsRequested(int pageIndex, int newSlotCount)
@@ -323,6 +324,7 @@ FocusScope {
         anchors.rightMargin: 16
         pages: (userConfig && userConfig.widgetLayouts && userConfig.widgetLayouts.expanded) ? userConfig.widgetLayouts.expanded.pages : []
         currentPage: root.currentPage
+        fileShelfActive: true
         isEditMode: root.isEditMode
         cameraMirrorActive: root.cameraMirrorActive
         batteryCapacity: root.batteryCapacity
@@ -341,7 +343,7 @@ FocusScope {
                 userConfig.setPageSlots("expanded", pIdx, sCount);
             root.setSlotsRequested(pIdx, sCount);
         }
-        onShelfRequested: root.closeRequested()
+        onShelfRequested: root.shelfRequested()
         onCameraToggleRequested: root.cameraToggleRequested()
         onEditModeToggleRequested: root.editModeToggleRequested()
         onSettingsRequested: SystemServices.openConfigApp()

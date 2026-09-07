@@ -964,6 +964,7 @@ PanelWindow {
         property real timerCompletionPulse: 0
         property real timerCompletionFlash: 0
         property bool fileShelfOpenedManually: false
+        property int preFileShelfPage: 0
         readonly property int defaultAutoHideInterval: 1250
         readonly property int notificationAutoHideInterval: 4200
         readonly property int bluetoothExpandedAutoHideInterval: 2500
@@ -1094,6 +1095,10 @@ PanelWindow {
                             && islandContainer.islandState !== "notification") {
                         islandContainer.islandState = "normal";
                         mainCapsule.displayedWidth = userConfig.notchCircleClosedSize;
+                    }
+                } else {
+                    if (islandContainer.islandState === "normal") {
+                        mainCapsule.displayedWidth = mainCapsule.baseTargetWidth;
                     }
                 }
             }
@@ -1853,7 +1858,7 @@ PanelWindow {
                     expandedPlayerLoader.item.showPage(0);
             } else if (sizeType === "minimum") {
                 if (userConfig.notchMode === "circle") {
-                    userConfig.setNotchMode("notch");
+                    userConfig.setNotchMode(preStagingNotchMode === "pill" ? "pill" : "notch");
                 }
                 islandState = "normal";
                 mainCapsule.displayedWidth = mainCapsule.baseTargetWidth;
@@ -1936,7 +1941,7 @@ PanelWindow {
             } else if (sizeType === "minimum") {
                 // Show closed/pill notch
                 if (userConfig.notchMode === "circle") {
-                    userConfig.setNotchMode("notch");
+                    userConfig.setNotchMode(preDragNotchMode === "pill" ? "pill" : "notch");
                 }
                 islandState = "normal";
                 mainCapsule.displayedWidth = mainCapsule.baseTargetWidth;
@@ -2079,11 +2084,17 @@ PanelWindow {
         function showFileShelf(manuallyOpened) {
             const manual = manuallyOpened === true;
             if (islandState === "file_shelf") {
-                if (manual)
-                    fileShelfOpenedManually = true;
+                if (manual) {
+                    showExpandedPlayer();
+                    if (expandedPlayerLoader.item && expandedPlayerLoader.item.showPage) {
+                        expandedPlayerLoader.item.showPage(preFileShelfPage);
+                    }
+                }
                 return;
             }
 
+            preFileShelfPage = (expandedPlayerLoader.item && expandedPlayerLoader.item.currentPage !== undefined)
+                ? expandedPlayerLoader.item.currentPage : rememberedPlayerPage;
             cancelSideSwipeSettle();
             abortSideTransientMode();
             clearTransientCapsule();
@@ -3270,6 +3281,12 @@ PanelWindow {
                         isEditMode: expandedPlayerLoader.item ? expandedPlayerLoader.item.isEditMode : false
                         currentPage: expandedPlayerLoader.item ? expandedPlayerLoader.item.currentPage : 0
                         onCloseRequested: islandContainer.smartRestoreState()
+                        onShelfRequested: {
+                            islandContainer.showExpandedPlayer();
+                            if (expandedPlayerLoader.item && expandedPlayerLoader.item.showPage) {
+                                expandedPlayerLoader.item.showPage(islandContainer.preFileShelfPage);
+                            }
+                        }
                         onPageSelected: (idx) => {
                             if (expandedPlayerLoader.item) {
                                 expandedPlayerLoader.item.showPage(idx);
