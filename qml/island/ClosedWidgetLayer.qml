@@ -29,6 +29,20 @@ Item {
     property alias currentPageIndex: root.currentPage
     property real pageProgress: 0
     property bool isDropTargetActive: false
+    property bool dotsVisible: true
+
+    Timer {
+        id: dotsFadeTimer
+        interval: 2500
+        repeat: false
+        running: true
+        onTriggered: root.dotsVisible = false
+    }
+
+    onPageProgressChanged: {
+        root.dotsVisible = true;
+        dotsFadeTimer.restart();
+    }
 
     // Hold-to-add-page progress (0.0 to 1.0)
     property real holdProgress: 0.0
@@ -65,6 +79,8 @@ Item {
     }
 
     onCurrentPageChanged: {
+        root.dotsVisible = true;
+        dotsFadeTimer.restart();
         if (!settleAnimation.running) {
             pageProgress = currentPage;
         }
@@ -592,14 +608,20 @@ Item {
         }
     }
 
-    // 5. Page indicator dots (visible when > 1 page)
+    // 5. Page indicator dots (visible when > 1 page, fades out after 2.5s)
     Row {
+        id: pageDotsRow
         visible: root.pageCount > 1
+        opacity: root.dotsVisible ? 1.0 : 0.0
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 2.5
         anchors.horizontalCenter: parent.horizontalCenter
         spacing: 4
         z: 10
+
+        Behavior on opacity {
+            NumberAnimation { duration: 250; easing.type: Easing.InOutQuad }
+        }
 
         Repeater {
             model: root.pageCount

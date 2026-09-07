@@ -29,6 +29,20 @@ Item {
 
     property int currentPageIndex: 0
     property bool isDropTargetActive: false
+    property bool dotsVisible: true
+
+    Timer {
+        id: dotsFadeTimer
+        interval: 2500
+        repeat: false
+        running: true
+        onTriggered: root.dotsVisible = false
+    }
+
+    onCurrentPageIndexChanged: {
+        root.dotsVisible = true;
+        dotsFadeTimer.restart();
+    }
 
     // Hold-to-add-page progress (0.0 to 1.0)
     property real holdProgress: 0.0
@@ -132,6 +146,9 @@ Item {
             const delta = Math.abs(dx) >= Math.abs(dy) ? dx : dy;
 
             if (Math.abs(delta) < 0.5) return;
+
+            root.dotsVisible = true;
+            dotsFadeTimer.restart();
 
             wheelResetTimer.restart();
             accumulated += delta;
@@ -278,6 +295,8 @@ Item {
             if (mouse.buttons & Qt.LeftButton) {
                 if (Math.abs(mouse.x - startX) > 8 || Math.abs(mouse.y - startY) > 8) {
                     moved = true;
+                    root.dotsVisible = true;
+                    dotsFadeTimer.restart();
                     holdProgressAnim.stop();
                     root.holdProgress = 0.0;
                 }
@@ -482,28 +501,42 @@ Item {
         }
     }
 
-    // Page indicator dots (only when > 1 page)
+    // Page indicator dots (only when > 1 page, fades out after 2.5s)
     Row {
+        id: pageDotsRow
         visible: root.pageCount > 1
+        opacity: root.dotsVisible ? 1.0 : 0.0
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 5
         anchors.horizontalCenter: parent.horizontalCenter
         spacing: 4
 
+        Behavior on opacity {
+            NumberAnimation { duration: 250; easing.type: Easing.InOutQuad }
+        }
+
         Repeater {
             model: root.pageCount
 
             Rectangle {
-                width: index === root.currentPageIndex ? 10 : 3
+                readonly property int dotIndex: index
+                width: dotIndex === root.currentPageIndex ? 10 : 3
                 height: 3
                 radius: 1.5
-                color: index === root.currentPageIndex ? "white" : "#48484a"
+                color: dotIndex === root.currentPageIndex ? "white" : "#48484a"
 
                 Behavior on width {
                     NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
                 }
                 Behavior on color {
                     ColorAnimation { duration: 180 }
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    anchors.margins: -4
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.currentPageIndex = parent.dotIndex
                 }
             }
         }
