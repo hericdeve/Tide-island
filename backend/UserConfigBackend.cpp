@@ -314,6 +314,43 @@ QString UserConfigBackend::notchMode() const
     return m_notchMode;
 }
 
+void UserConfigBackend::setNotchMode(const QString &mode)
+{
+    QString nextMode = mode.trimmed().toLower();
+    if (nextMode != QLatin1String("notch") && nextMode != QLatin1String("pill") && nextMode != QLatin1String("circle")) {
+        nextMode = QStringLiteral("notch");
+    }
+    if (m_notchMode == nextMode)
+        return;
+
+    m_notchMode = nextMode;
+    emit notchModeChanged();
+    emit boringNotchEnabledChanged();
+
+    QJsonObject configObject;
+    QFile configFile(m_userConfigPath);
+    if (configFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        const QByteArray bytes = configFile.readAll();
+        configFile.close();
+        if (!bytes.trimmed().isEmpty()) {
+            const QByteArray stripped = stripJsonComments(bytes);
+            QJsonDocument doc = QJsonDocument::fromJson(stripped);
+            if (doc.isObject()) {
+                configObject = doc.object();
+            }
+        }
+    }
+
+    configObject[QStringLiteral("notchMode")] = m_notchMode;
+    configObject[QStringLiteral("boringNotchEnabled")] = (m_notchMode == QLatin1String("notch"));
+
+    QSaveFile saveFile(m_userConfigPath);
+    if (saveFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        saveFile.write(QJsonDocument(configObject).toJson(QJsonDocument::Indented));
+        saveFile.commit();
+    }
+}
+
 bool UserConfigBackend::boringNotchEnabled() const
 {
     return m_notchMode == QLatin1String("notch");

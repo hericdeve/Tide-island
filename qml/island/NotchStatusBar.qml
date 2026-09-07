@@ -13,6 +13,8 @@ Item {
     property string iconFontFamily: "Sans Serif"
     property string textFontFamily: "Sans Serif"
 
+    readonly property var userConfig: UserConfig
+
     readonly property var currentPageData: (root.pages && root.currentPage >= 0 && root.currentPage < root.pages.length) ? root.pages[root.currentPage] : null
     readonly property int currentSlotCount: Math.max(1, Math.min(6, (currentPageData && currentPageData.slots !== undefined) ? currentPageData.slots : 1))
 
@@ -291,6 +293,52 @@ Item {
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
                 onClicked: root.editModeToggleRequested()
+            }
+        }
+
+        // Closed Notch Style Toggle (Pill vs. Circle)
+        Rectangle {
+            id: notchModeToggleBtn
+            width: 24
+            height: 24
+            radius: 12
+            color: modeToggleMouse.pressed ? "#38ffffff" : (modeToggleMouse.containsMouse ? "#1fffffff" : "transparent")
+            border.width: 1
+            border.color: modeToggleMouse.containsMouse ? "#2effffff" : "transparent"
+
+            Behavior on color { ColorAnimation { duration: 120 } }
+            Behavior on border.color { ColorAnimation { duration: 120 } }
+
+            Rectangle {
+                anchors.centerIn: parent
+                readonly property bool isCircle: userConfig && userConfig.notchMode === "circle"
+                width: isCircle ? 10 : 14
+                height: isCircle ? 10 : 7
+                radius: isCircle ? 5 : 3.5
+                color: "transparent"
+                border.width: 1.5
+                border.color: modeToggleMouse.containsMouse ? "#ffffff" : "#8e8e93"
+
+                Behavior on width { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+                Behavior on height { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+                Behavior on radius { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+                Behavior on border.color { ColorAnimation { duration: 120 } }
+            }
+
+            MouseArea {
+                id: modeToggleMouse
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: {
+                    if (userConfig) {
+                        if (userConfig.notchMode === "circle") {
+                            userConfig.setNotchMode("notch");
+                        } else {
+                            userConfig.setNotchMode("circle");
+                        }
+                    }
+                }
             }
         }
 

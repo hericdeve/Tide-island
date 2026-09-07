@@ -51,7 +51,7 @@ class UserConfigBackend final : public QObject {
     Q_PROPERTY(bool islandAutoHideEnabled READ islandAutoHideEnabled NOTIFY islandAutoHideEnabledChanged FINAL)
     Q_PROPERTY(int islandAutoHideDelayMs READ islandAutoHideDelayMs NOTIFY islandAutoHideDelayMsChanged FINAL)
     Q_PROPERTY(bool islandShowWorkspaceOnAutoHide READ islandShowWorkspaceOnAutoHide NOTIFY islandShowWorkspaceOnAutoHideChanged FINAL)
-    Q_PROPERTY(QString notchMode READ notchMode NOTIFY notchModeChanged FINAL)
+    Q_PROPERTY(QString notchMode READ notchMode WRITE setNotchMode NOTIFY notchModeChanged FINAL)
     Q_PROPERTY(bool boringNotchEnabled READ boringNotchEnabled NOTIFY boringNotchEnabledChanged FINAL)
     Q_PROPERTY(bool hideNotchInFullscreen READ hideNotchInFullscreen NOTIFY hideNotchInFullscreenChanged FINAL)
     Q_PROPERTY(bool showBoringFace READ showBoringFace NOTIFY showBoringFaceChanged FINAL)
@@ -119,6 +119,7 @@ public:
     bool islandAutoHideEnabled() const;
     int islandAutoHideDelayMs() const;
     QString notchMode() const;
+    Q_INVOKABLE void setNotchMode(const QString &mode);
     bool boringNotchEnabled() const;
     bool hideNotchInFullscreen() const;
     bool showBoringFace() const;

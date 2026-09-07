@@ -1749,6 +1749,8 @@ PanelWindow {
         }
 
         function smartRestoreState() {
+            if (widgetStagingActive)
+                return;
             restoreRestingCapsule();
         }
 
@@ -1802,6 +1804,8 @@ PanelWindow {
         property string stagedWidgetId: ""
         property string stagedSizeType: "full"
         property int stagedSlotSpan: 1
+        property string preStagingNotchMode: "notch"
+        property string preStagingIslandState: "normal"
 
         // Staged widget context for live preview loader in floating staging tray
         readonly property var stagingWidgetContext: ({
@@ -1830,6 +1834,9 @@ PanelWindow {
         })
 
         function stageWidgetForPlacement(widgetId, sizeType, slotSpan) {
+            preStagingNotchMode = userConfig.notchMode;
+            preStagingIslandState = (islandState === "widget_library") ? "normal" : islandState;
+
             stagedWidgetId = widgetId;
             stagedSizeType = sizeType;
             stagedSlotSpan = slotSpan || 1;
@@ -1845,13 +1852,15 @@ PanelWindow {
                 if (expandedPlayerLoader.item && expandedPlayerLoader.item.showPage)
                     expandedPlayerLoader.item.showPage(0);
             } else if (sizeType === "minimum") {
-                userConfig.notchMode = "pill";
+                if (userConfig.notchMode === "circle") {
+                    userConfig.setNotchMode("notch");
+                }
                 islandState = "normal";
                 mainCapsule.displayedWidth = mainCapsule.baseTargetWidth;
                 if (closedWidgetLoader.item)
                     closedWidgetLoader.item.currentPageIndex = 0;
             } else if (sizeType === "circle") {
-                userConfig.notchMode = "circle";
+                userConfig.setNotchMode("circle");
                 islandState = "normal";
                 mainCapsule.displayedWidth = mainCapsule.baseTargetWidth;
                 if (circleClosedLoader.item)
@@ -1867,6 +1876,12 @@ PanelWindow {
             isDraggingWidgetFromLibrary = false;
             draggedWidgetData = null;
             hoveredSlotIndex = -1;
+            if (userConfig && userConfig.notchMode !== preStagingNotchMode) {
+                userConfig.setNotchMode(preStagingNotchMode);
+            }
+            islandState = preStagingIslandState;
+            mainCapsule.displayedWidth = mainCapsule.baseTargetWidth;
+            restoreRestingCapsule(true);
         }
 
         function commitStagedWidgetToSlot(pageIndex, slotIndex) {
@@ -1875,12 +1890,18 @@ PanelWindow {
                 userConfig.setSlotWidget("expanded", pageIndex, slotIndex, stagedWidgetId, stagedSlotSpan);
             } else if (stagedSizeType === "minimum") {
                 userConfig.setSlotWidget("minimum", pageIndex, slotIndex, stagedWidgetId, 1);
-                restoreRestingCapsule(true);
             } else if (stagedSizeType === "circle") {
                 userConfig.setSlotWidget("circle", pageIndex, 0, stagedWidgetId, 1);
-                restoreRestingCapsule(true);
             }
-            cancelWidgetStaging();
+            widgetStagingActive = false;
+            stagedWidgetId = "";
+            stagedSizeType = "full";
+            stagedSlotSpan = 1;
+            isDraggingWidgetFromLibrary = false;
+            draggedWidgetData = null;
+            hoveredSlotIndex = -1;
+            mainCapsule.displayedWidth = mainCapsule.baseTargetWidth;
+            restoreRestingCapsule(true);
         }
 
         // Drag-and-drop from Widget Library into notch
@@ -1914,12 +1935,14 @@ PanelWindow {
                 }
             } else if (sizeType === "minimum") {
                 // Show closed/pill notch
-                userConfig.notchMode = "pill";
+                if (userConfig.notchMode === "circle") {
+                    userConfig.setNotchMode("notch");
+                }
                 islandState = "normal";
                 mainCapsule.displayedWidth = mainCapsule.baseTargetWidth;
             } else if (sizeType === "circle") {
                 // Show circle notch
-                userConfig.notchMode = "circle";
+                userConfig.setNotchMode("circle");
                 islandState = "normal";
                 mainCapsule.displayedWidth = mainCapsule.baseTargetWidth;
             }
@@ -1993,7 +2016,9 @@ PanelWindow {
                     restoreRestingCapsule(true);
                 }
             } else {
-                userConfig.notchMode = preDragNotchMode;
+                if (userConfig && userConfig.notchMode !== preDragNotchMode) {
+                    userConfig.setNotchMode(preDragNotchMode);
+                }
                 islandState = preDragIslandState;
                 mainCapsule.displayedWidth = mainCapsule.baseTargetWidth;
             }
