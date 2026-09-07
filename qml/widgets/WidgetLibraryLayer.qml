@@ -59,14 +59,113 @@ Item {
 
     readonly property real contentHeight: mainCol.implicitHeight + 28
 
+    // ── Widget Switching Transition Animation ─────────────────────────────
+    property real animOffset: 0
+    property real animOpacity: 1.0
+    property int transitionDirection: 1
+    property int pendingIndex: 0
+
+    NumberAnimation {
+        id: dragSettleAnim
+        target: root
+        property: "animOffset"
+        to: 0
+        duration: 140
+        easing.type: Easing.OutQuad
+    }
+
+    ParallelAnimation {
+        id: enterAnim
+        NumberAnimation {
+            target: root
+            property: "animOffset"
+            to: 0
+            duration: 180
+            easing.type: Easing.OutCubic
+        }
+        NumberAnimation {
+            target: root
+            property: "animOpacity"
+            to: 1.0
+            duration: 160
+            easing.type: Easing.OutQuad
+        }
+    }
+
+    SequentialAnimation {
+        id: switchSequence
+
+        ParallelAnimation {
+            NumberAnimation {
+                target: root
+                property: "animOffset"
+                to: -root.transitionDirection * 24
+                duration: 90
+                easing.type: Easing.InQuad
+            }
+            NumberAnimation {
+                target: root
+                property: "animOpacity"
+                to: 0.0
+                duration: 90
+                easing.type: Easing.InQuad
+            }
+        }
+
+        ScriptAction {
+            script: {
+                root.currentIndex = root.pendingIndex;
+                root.animOffset = root.transitionDirection * 28;
+                root.animOpacity = 0.0;
+            }
+        }
+
+        ParallelAnimation {
+            NumberAnimation {
+                target: root
+                property: "animOffset"
+                to: 0
+                duration: 180
+                easing.type: Easing.OutCubic
+            }
+            NumberAnimation {
+                target: root
+                property: "animOpacity"
+                to: 1.0
+                duration: 160
+                easing.type: Easing.OutQuad
+            }
+        }
+    }
+
+    function triggerSwitch(targetIdx, direction) {
+        if (widgetCount <= 0 || targetIdx === currentIndex) return;
+        dragSettleAnim.stop();
+        transitionDirection = direction;
+        pendingIndex = targetIdx;
+
+        if (switchSequence.running) {
+            switchSequence.stop();
+            currentIndex = targetIdx;
+            animOffset = direction * 28;
+            animOpacity = 0.0;
+            enterAnim.restart();
+            return;
+        }
+
+        switchSequence.restart();
+    }
+
     function nextWidget() {
         if (widgetCount <= 0) return;
-        currentIndex = (currentIndex + 1) % widgetCount;
+        const nextIdx = (currentIndex + 1) % widgetCount;
+        triggerSwitch(nextIdx, 1);
     }
 
     function prevWidget() {
         if (widgetCount <= 0) return;
-        currentIndex = (currentIndex - 1 + widgetCount) % widgetCount;
+        const prevIdx = (currentIndex - 1 + widgetCount) % widgetCount;
+        triggerSwitch(prevIdx, -1);
     }
 
     // Shared mock/live context for preview loaders
@@ -167,16 +266,26 @@ Item {
                         model: root.widgetCount
 
                         Rectangle {
-                            width: index === root.currentIndex ? 14 : 4
+                            readonly property int dotIndex: index
+                            width: dotIndex === root.currentIndex ? 14 : 4
                             height: 4
                             radius: 2
-                            color: index === root.currentIndex ? "#b56cff" : "#333336"
+                            color: dotIndex === root.currentIndex ? "#b56cff" : (dotMouse.containsMouse ? "#55555c" : "#333336")
 
                             Behavior on width {
                                 NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
                             }
                             Behavior on color {
                                 ColorAnimation { duration: 180 }
+                            }
+
+                            MouseArea {
+                                id: dotMouse
+                                anchors.fill: parent
+                                anchors.margins: -4
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: root.triggerSwitch(parent.dotIndex, parent.dotIndex > root.currentIndex ? 1 : -1)
                             }
                         }
                     }
@@ -280,18 +389,26 @@ Item {
                     onPressed: (mouse) => {
                         startX = mouse.x;
                         moved = false;
+                        dragSettleAnim.stop();
                     }
                     onPositionChanged: (mouse) => {
-                        if (Math.abs(mouse.x - startX) > 10)
+                        const dx = mouse.x - startX;
+                        if (Math.abs(dx) > 6) {
                             moved = true;
+                            if (!switchSequence.running) {
+                                root.animOffset = Math.max(-40, Math.min(40, dx * 0.35));
+                            }
+                        }
                     }
                     onReleased: (mouse) => {
                         const dx = mouse.x - startX;
-                        if (moved && Math.abs(dx) > 26) {
+                        if (moved && Math.abs(dx) > 24) {
                             if (dx < 0)
                                 root.nextWidget();
                             else
                                 root.prevWidget();
+                        } else if (moved) {
+                            dragSettleAnim.restart();
                         }
                     }
                 }
@@ -329,29 +446,38 @@ Item {
                         }
                     }
 
-                    // Title and description
-                    Column {
+                    // Title and description with smooth transition animation
+                    Item {
                         anchors.verticalCenter: parent.verticalCenter
                         width: parent.width - 136
-                        spacing: 3
+                        height: parent.height
+                        clip: true
 
-                        Text {
-                            text: root.currentWidget ? root.currentWidget.name : ""
-                            font.family: root.textFontFamily
-                            font.pixelSize: 14
-                            font.weight: Font.Bold
-                            color: "white"
-                        }
-
-                        Text {
+                        Column {
+                            anchors.verticalCenter: parent.verticalCenter
                             width: parent.width
-                            text: root.currentWidget ? root.currentWidget.description : ""
-                            font.family: root.textFontFamily
-                            font.pixelSize: 11
-                            color: "#88888e"
-                            wrapMode: Text.WordWrap
-                            maximumLineCount: 2
-                            elide: Text.ElideRight
+                            spacing: 3
+                            x: root.animOffset
+                            opacity: root.animOpacity
+
+                            Text {
+                                text: root.currentWidget ? root.currentWidget.name : ""
+                                font.family: root.textFontFamily
+                                font.pixelSize: 14
+                                font.weight: Font.Bold
+                                color: "white"
+                            }
+
+                            Text {
+                                width: parent.width
+                                text: root.currentWidget ? root.currentWidget.description : ""
+                                font.family: root.textFontFamily
+                                font.pixelSize: 11
+                                color: "#88888e"
+                                wrapMode: Text.WordWrap
+                                maximumLineCount: 2
+                                elide: Text.ElideRight
+                            }
                         }
                     }
 
@@ -441,6 +567,8 @@ Item {
                     id: previewsColumn
                     width: parent.width
                     spacing: 8
+                    x: Math.round(root.animOffset * 1.25)
+                    opacity: root.animOpacity
 
                     Repeater {
                         model: {
