@@ -30,6 +30,7 @@ Item {
     property real pageProgress: 0
     property bool isDropTargetActive: false
     property bool dotsVisible: true
+    property bool isEditMode: false
 
     Timer {
         id: dotsFadeTimer
@@ -44,6 +45,18 @@ Item {
         dotsFadeTimer.restart();
     }
 
+    onIsEditModeChanged: {
+        root.dotsVisible = true;
+        if (isEditMode) {
+            dotsFadeTimer.stop();
+        } else {
+            dotsFadeTimer.restart();
+            if (currentPage >= realPageCount) {
+                settlePage(Math.max(0, realPageCount - 1));
+            }
+        }
+    }
+
     // Hold-to-add-page progress (0.0 to 1.0)
     property real holdProgress: 0.0
 
@@ -54,7 +67,9 @@ Item {
     readonly property var minimumLayouts: (userConfig && userConfig.widgetLayouts && userConfig.widgetLayouts.minimum)
         ? userConfig.widgetLayouts.minimum : null
     readonly property var minimumPages: minimumLayouts ? (minimumLayouts.pages || []) : []
-    readonly property int pageCount: Math.max(1, minimumPages.length)
+    readonly property int realPageCount: Math.max(1, minimumPages.length)
+    readonly property int totalPageCount: realPageCount + (isEditMode ? 1 : 0)
+    readonly property int pageCount: totalPageCount
     readonly property real clampedPageProgress: Math.max(0, Math.min(pageCount - 1, pageProgress))
     readonly property real pageSlideDistance: Math.max(1, width + 16)
 
@@ -103,7 +118,7 @@ Item {
         textFontFamily: root.textFontFamily,
         heroFontFamily: root.heroFontFamily,
         uiScale: 1.0,
-        isEditMode: false
+        isEditMode: root.isEditMode
     })
 
     // Hold-to-add-page animations (matching circle mode with 250ms pause delay)
@@ -128,10 +143,9 @@ Item {
                 if (tapArea.pressed && !tapArea.moved) {
                     tapArea.isHoldTriggered = true;
                     root.holdProgress = 0.0;
-                    if (userConfig) {
-                        const nextTitle = "Page " + (root.pageCount + 1);
-                        userConfig.addPage("minimum", nextTitle, 1);
-                        root.settlePage(Math.max(0, root.pageCount - 1));
+                    if (!root.isEditMode) {
+                        root.isEditMode = true;
+                        root.settlePage(root.realPageCount);
                     }
                     popAnim.restart();
                 }
@@ -252,7 +266,7 @@ Item {
 
         onReleased: (mouse) => {
             if (mouse.button === Qt.RightButton) {
-                root.widgetLibraryRequested("minimum", root.currentPage, 0);
+                root.widgetLibraryRequested("minimum", Math.min(root.realPageCount - 1, root.currentPage), 0);
                 return;
             }
             holdProgressAnim.stop();
@@ -273,9 +287,52 @@ Item {
                         root.settlePage(root.currentPage - 1);
                 }
             } else {
-                root.expandRequested();
+                if (root.isEditMode) {
+                    root.isEditMode = false;
+                    if (root.currentPage >= root.realPageCount)
+                        root.settlePage(Math.max(0, root.realPageCount - 1));
+                } else {
+                    root.expandRequested();
+                }
             }
             moved = false;
+        }
+    }
+
+    // Done button in edit mode
+    Rectangle {
+        id: pillDoneBtn
+        visible: root.isEditMode
+        anchors.top: parent.top
+        anchors.topMargin: 2
+        anchors.right: parent.right
+        anchors.rightMargin: 8
+        width: 38
+        height: 14
+        radius: 7
+        color: pillDoneMouse.containsMouse ? "#50ffffff" : "#30ffffff"
+        border.width: 1
+        border.color: "#55ffffff"
+        z: 100
+
+        Text {
+            anchors.centerIn: parent
+            text: "Done"
+            font.family: root.textFontFamily
+            font.pixelSize: 8
+            font.weight: Font.Bold
+            color: "white"
+        }
+
+        MouseArea {
+            id: pillDoneMouse
+            anchors.fill: parent
+            cursorShape: Qt.PointingHandCursor
+            onClicked: {
+                root.isEditMode = false;
+                if (root.currentPage >= root.realPageCount)
+                    root.settlePage(Math.max(0, root.realPageCount - 1));
+            }
         }
     }
 
@@ -448,7 +505,8 @@ Item {
             Item {
                 id: pageDelegateItem
                 readonly property int pIdx: index
-                readonly property var pageData: root.minimumPages[pIdx] || null
+                readonly property bool isOfferPage: root.isEditMode && pIdx === root.realPageCount
+                readonly property var pageData: !isOfferPage ? (root.minimumPages[pIdx] || null) : null
                 readonly property int slotCount: Math.max(1, Math.min(6, (pageData && pageData.slots !== undefined) ? pageData.slots : 1))
                 readonly property var items: (pageData && pageData.items) ? pageData.items : []
                 readonly property bool isCustomPage: pIdx > 0
@@ -472,7 +530,7 @@ Item {
                     radius: 9
                     color: delCustomPageMouse.containsMouse ? "#ff453a" : "#2a2a2e"
                     z: 50
-                    visible: pageDelegateItem.isCustomPage && pageDelegateItem.isPageEmpty
+                    visible: !pageDelegateItem.isOfferPage && pageDelegateItem.isCustomPage && pageDelegateItem.isPageEmpty
 
                     Text {
                         anchors.centerIn: parent
@@ -497,14 +555,15 @@ Item {
                     }
                 }
 
-                // Horizontal row of Minimum slots for this page
+                // Horizontal row of Minimum slots for this page (hidden on offer page)
                 Row {
                     anchors.centerIn: parent
                     anchors.verticalCenterOffset: root.pageCount > 1 ? -2 : 0
                     spacing: 8
+                    visible: !pageDelegateItem.isOfferPage
 
                     Repeater {
-                        model: pageDelegateItem.slotCount
+                        model: pageDelegateItem.isOfferPage ? 0 : pageDelegateItem.slotCount
 
                         Item {
                             readonly property int sIdx: index
@@ -517,6 +576,7 @@ Item {
                                 return null;
                             }
                             readonly property string widgetId: placedItem ? (placedItem.widgetId || "") : ""
+                            readonly property bool hasWidget: widgetId !== ""
 
                             width: closedSlotWidth
                             height: pageStrip.height
@@ -526,42 +586,167 @@ Item {
                                 return Math.max(50, (pageStrip.width - totalSpacing - 24) / Math.max(1, pageDelegateItem.slotCount));
                             }
 
-                            Loader {
+                            // 1. Populated widget container with iOS home screen editing wiggle effect
+                            Item {
+                                id: pillJiggleContainer
                                 anchors.fill: parent
-                                active: parent.widgetId !== ""
-                                source: active ? WidgetRegistry.getComponentUrl(parent.widgetId, "minimum") : ""
+                                visible: parent.hasWidget
 
-                                onLoaded: {
-                                    if (item) {
-                                        item.widgetContext = root.sharedWidgetContext;
-                                        item.slotSpan = 1;
-                                        item.isEditMode = false;
+                                readonly property real angleAmplitude: 0.7 * (parent.sIdx % 2 === 0 ? 1.0 : -1.0)
+                                readonly property int rotDuration: 150 + ((parent.sIdx * 37) % 25)
+                                readonly property int transDuration: 175 + ((parent.sIdx * 43) % 30)
+
+                                property real currentRotation: 0
+                                property real xOffset: 0
+                                property real yOffset: 0
+
+                                transformOrigin: Item.Center
+                                rotation: root.isEditMode ? currentRotation : 0
+
+                                transform: Translate {
+                                    x: root.isEditMode ? pillJiggleContainer.xOffset : 0
+                                    y: root.isEditMode ? pillJiggleContainer.yOffset : 0
+                                }
+
+                                Loader {
+                                    anchors.fill: parent
+                                    active: parent.parent.hasWidget
+                                    source: active ? WidgetRegistry.getComponentUrl(parent.parent.widgetId, "minimum") : ""
+
+                                    onLoaded: {
+                                        if (item) {
+                                            item.widgetContext = root.sharedWidgetContext;
+                                            item.slotSpan = 1;
+                                            item.isEditMode = root.isEditMode;
+                                        }
+                                    }
+                                    onStatusChanged: {
+                                        if (status === Loader.Ready && item) {
+                                            item.widgetContext = root.sharedWidgetContext;
+                                            item.slotSpan = 1;
+                                            item.isEditMode = root.isEditMode;
+                                        }
                                     }
                                 }
-                                onStatusChanged: {
-                                    if (status === Loader.Ready && item) {
-                                        item.widgetContext = root.sharedWidgetContext;
-                                        item.slotSpan = 1;
-                                        item.isEditMode = false;
+
+                                // Remove widget button in edit mode
+                                Rectangle {
+                                    anchors.top: parent.top
+                                    anchors.topMargin: 1
+                                    anchors.right: parent.right
+                                    anchors.rightMargin: 2
+                                    width: 13
+                                    height: 13
+                                    radius: 6.5
+                                    color: removePillWidgetMouse.containsMouse ? "#ff453a" : "#40000000"
+                                    border.width: 1
+                                    border.color: "#55ffffff"
+                                    visible: root.isEditMode
+                                    z: 99
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: "󰅖"
+                                        font.family: root.iconFontFamily
+                                        font.pixelSize: 8
+                                        color: "white"
+                                    }
+
+                                    MouseArea {
+                                        id: removePillWidgetMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            if (userConfig) {
+                                                userConfig.removeSlotWidget("minimum", pageDelegateItem.pIdx, parent.parent.sIdx);
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // Rotation wiggle animation
+                                SequentialAnimation {
+                                    running: root.isEditMode && parent.hasWidget
+                                    loops: Animation.Infinite
+
+                                    NumberAnimation {
+                                        target: pillJiggleContainer
+                                        property: "currentRotation"
+                                        from: -pillJiggleContainer.angleAmplitude
+                                        to: pillJiggleContainer.angleAmplitude
+                                        duration: pillJiggleContainer.rotDuration
+                                        easing.type: Easing.InOutSine
+                                    }
+                                    NumberAnimation {
+                                        target: pillJiggleContainer
+                                        property: "currentRotation"
+                                        from: pillJiggleContainer.angleAmplitude
+                                        to: -pillJiggleContainer.angleAmplitude
+                                        duration: pillJiggleContainer.rotDuration
+                                        easing.type: Easing.InOutSine
+                                    }
+                                }
+
+                                // Translation wiggle animation
+                                SequentialAnimation {
+                                    running: root.isEditMode && parent.hasWidget
+                                    loops: Animation.Infinite
+
+                                    ParallelAnimation {
+                                        NumberAnimation {
+                                            target: pillJiggleContainer
+                                            property: "xOffset"
+                                            from: -(parent.sIdx % 2 === 0 ? 0.35 : -0.35)
+                                            to: (parent.sIdx % 2 === 0 ? 0.35 : -0.35)
+                                            duration: pillJiggleContainer.transDuration
+                                            easing.type: Easing.InOutQuad
+                                        }
+                                        NumberAnimation {
+                                            target: pillJiggleContainer
+                                            property: "yOffset"
+                                            from: -0.45
+                                            to: 0.45
+                                            duration: Math.round(pillJiggleContainer.transDuration * 1.08)
+                                            easing.type: Easing.InOutQuad
+                                        }
+                                    }
+                                    ParallelAnimation {
+                                        NumberAnimation {
+                                            target: pillJiggleContainer
+                                            property: "xOffset"
+                                            from: (parent.sIdx % 2 === 0 ? 0.35 : -0.35)
+                                            to: -(parent.sIdx % 2 === 0 ? 0.35 : -0.35)
+                                            duration: pillJiggleContainer.transDuration
+                                            easing.type: Easing.InOutQuad
+                                        }
+                                        NumberAnimation {
+                                            target: pillJiggleContainer
+                                            property: "yOffset"
+                                            from: 0.45
+                                            to: -0.45
+                                            duration: Math.round(pillJiggleContainer.transDuration * 1.08)
+                                            easing.type: Easing.InOutQuad
+                                        }
                                     }
                                 }
                             }
 
-                            // Empty slot button in closed mode for custom pages
+                            // Empty slot button in closed mode (prominent button to add a new widget)
                             Rectangle {
                                 anchors.centerIn: parent
-                                width: Math.min(parent.width - 12, 64)
+                                width: Math.min(parent.width - 8, 72)
                                 height: 20
                                 radius: 10
-                                color: emptySlotMouse.containsMouse ? "#2effffff" : "#14ffffff"
+                                color: emptySlotMouse.containsMouse ? "#30ffffff" : (root.isEditMode ? "#22ffffff" : "#14ffffff")
                                 border.width: 1
-                                border.color: emptySlotMouse.containsMouse ? "#44ffffff" : "#22ffffff"
-                                visible: parent.widgetId === "" && pageDelegateItem.isCustomPage
+                                border.color: emptySlotMouse.containsMouse ? "#55ffffff" : (root.isEditMode ? "#3affffff" : "#22ffffff")
+                                visible: !parent.hasWidget && (pageDelegateItem.isCustomPage || root.isEditMode)
                                 z: 20
 
                                 Row {
                                     anchors.centerIn: parent
-                                    spacing: 3
+                                    spacing: 4
 
                                     Text {
                                         anchors.verticalCenter: parent.verticalCenter
@@ -573,11 +758,11 @@ Item {
 
                                     Text {
                                         anchors.verticalCenter: parent.verticalCenter
-                                        text: "Empty"
+                                        text: "Add"
                                         font.family: root.textFontFamily
                                         font.pixelSize: 9
-                                        font.weight: Font.Medium
-                                        color: "#8e8e93"
+                                        font.weight: Font.DemiBold
+                                        color: emptySlotMouse.containsMouse ? "#ffffff" : "#c4c4c8"
                                     }
                                 }
 
@@ -592,14 +777,65 @@ Item {
                                 }
                             }
 
-                            // Empty slot placeholder in closed mode for home page — subtle dash
+                            // Empty slot placeholder in closed mode for home page when NOT in edit mode — subtle dash
                             Rectangle {
                                 anchors.centerIn: parent
                                 width: Math.min(parent.width - 8, 32)
                                 height: 2
                                 radius: 1
                                 color: "#48484a"
-                                visible: parent.widgetId === "" && !pageDelegateItem.isCustomPage
+                                visible: !parent.hasWidget && !pageDelegateItem.isCustomPage && !root.isEditMode
+                            }
+                        }
+                    }
+                }
+
+                // Offer Page Card at the end (shown in edit mode offering to add that last page)
+                Rectangle {
+                    id: pillOfferCard
+                    anchors.centerIn: parent
+                    width: Math.min(parent.width - 24, 115)
+                    height: 22
+                    radius: 11
+                    color: addPillPageMouse.containsMouse ? "#38ffffff" : "#20ffffff"
+                    border.width: 1
+                    border.color: addPillPageMouse.containsMouse ? "#77ffffff" : "#44ffffff"
+                    visible: pageDelegateItem.isOfferPage
+                    z: 30
+
+                    Row {
+                        anchors.centerIn: parent
+                        spacing: 5
+
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "󰐕"
+                            font.family: root.iconFontFamily
+                            font.pixelSize: 11
+                            color: "#ffffff"
+                        }
+
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "Add Page"
+                            font.family: root.textFontFamily
+                            font.pixelSize: 10
+                            font.weight: Font.DemiBold
+                            color: "white"
+                        }
+                    }
+
+                    MouseArea {
+                        id: addPillPageMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            if (userConfig) {
+                                const newPageIndex = root.realPageCount;
+                                const nextTitle = "Page " + (newPageIndex + 1);
+                                userConfig.addPage("minimum", nextTitle, 1);
+                                root.settlePage(newPageIndex);
                             }
                         }
                     }
@@ -612,7 +848,7 @@ Item {
     Row {
         id: pageDotsRow
         visible: root.pageCount > 1
-        opacity: root.dotsVisible ? 1.0 : 0.0
+        opacity: (root.dotsVisible || root.isEditMode) ? 1.0 : 0.0
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 2.5
         anchors.horizontalCenter: parent.horizontalCenter
@@ -628,11 +864,14 @@ Item {
 
             Rectangle {
                 readonly property int dotIndex: index
+                readonly property bool isOfferDot: root.isEditMode && dotIndex === root.realPageCount
                 readonly property bool isActive: dotIndex === root.currentPage
                 width: isActive ? 12 : 4
                 height: 3.5
                 radius: 1.75
-                color: isActive ? "#ffffff" : "#48484a"
+                color: isActive ? "#ffffff" : (isOfferDot ? "#66ffffff" : "#48484a")
+                border.width: isOfferDot && !isActive ? 0.5 : 0
+                border.color: "#88ffffff"
 
                 Behavior on width {
                     NumberAnimation { duration: 180; easing.type: Easing.OutCubic }

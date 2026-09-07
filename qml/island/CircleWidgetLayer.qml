@@ -30,6 +30,7 @@ Item {
     property int currentPageIndex: 0
     property bool isDropTargetActive: false
     property bool dotsVisible: true
+    property bool isEditMode: false
 
     Timer {
         id: dotsFadeTimer
@@ -44,6 +45,18 @@ Item {
         dotsFadeTimer.restart();
     }
 
+    onIsEditModeChanged: {
+        root.dotsVisible = true;
+        if (isEditMode) {
+            dotsFadeTimer.stop();
+        } else {
+            dotsFadeTimer.restart();
+            if (currentPageIndex >= realPageCount) {
+                currentPageIndex = Math.max(0, realPageCount - 1);
+            }
+        }
+    }
+
     // Hold-to-add-page progress (0.0 to 1.0)
     property real holdProgress: 0.0
 
@@ -53,7 +66,9 @@ Item {
     readonly property var circleLayouts: (userConfig && userConfig.widgetLayouts && userConfig.widgetLayouts.circle)
         ? userConfig.widgetLayouts.circle : null
     readonly property var circlePages: circleLayouts ? (circleLayouts.pages || []) : []
-    readonly property int pageCount: Math.max(1, circlePages.length)
+    readonly property int realPageCount: Math.max(1, circlePages.length)
+    readonly property int totalPageCount: realPageCount + (isEditMode ? 1 : 0)
+    readonly property int pageCount: totalPageCount
 
     // Shared context passed into each Circle widget
     readonly property var sharedWidgetContext: ({
@@ -77,7 +92,7 @@ Item {
         faceScale: root.faceScale,
         circleDiameter: root.circleDiameter,
         uiScale: root.faceScale,
-        isEditMode: false
+        isEditMode: root.isEditMode
     })
 
     anchors.fill: parent
@@ -189,10 +204,9 @@ Item {
                 if (tapArea.pressed && !tapArea.moved) {
                     tapArea.isHoldTriggered = true;
                     root.holdProgress = 0.0;
-                    if (userConfig) {
-                        const nextTitle = "Page " + (root.pageCount + 1);
-                        userConfig.addPage("circle", nextTitle, 1);
-                        root.currentPageIndex = Math.max(0, root.pageCount - 1);
+                    if (!root.isEditMode) {
+                        root.isEditMode = true;
+                        root.currentPageIndex = root.realPageCount;
                     }
                     popAnim.restart();
                 }
@@ -312,7 +326,7 @@ Item {
 
         onReleased: (mouse) => {
             if (mouse.button === Qt.RightButton) {
-                root.widgetLibraryRequested("circle", root.currentPageIndex, 0);
+                root.widgetLibraryRequested("circle", Math.min(root.realPageCount - 1, root.currentPageIndex), 0);
                 return;
             }
             holdProgressAnim.stop();
@@ -333,22 +347,67 @@ Item {
                         root.currentPageIndex = Math.max(0, root.currentPageIndex - 1);
                 }
             } else {
-                root.expandRequested();
+                if (root.isEditMode) {
+                    root.isEditMode = false;
+                    if (root.currentPageIndex >= root.realPageCount)
+                        root.currentPageIndex = Math.max(0, root.realPageCount - 1);
+                } else {
+                    root.expandRequested();
+                }
             }
             moved = false;
         }
     }
 
-    // Widget faces — each page renders its first widget filling the circle
+    // Done button in edit mode
+    Rectangle {
+        id: circleDoneBtn
+        visible: root.isEditMode
+        anchors.top: parent.top
+        anchors.topMargin: 2
+        anchors.horizontalCenter: parent.horizontalCenter
+        width: 32
+        height: 13
+        radius: 6.5
+        color: circleDoneMouse.containsMouse ? "#50ffffff" : "#30ffffff"
+        border.width: 1
+        border.color: "#55ffffff"
+        z: 100
+
+        Text {
+            anchors.centerIn: parent
+            text: "Done"
+            font.family: root.textFontFamily
+            font.pixelSize: 8
+            font.weight: Font.Bold
+            color: "white"
+        }
+
+        MouseArea {
+            id: circleDoneMouse
+            anchors.fill: parent
+            cursorShape: Qt.PointingHandCursor
+            onClicked: {
+                root.isEditMode = false;
+                if (root.currentPageIndex >= root.realPageCount)
+                    root.currentPageIndex = Math.max(0, root.realPageCount - 1);
+            }
+        }
+    }
+
+    // Widget faces — each page renders its widget filling the circle (or Add Widget, or Offer Page)
     Repeater {
         model: root.pageCount
 
         Item {
+            id: pageItem
             readonly property int pIdx: index
-            readonly property var pageData: root.circlePages[pIdx] || null
+            readonly property bool isOfferPage: root.isEditMode && pIdx === root.realPageCount
+            readonly property var pageData: !isOfferPage ? (root.circlePages[pIdx] || null) : null
             readonly property var items: (pageData && pageData.items) ? pageData.items : []
             readonly property var firstItem: items.length > 0 ? items[0] : null
             readonly property string widgetId: firstItem ? (firstItem.widgetId || "") : ""
+            readonly property bool hasWidget: !isOfferPage && widgetId !== ""
 
             anchors.fill: parent
             opacity: pIdx === root.currentPageIndex ? 1.0 : 0.0
@@ -358,31 +417,156 @@ Item {
             Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.InOutQuad } }
             Behavior on scale { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
 
-            Loader {
+            // 1. Populated widget container with iOS home screen editing wiggle effect
+            Item {
+                id: circleJiggleContainer
                 anchors.fill: parent
-                active: parent.widgetId !== ""
-                source: active ? WidgetRegistry.getComponentUrl(parent.widgetId, "circle") : ""
+                visible: pageItem.hasWidget
 
-                onLoaded: {
-                    if (item) {
-                        item.widgetContext = root.sharedWidgetContext;
-                        item.slotSpan = 1;
-                        item.isEditMode = false;
+                readonly property real angleAmplitude: 1.2 * (pageItem.pIdx % 2 === 0 ? 1.0 : -1.0)
+                readonly property int rotDuration: 145 + ((pageItem.pIdx * 33) % 25)
+                readonly property int transDuration: 170 + ((pageItem.pIdx * 41) % 30)
+
+                property real currentRotation: 0
+                property real xOffset: 0
+                property real yOffset: 0
+
+                transformOrigin: Item.Center
+                rotation: root.isEditMode ? currentRotation : 0
+
+                transform: Translate {
+                    x: root.isEditMode ? circleJiggleContainer.xOffset : 0
+                    y: root.isEditMode ? circleJiggleContainer.yOffset : 0
+                }
+
+                Loader {
+                    anchors.fill: parent
+                    active: pageItem.hasWidget
+                    source: active ? WidgetRegistry.getComponentUrl(pageItem.widgetId, "circle") : ""
+
+                    onLoaded: {
+                        if (item) {
+                            item.widgetContext = root.sharedWidgetContext;
+                            item.slotSpan = 1;
+                            item.isEditMode = root.isEditMode;
+                        }
+                    }
+                    onStatusChanged: {
+                        if (status === Loader.Ready && item) {
+                            item.widgetContext = root.sharedWidgetContext;
+                            item.slotSpan = 1;
+                            item.isEditMode = root.isEditMode;
+                        }
                     }
                 }
-                onStatusChanged: {
-                    if (status === Loader.Ready && item) {
-                        item.widgetContext = root.sharedWidgetContext;
-                        item.slotSpan = 1;
-                        item.isEditMode = false;
+
+                // Remove widget button in edit mode
+                Rectangle {
+                    anchors.top: parent.top
+                    anchors.topMargin: 2
+                    anchors.right: parent.right
+                    anchors.rightMargin: 2
+                    width: 14
+                    height: 14
+                    radius: 7
+                    color: removeCircleMouse.containsMouse ? "#ff453a" : "#40000000"
+                    border.width: 1
+                    border.color: "#55ffffff"
+                    visible: root.isEditMode
+                    z: 99
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: "󰅖"
+                        font.family: root.iconFontFamily
+                        font.pixelSize: 8
+                        color: "white"
+                    }
+
+                    MouseArea {
+                        id: removeCircleMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            if (userConfig) {
+                                userConfig.removeSlotWidget("circle", pageItem.pIdx, 0);
+                            }
+                        }
+                    }
+                }
+
+                // Rotation wiggle animation
+                SequentialAnimation {
+                    running: root.isEditMode && pageItem.hasWidget
+                    loops: Animation.Infinite
+
+                    NumberAnimation {
+                        target: circleJiggleContainer
+                        property: "currentRotation"
+                        from: -circleJiggleContainer.angleAmplitude
+                        to: circleJiggleContainer.angleAmplitude
+                        duration: circleJiggleContainer.rotDuration
+                        easing.type: Easing.InOutSine
+                    }
+                    NumberAnimation {
+                        target: circleJiggleContainer
+                        property: "currentRotation"
+                        from: circleJiggleContainer.angleAmplitude
+                        to: -circleJiggleContainer.angleAmplitude
+                        duration: circleJiggleContainer.rotDuration
+                        easing.type: Easing.InOutSine
+                    }
+                }
+
+                // Translation wiggle animation
+                SequentialAnimation {
+                    running: root.isEditMode && pageItem.hasWidget
+                    loops: Animation.Infinite
+
+                    ParallelAnimation {
+                        NumberAnimation {
+                            target: circleJiggleContainer
+                            property: "xOffset"
+                            from: -(pageItem.pIdx % 2 === 0 ? 0.4 : -0.4)
+                            to: (pageItem.pIdx % 2 === 0 ? 0.4 : -0.4)
+                            duration: circleJiggleContainer.transDuration
+                            easing.type: Easing.InOutQuad
+                        }
+                        NumberAnimation {
+                            target: circleJiggleContainer
+                            property: "yOffset"
+                            from: -0.5
+                            to: 0.5
+                            duration: Math.round(circleJiggleContainer.transDuration * 1.08)
+                            easing.type: Easing.InOutQuad
+                        }
+                    }
+                    ParallelAnimation {
+                        NumberAnimation {
+                            target: circleJiggleContainer
+                            property: "xOffset"
+                            from: (pageItem.pIdx % 2 === 0 ? 0.4 : -0.4)
+                            to: -(pageItem.pIdx % 2 === 0 ? 0.4 : -0.4)
+                            duration: circleJiggleContainer.transDuration
+                            easing.type: Easing.InOutQuad
+                        }
+                        NumberAnimation {
+                            target: circleJiggleContainer
+                            property: "yOffset"
+                            from: 0.5
+                            to: -0.5
+                            duration: Math.round(circleJiggleContainer.transDuration * 1.08)
+                            easing.type: Easing.InOutQuad
+                        }
                     }
                 }
             }
 
-            // Fallback: if Home page has no widget configured, show the original clock face inline
+            // 2. Fallback clock face on Home page when NOT in edit mode and no widget
             Item {
                 anchors.fill: parent
-                visible: parent.widgetId === "" && parent.pIdx === 0
+                visible: !pageItem.hasWidget && !pageItem.isOfferPage && pageItem.pIdx === 0 && !root.isEditMode
 
                 Rectangle {
                     anchors.centerIn: parent
@@ -421,24 +605,23 @@ Item {
                 }
             }
 
-            // Custom Page Empty State: Centered icon and Delete button at top
-            // Leaving background open so clicks/swipes pass through to expandRequested and wheel navigation
+            // 3. Empty page state (Home page in edit mode with no widget, or any custom page without a widget)
             Item {
                 id: customEmptyPage
-                readonly property int pageIndex: parent.pIdx
+                readonly property int pageIndex: pageItem.pIdx
                 anchors.fill: parent
-                visible: parent.widgetId === "" && parent.pIdx > 0
+                visible: !pageItem.hasWidget && !pageItem.isOfferPage && (root.isEditMode || pageItem.pIdx > 0)
 
-                // Centered subtle empty state placeholder
+                // Centered prominent Add Widget button
                 Rectangle {
                     id: addBtnRect
                     anchors.centerIn: parent
-                    width: Math.min(44, parent.width - 24)
+                    width: Math.min(42, parent.width - 10)
                     height: width
                     radius: width / 2
-                    color: "#14ffffff"
+                    color: addCircleWidgetMouse.containsMouse ? "#30ffffff" : "#18ffffff"
                     border.width: 1
-                    border.color: "#2effffff"
+                    border.color: addCircleWidgetMouse.containsMouse ? "#55ffffff" : "#30ffffff"
                     z: 20
 
                     Column {
@@ -449,37 +632,50 @@ Item {
                             anchors.horizontalCenter: parent.horizontalCenter
                             text: "󰐕"
                             font.family: root.iconFontFamily
-                            font.pixelSize: 14
+                            font.pixelSize: 13
                             color: "#ffffff"
                         }
 
                         Text {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: "Empty"
+                            text: "Add"
                             font.family: root.textFontFamily
                             font.pixelSize: 8
                             font.weight: Font.Bold
-                            color: "#8e8e93"
+                            color: addCircleWidgetMouse.containsMouse ? "#ffffff" : "#c4c4c8"
+                        }
+                    }
+
+                    MouseArea {
+                        id: addCircleWidgetMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            root.widgetLibraryRequested("circle", pageItem.pIdx, 0);
                         }
                     }
                 }
 
-                // Delete custom page button at top
+                // Delete custom page button at bottom (only for page > 0, Home cannot be deleted)
                 Rectangle {
-                    anchors.top: parent.top
-                    anchors.topMargin: 4
+                    anchors.bottom: parent.bottom
+                    anchors.bottomMargin: 2
                     anchors.horizontalCenter: parent.horizontalCenter
-                    width: 18
-                    height: 18
-                    radius: 9
-                    color: delCircleMouse.containsMouse ? "#ff453a" : "#2a2a2e"
+                    width: 14
+                    height: 14
+                    radius: 7
+                    color: delCircleMouse.containsMouse ? "#ff453a" : "#382a2a2e"
+                    border.width: 1
+                    border.color: "#33ffffff"
+                    visible: pageItem.pIdx > 0
                     z: 50
 
                     Text {
                         anchors.centerIn: parent
                         text: "󰅖"
                         font.family: root.iconFontFamily
-                        font.pixelSize: 9
+                        font.pixelSize: 8
                         color: "white"
                     }
 
@@ -490,9 +686,64 @@ Item {
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
                             if (userConfig) {
-                                const targetIdx = customEmptyPage.pageIndex;
+                                const targetIdx = pageItem.pIdx;
                                 userConfig.removePage("circle", targetIdx);
                                 root.currentPageIndex = Math.max(0, targetIdx - 1);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 4. Offer Page at the end (shown in edit mode to offer adding that last page)
+            Item {
+                id: offerPageItem
+                anchors.fill: parent
+                visible: pageItem.isOfferPage
+
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: Math.min(42, parent.width - 10)
+                    height: width
+                    radius: width / 2
+                    color: addCirclePageMouse.containsMouse ? "#38ffffff" : "#20ffffff"
+                    border.width: 1.5
+                    border.color: addCirclePageMouse.containsMouse ? "#77ffffff" : "#44ffffff"
+                    z: 30
+
+                    Column {
+                        anchors.centerIn: parent
+                        spacing: 1
+
+                        Text {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            text: "󰐕"
+                            font.family: root.iconFontFamily
+                            font.pixelSize: 13
+                            color: "#ffffff"
+                        }
+
+                        Text {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            text: "Add Page"
+                            font.family: root.textFontFamily
+                            font.pixelSize: 7
+                            font.weight: Font.Bold
+                            color: "white"
+                        }
+                    }
+
+                    MouseArea {
+                        id: addCirclePageMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            if (userConfig) {
+                                const newPageIndex = root.realPageCount;
+                                const nextTitle = "Page " + (newPageIndex + 1);
+                                userConfig.addPage("circle", nextTitle, 1);
+                                root.currentPageIndex = newPageIndex;
                             }
                         }
                     }
@@ -505,11 +756,12 @@ Item {
     Row {
         id: pageDotsRow
         visible: root.pageCount > 1
-        opacity: root.dotsVisible ? 1.0 : 0.0
+        opacity: (root.dotsVisible || root.isEditMode) ? 1.0 : 0.0
         anchors.bottom: parent.bottom
-        anchors.bottomMargin: 5
+        anchors.bottomMargin: 4
         anchors.horizontalCenter: parent.horizontalCenter
-        spacing: 4
+        spacing: 3
+        z: 90
 
         Behavior on opacity {
             NumberAnimation { duration: 250; easing.type: Easing.InOutQuad }
@@ -520,10 +772,14 @@ Item {
 
             Rectangle {
                 readonly property int dotIndex: index
-                width: dotIndex === root.currentPageIndex ? 10 : 3
+                readonly property bool isOfferDot: root.isEditMode && dotIndex === root.realPageCount
+                readonly property bool isActive: dotIndex === root.currentPageIndex
+                width: isActive ? 10 : 3
                 height: 3
                 radius: 1.5
-                color: dotIndex === root.currentPageIndex ? "white" : "#48484a"
+                color: isActive ? "white" : (isOfferDot ? "#66ffffff" : "#48484a")
+                border.width: isOfferDot && !isActive ? 0.5 : 0
+                border.color: "#88ffffff"
 
                 Behavior on width {
                     NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
