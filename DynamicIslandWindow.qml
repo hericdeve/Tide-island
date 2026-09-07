@@ -2587,6 +2587,37 @@ PanelWindow {
                 }
             }
 
+            // Widget-based closed notch layer — renders Minimum widgets from widgetLayouts.minimum.
+            // Sits on top of boringFaceLoader when active so it replaces the default face.
+            Loader {
+                id: closedWidgetLoader
+                anchors.fill: parent
+                active: !root.overviewVisible
+                    && userConfig.notchMode !== "circle"
+                    && islandContainer.islandState === "normal"
+                    && Math.abs(islandContainer.swipeTransitionProgress) < 0.01
+                asynchronous: false
+                visible: active
+                z: 2
+
+                sourceComponent: Component {
+                    ClosedWidgetLayer {
+                        showCondition: true
+                        batteryCapacity: islandContainer.batteryCapacity
+                        isCharging: islandContainer.isCharging
+                        currentArtUrl: islandContainer.currentArtUrl
+                        currentTrack: islandContainer.currentTrack
+                        currentArtist: islandContainer.currentArtist
+                        isPlaying: islandContainer.activePlayer ? islandContainer.activePlayer.playbackState === MprisPlaybackState.Playing : false
+                        trackProgress: islandContainer.trackProgress
+                        currentTime: timeObj.currentTime
+                        iconFontFamily: root.iconFontFamily
+                        textFontFamily: root.textFontFamily
+                        heroFontFamily: root.heroFontFamily
+                    }
+                }
+            }
+
             Loader {
                 id: circleClosedLoader
                 anchors.fill: parent
@@ -2606,7 +2637,7 @@ PanelWindow {
                 visible: active
 
                 sourceComponent: Component {
-                    CircleClosedLayer {
+                    CircleWidgetLayer {
                         currentArtUrl: islandContainer.currentArtUrl
                         currentTrack: islandContainer.currentTrack
                         currentArtist: islandContainer.currentArtist
@@ -2618,7 +2649,6 @@ PanelWindow {
                         currentRamUsage: islandContainer.currentRamUsage
                         currentTime: timeObj.currentTime
                         currentDateLabel: timeObj.currentDateLabel
-                        showBoringFace: userConfig.showBoringFace
                         iconFontFamily: root.iconFontFamily
                         textFontFamily: root.textFontFamily
                         onExpandRequested: islandContainer.showExpandedPlayer(false)
