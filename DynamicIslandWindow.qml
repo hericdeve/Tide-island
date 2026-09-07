@@ -1863,13 +1863,13 @@ PanelWindow {
         function syncCustomCapsuleWidth() {
             const view = customSwipeLoader.item;
             if (!view) return;
-            customCapsuleWidth = Math.max(220, Math.min(root.width - 48, view.preferredWidth));
+            customCapsuleWidth = Math.max(userConfig.notchClosedWidth, Math.max(220, Math.min(root.width - 48, view.preferredWidth)));
         }
 
         function syncLyricsCapsuleWidth() {
             const view = lyricsSwipeLoader.item;
             if (!view) return;
-            lyricsCapsuleWidth = Math.max(220, Math.min(root.width - 48, view.preferredWidth));
+            lyricsCapsuleWidth = Math.max(userConfig.notchClosedWidth, Math.max(220, Math.min(root.width - 48, view.preferredWidth)));
         }
 
         onCurrentTrackChanged: {
@@ -1916,9 +1916,11 @@ PanelWindow {
                 case "split":
                     return islandContainer.splitCapsuleWidth;
                 case "long_capsule":
+                    return Math.max(userConfig.notchClosedWidth, 220);
                 case "custom":
+                    return Math.max(userConfig.notchClosedWidth, islandContainer.customCapsuleWidth);
                 case "lyrics":
-                    return userConfig.notchClosedWidth;
+                    return Math.max(userConfig.notchClosedWidth, islandContainer.lyricsCapsuleWidth);
                 case "control_center":
                     return 420;
                 case "notification_center":
@@ -1997,13 +1999,16 @@ PanelWindow {
                 }
             }
             function sideSwipeWidthForProgress(progressValue) {
+                const normalWidth = islandContainer.currentTrack !== ""
+                    ? Math.round(userConfig.notchClosedWidth + 2 * Math.max(0, userConfig.notchClosedHeight - 12) + 20)
+                    : userConfig.notchClosedWidth;
                 if (progressValue < 0)
-                    return userConfig.notchClosedWidth + (islandContainer.customCapsuleWidth - userConfig.notchClosedWidth)
+                    return normalWidth + (islandContainer.customCapsuleWidth - normalWidth)
                         * islandContainer.clamp01(-progressValue);
                 if (progressValue > 0)
-                    return userConfig.notchClosedWidth + (islandContainer.lyricsCapsuleWidth - userConfig.notchClosedWidth)
+                    return normalWidth + (islandContainer.lyricsCapsuleWidth - normalWidth)
                         * islandContainer.clamp01(progressValue);
-                return userConfig.notchClosedWidth;
+                return normalWidth;
             }
             readonly property real sideSwipePreviewWidth: mainCapsule.sideSwipeWidthForProgress(
                 islandContainer.swipeTransitionProgress
@@ -2375,8 +2380,8 @@ PanelWindow {
                         timeFontFamily: root.heroFontFamily
                         textPixelSize: root.bodyFontSize
                         iconPixelSize: root.iconFontSize
-                        minimumWidth: 220
-                        maximumWidth: Math.max(220, root.width - 48)
+                        minimumWidth: Math.max(userConfig.notchClosedWidth, 220)
+                        maximumWidth: Math.max(Math.max(userConfig.notchClosedWidth, 220), root.width - 48)
                         transitionProgress: islandContainer.swipeTransitionProgress
                         recordingActive: islandContainer.screenRecordingActive
                         showSecondaryText: islandContainer.workspaceOriginSide !== "left"
