@@ -433,7 +433,7 @@ Item {
             }
 
             // Two-finger vertical pull down on touchpad: expand player (once per stroke)
-            if (circleWheelHandler.accumulatedY < -24 && Math.abs(circleWheelHandler.accumulatedY) > Math.abs(circleWheelHandler.accumulatedX) * 1.1) {
+            if (circleWheelHandler.accumulatedY > 28 && Math.abs(circleWheelHandler.accumulatedY) > Math.abs(circleWheelHandler.accumulatedX) * 1.2) {
                 circleWheelHandler.gestureLocked = true;
                 circleWheelHandler.accumulatedX = 0;
                 circleWheelHandler.accumulatedY = 0;

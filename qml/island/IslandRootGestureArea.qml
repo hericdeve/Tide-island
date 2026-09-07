@@ -93,10 +93,12 @@ MouseArea {
             verticalAccumulatedDelta += deltaY;
             verticalSettleTimer.restart();
 
-            // Swipe down (negative deltaY) to open notch
+            // Swipe down (negative deltaY) to open notch (disabled for circle mode)
             if (verticalAccumulatedDelta < -40 && islandController.islandState !== "expanded") {
                 verticalAccumulatedDelta = 0;
-                islandController.showExpandedPlayer(false);
+                if (userConfig.notchMode !== "circle") {
+                    islandController.showExpandedPlayer(false);
+                }
             }
             // Swipe up (positive deltaY) to close if already expanded
             else if (verticalAccumulatedDelta > 40 && islandController.islandState === "expanded") {
