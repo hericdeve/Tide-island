@@ -30,6 +30,7 @@ Item {
 
     signal widgetSelected(string widgetId)
     signal closeRequested()
+    signal widgetStaged(string widgetId, string sizeType, int slotSpan)
     signal widgetDragStarted(string widgetId, string sizeType, int slotSpan, real winX, real winY)
     signal widgetDragMoved(real winX, real winY)
     signal widgetDragEnded(real winX, real winY)
@@ -210,10 +211,10 @@ Item {
         circleDiameter: 64
     })
 
-    opacity: (showCondition && !isDraggingWidget) ? 1.0 : 0.0
-    y: (showCondition || isDraggingWidget) ? 0 : -28
-    visible: showCondition || isDraggingWidget
-    focus: showCondition && !isDraggingWidget
+    opacity: showCondition ? 1.0 : 0.0
+    y: showCondition ? 0 : -28
+    visible: showCondition
+    focus: showCondition
 
     Behavior on opacity {
         NumberAnimation { duration: 220; easing.type: Easing.OutQuad }
@@ -260,7 +261,7 @@ Item {
         border.width: 1
         border.color: "#242426"
         clip: true
-        opacity: root.isDraggingWidget ? 0.0 : 1.0
+        opacity: 1.0
 
         Behavior on opacity {
             NumberAnimation { duration: 180; easing.type: Easing.OutQuad }
@@ -390,11 +391,73 @@ Item {
                 }
             }
 
+            // ── Staging Drop Section (Appears when dragging a widget) ────
+            Rectangle {
+                id: stagingSection
+                anchors.top: topNavBar.bottom
+                anchors.topMargin: root.isDraggingWidget ? 8 : 0
+                anchors.left: parent.left
+                anchors.leftMargin: 16
+                anchors.right: parent.right
+                anchors.rightMargin: 16
+                height: root.isDraggingWidget ? 54 : 0
+                visible: height > 0
+                clip: true
+                radius: 14
+                color: isHovered ? "#281a3d" : "#121217"
+                border.width: 1.5
+                border.color: isHovered ? "#e879f9" : "#b56cff"
+                opacity: root.isDraggingWidget ? 1.0 : 0.0
+                property bool isHovered: false
+
+                Behavior on height { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+                Behavior on anchors.topMargin { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+                Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.OutQuad } }
+
+                Row {
+                    anchors.centerIn: parent
+                    spacing: 12
+
+                    Rectangle {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 34
+                        height: 34
+                        radius: 17
+                        color: stagingSection.isHovered ? "#b56cff" : "#241a33"
+                        Text {
+                            anchors.centerIn: parent
+                            text: "󰉋"
+                            font.family: root.iconFontFamily
+                            font.pixelSize: 18
+                            color: "white"
+                        }
+                    }
+
+                    Column {
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 2
+                        Text {
+                            text: stagingSection.isHovered ? "Drop to Stage & Go to Home" : "Drop here to Stage & Pick Slot on Home"
+                            font.family: root.textFontFamily
+                            font.pixelSize: 12
+                            font.weight: Font.Bold
+                            color: stagingSection.isHovered ? "#f0abfc" : "white"
+                        }
+                        Text {
+                            text: "Temporarily holds widget so you can navigate pages to find a slot"
+                            font.family: root.textFontFamily
+                            font.pixelSize: 10
+                            color: "#9999a0"
+                        }
+                    }
+                }
+            }
+
             // ── Widget Card (Describes Widget & Shows Available Variations) ──
             Rectangle {
                 id: widgetCard
-                anchors.top: topNavBar.bottom
-                anchors.topMargin: 10
+                anchors.top: stagingSection.bottom
+                anchors.topMargin: root.isDraggingWidget ? 8 : 10
                 anchors.left: parent.left
                 anchors.leftMargin: 16
                 anchors.right: parent.right
@@ -404,6 +467,8 @@ Item {
                 color: "#0d0d0f"
                 border.width: 1
                 border.color: "#1e1e22"
+
+                Behavior on anchors.topMargin { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
 
                 // Touch / Mouse Drag to swipe left/right
                 MouseArea {
@@ -660,7 +725,61 @@ Item {
                             color: "#08080a"
                             border.width: 1
                             border.color: cardMouse.containsMouse ? "#b56cff" : "#1c1c20"
+                            scale: cardMouse.dragging ? 1.03 : 1.0
                             clip: true
+
+                            Behavior on scale { NumberAnimation { duration: 120 } }
+
+                            // Quick Stage Button
+                            Rectangle {
+                                id: stageQuickBtn
+                                anchors.top: parent.top
+                                anchors.right: parent.right
+                                anchors.margins: 6
+                                width: 58
+                                height: 20
+                                radius: 10
+                                color: stageBtnMouse.containsMouse ? "#c285ff" : "#221933"
+                                border.width: 1
+                                border.color: "#b56cff"
+                                z: 30
+                                visible: !cardMouse.dragging
+
+                                Row {
+                                    anchors.centerIn: parent
+                                    spacing: 3
+                                    Text {
+                                        text: "󰉋"
+                                        font.family: root.iconFontFamily
+                                        font.pixelSize: 10
+                                        color: "white"
+                                    }
+                                    Text {
+                                        text: "Stage"
+                                        font.family: root.textFontFamily
+                                        font.pixelSize: 9
+                                        font.weight: Font.Bold
+                                        color: "white"
+                                    }
+                                }
+
+                                MouseArea {
+                                    id: stageBtnMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        if (root.currentWidget) {
+                                            root.widgetStaged(
+                                                root.currentWidget.id,
+                                                previewDelegate.modelData.type,
+                                                previewDelegate.modelData.slotSpan || 1
+                                            );
+                                            root.closeRequested();
+                                        }
+                                    }
+                                }
+                            }
 
                             Loader {
                                 anchors.fill: parent
@@ -713,24 +832,35 @@ Item {
                                         dragging = true;
                                         wasDragging = true;
                                         root.isDraggingWidget = true;
-                                        const winPos = cardRect.mapToItem(null, mouse.x, mouse.y);
-                                        root.widgetDragStarted(
-                                            root.currentWidget.id,
-                                            previewDelegate.modelData.type,
-                                            previewDelegate.modelData.slotSpan || 1,
-                                            winPos.x,
-                                            winPos.y
-                                        );
-                                    } else if (dragging) {
-                                        const winPos = cardRect.mapToItem(null, mouse.x, mouse.y);
-                                        root.widgetDragMoved(winPos.x, winPos.y);
+                                    }
+                                    if (dragging) {
+                                        const sPos = cardRect.mapToItem(stagingSection, mouse.x, mouse.y);
+                                        stagingSection.isHovered = (sPos.x >= -30 && sPos.x <= stagingSection.width + 30 &&
+                                                                    sPos.y >= -30 && sPos.y <= stagingSection.height + 40);
                                     }
                                 }
 
                                 onReleased: (mouse) => {
                                     if (dragging) {
-                                        const winPos = cardRect.mapToItem(null, mouse.x, mouse.y);
-                                        root.widgetDragEnded(winPos.x, winPos.y);
+                                        const sPos = cardRect.mapToItem(stagingSection, mouse.x, mouse.y);
+                                        const droppedInStaging = stagingSection.isHovered ||
+                                            (sPos.x >= -30 && sPos.x <= stagingSection.width + 30 &&
+                                             sPos.y >= -30 && sPos.y <= stagingSection.height + 40);
+
+                                        if (droppedInStaging) {
+                                            root.widgetStaged(
+                                                root.currentWidget.id,
+                                                previewDelegate.modelData.type,
+                                                previewDelegate.modelData.slotSpan || 1
+                                            );
+                                            stagingSection.isHovered = false;
+                                            dragging = false;
+                                            root.isDraggingWidget = false;
+                                            root.closeRequested();
+                                            return;
+                                        }
+
+                                        stagingSection.isHovered = false;
                                         dragging = false;
                                         root.isDraggingWidget = false;
                                     }
@@ -738,9 +868,9 @@ Item {
 
                                 onCanceled: {
                                     if (dragging) {
+                                        stagingSection.isHovered = false;
                                         dragging = false;
                                         root.isDraggingWidget = false;
-                                        root.widgetDragEnded(-1000, -1000);
                                     }
                                 }
 
