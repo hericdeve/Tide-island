@@ -14,14 +14,14 @@ MouseArea {
     property real swipeStartProgress: 0
     property double swipeStartTime: 0
     property bool isSwiping: false
-    property bool gestureLocked: false
+    property bool justSettled: false
 
     Timer {
-        id: gestureLockoutTimer
-        interval: 320
+        id: postSettleCooldown
+        interval: 140
         repeat: false
         onTriggered: {
-            root.gestureLocked = false;
+            root.justSettled = false;
         }
     }
 
@@ -32,8 +32,8 @@ MouseArea {
 
         root.isSwiping = false;
         root.islandController.sideSwipeDragging = false;
-        root.gestureLocked = true;
-        gestureLockoutTimer.restart();
+        root.justSettled = true;
+        postSettleCooldown.restart();
 
         const elapsedMs = Math.max(16, Date.now() - root.swipeStartTime);
         const velocity = root.accumulatedDelta / elapsedMs;
@@ -79,9 +79,8 @@ MouseArea {
             return;
         }
 
-        // If locked out after completing a panel transition in this stroke, absorb all remaining stroke events!
-        if (gestureLocked) {
-            gestureLockoutTimer.restart();
+        // If post-settle cooldown is active (short 140ms window to absorb trailing momentum of the previous stroke):
+        if (justSettled) {
             wheel.accepted = true;
             return;
         }
@@ -126,22 +125,6 @@ MouseArea {
         islandController.swipeTransitionProgress = nextProgress;
         capsule.displayedWidth = capsule.sideSwipePreviewWidth;
 
-        // When a long swipe reaches the adjacent destination boundary, lock in immediately
-        // so the remaining travel of the stroke CANNOT blow past into the next panel!
-        if (swipeStartProgress <= -0.5 && nextProgress >= 0) {
-            commitSwipeSettle();
-            wheel.accepted = true;
-            return;
-        } else if (swipeStartProgress >= 0.5 && nextProgress <= 0) {
-            commitSwipeSettle();
-            wheel.accepted = true;
-            return;
-        } else if (Math.abs(swipeStartProgress) < 0.5 && (nextProgress >= 1 || nextProgress <= -1)) {
-            commitSwipeSettle();
-            wheel.accepted = true;
-            return;
-        }
-
         swipeSettleTimer.restart();
         wheel.accepted = true;
     }
@@ -155,7 +138,7 @@ MouseArea {
 
     Timer {
         id: swipeSettleTimer
-        interval: 180
+        interval: 150
         repeat: false
         onTriggered: root.commitSwipeSettle()
     }

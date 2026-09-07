@@ -368,7 +368,7 @@ Item {
 
     Timer {
         id: wheelResetTimer
-        interval: 320
+        interval: 160
         repeat: false
         onTriggered: {
             circleWheelHandler.accumulatedX = 0;
@@ -393,14 +393,17 @@ Item {
                 return;
             }
 
-            // Fingers lifted from touchpad: keep lockout active for a short quiet period so residual events do not chain
+            // Fingers lifted from touchpad: stroke ended, clear lock immediately
             if (event.phase === Qt.ScrollEnd) {
-                wheelResetTimer.restart();
+                circleWheelHandler.accumulatedX = 0;
+                circleWheelHandler.accumulatedY = 0;
+                circleWheelHandler.gestureLocked = false;
+                wheelResetTimer.stop();
                 event.accepted = true;
                 return;
             }
 
-            // If a face change already occurred in this swipe stroke, stay locked until stroke completely finishes
+            // If a face change already occurred in this swipe stroke, absorb remaining stroke events
             if (circleWheelHandler.gestureLocked) {
                 wheelResetTimer.restart();
                 event.accepted = true;
