@@ -98,6 +98,7 @@ Item {
             model: root.pageCount
 
             Item {
+                id: pageDelegateItem
                 readonly property int pIdx: index
                 readonly property var pageData: root.minimumPages[pIdx] || null
                 readonly property int slotCount: Math.max(1, Math.min(6, (pageData && pageData.slots !== undefined) ? pageData.slots : 1))
@@ -122,14 +123,14 @@ Item {
                     spacing: 10
 
                     Repeater {
-                        model: parent.parent.slotCount
+                        model: pageDelegateItem.slotCount
 
                         Item {
                             readonly property int sIdx: index
                             readonly property var placedItem: {
-                                const its = parent.parent.parent.items;
+                                const its = pageDelegateItem.items || [];
                                 for (let i = 0; i < its.length; ++i) {
-                                    if (its[i].slotIndex === sIdx)
+                                    if (its[i] && its[i].slotIndex === sIdx)
                                         return its[i];
                                 }
                                 return null;
@@ -140,8 +141,8 @@ Item {
                             height: pageStrip.height
 
                             readonly property real closedSlotWidth: {
-                                const totalSpacing = (parent.parent.parent.slotCount - 1) * 10;
-                                return Math.max(60, (pageStrip.width - totalSpacing) / parent.parent.parent.slotCount);
+                                const totalSpacing = (pageDelegateItem.slotCount - 1) * 10;
+                                return Math.max(60, (pageStrip.width - totalSpacing) / Math.max(1, pageDelegateItem.slotCount));
                             }
 
                             Loader {

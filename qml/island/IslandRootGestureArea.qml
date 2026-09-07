@@ -10,7 +10,6 @@ MouseArea {
     acceptedButtons: Qt.NoButton
 
     property real accumulatedDelta: 0
-    property real verticalAccumulatedDelta: 0
     property real swipeStartProgress: 0
     property double swipeStartTime: 0
     property bool isSwiping: false
@@ -86,28 +85,6 @@ MouseArea {
         }
 
         const deltaX = wheel.pixelDelta.x !== 0 ? wheel.pixelDelta.x : (wheel.angleDelta.x / 5);
-        const deltaY = wheel.pixelDelta.y !== 0 ? wheel.pixelDelta.y : (wheel.angleDelta.y / 5);
-
-        // Check if gesture is primarily vertical (scroll down to open notch, scroll up to close)
-        if (!isSwiping && Math.abs(deltaY) > Math.abs(deltaX) * 1.3 && Math.abs(deltaY) > 3) {
-            verticalAccumulatedDelta += deltaY;
-            verticalSettleTimer.restart();
-
-            // Swipe down (negative deltaY) to open notch (disabled for circle mode)
-            if (verticalAccumulatedDelta < -40 && islandController.islandState !== "expanded") {
-                verticalAccumulatedDelta = 0;
-                if (userConfig.notchMode !== "circle") {
-                    islandController.showExpandedPlayer(false);
-                }
-            }
-            // Swipe up (positive deltaY) to close if already expanded
-            else if (verticalAccumulatedDelta > 40 && islandController.islandState === "expanded") {
-                verticalAccumulatedDelta = 0;
-                islandController.smartRestoreState();
-            }
-            wheel.accepted = true;
-            return;
-        }
 
         if (!islandController.canShowSideSwipe)
             return;
@@ -129,13 +106,6 @@ MouseArea {
 
         swipeSettleTimer.restart();
         wheel.accepted = true;
-    }
-
-    Timer {
-        id: verticalSettleTimer
-        interval: 200
-        repeat: false
-        onTriggered: root.verticalAccumulatedDelta = 0
     }
 
     Timer {

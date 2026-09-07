@@ -8,12 +8,24 @@ FocusScope {
     id: root
 
     signal closeRequested
+    signal pageSelected(int pageIndex)
+    signal addPageRequested()
+    signal setSlotsRequested(int pageIndex, int newSlotCount)
+    signal cameraToggleRequested()
+    signal editModeToggleRequested()
+
+    readonly property var userConfig: UserConfig
 
     property bool showCondition: false
     property bool dropPreviewOnly: false
     property string iconFontFamily: ""
     property string textFontFamily: ""
     property int selectedIndex: FileShelf.count > 0 ? 0 : -1
+    property int currentPage: 0
+    property bool isEditMode: false
+    property bool cameraMirrorActive: false
+    property int batteryCapacity: -1
+    property bool isCharging: false
 
     property bool reorderActive: false
     property bool reorderCommitting: false
@@ -26,8 +38,8 @@ FocusScope {
 
     readonly property int visibleCapacity: 5
     readonly property real horizontalPadding: 18
-    readonly property real cardWidth: root.height < 220 ? Math.max(90, Math.round(root.height - 64)) : 176
-    readonly property real cardHeight: root.height < 220 ? Math.max(90, Math.round(root.height - 64)) : 176
+    readonly property real cardWidth: shelfContentArea.height < 200 ? Math.max(80, Math.round(shelfContentArea.height - 16)) : 176
+    readonly property real cardHeight: cardWidth
     readonly property real overflowCellWidth: cardWidth + 20
 
     focus: showCondition && !dropPreviewOnly
@@ -299,55 +311,99 @@ FocusScope {
         onClicked: root.closeRequested()
     }
 
-    Column {
-        z: 2
-        anchors.centerIn: parent
-        spacing: 10
-        visible: root.dropPreviewOnly || FileShelf.count === 0
+    // Persistent Top Status Bar
+    NotchStatusBar {
+        id: statusBar
+        z: 10
+        anchors.top: parent.top
+        anchors.topMargin: 10
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.leftMargin: 16
+        anchors.rightMargin: 16
+        pages: (userConfig && userConfig.widgetLayouts && userConfig.widgetLayouts.expanded) ? userConfig.widgetLayouts.expanded.pages : []
+        currentPage: root.currentPage
+        isEditMode: root.isEditMode
+        cameraMirrorActive: root.cameraMirrorActive
+        batteryCapacity: root.batteryCapacity
+        isCharging: root.isCharging
+        iconFontFamily: root.iconFontFamily
+        textFontFamily: root.textFontFamily
 
-        Text {
-            anchors.horizontalCenter: parent.horizontalCenter
-            text: "\uf0ee"
-            color: StyleTokens.textTertiary
-            font.family: root.iconFontFamily
-            font.pixelSize: 30
+        onPageSelected: (idx) => root.pageSelected(idx)
+        onAddPageRequested: {
+            if (userConfig)
+                userConfig.addPage("expanded", "", 3);
+            root.addPageRequested();
         }
-
-        Text {
-            anchors.horizontalCenter: parent.horizontalCenter
-            visible: !root.dropPreviewOnly
-            text: "Drag files or folders onto Tide Island"
-            color: StyleTokens.textSecondary
-            font.family: root.textFontFamily
-            font.pixelSize: 12
+        onSetSlotsRequested: (pIdx, sCount) => {
+            if (userConfig)
+                userConfig.setPageSlots("expanded", pIdx, sCount);
+            root.setSlotsRequested(pIdx, sCount);
         }
-
-        Text {
-            anchors.horizontalCenter: parent.horizontalCenter
-            visible: !root.dropPreviewOnly
-            text: "Drag a file to reorder it or drop it into another application"
-            color: StyleTokens.textTertiary
-            font.family: root.textFontFamily
-            font.pixelSize: 10
-        }
+        onShelfRequested: root.closeRequested()
+        onCameraToggleRequested: root.cameraToggleRequested()
+        onEditModeToggleRequested: root.editModeToggleRequested()
+        onSettingsRequested: SystemServices.openConfigApp()
+        onCloseRequested: root.closeRequested()
     }
 
-    Flickable {
-        id: trayViewport
-        z: 2
-        anchors.fill: parent
-        anchors.topMargin: 8
+    Item {
+        id: shelfContentArea
+        anchors.top: statusBar.bottom
+        anchors.bottom: parent.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.topMargin: 6
         anchors.bottomMargin: 8
-        anchors.leftMargin: root.horizontalPadding
-        anchors.rightMargin: root.horizontalPadding
-        visible: !root.dropPreviewOnly && FileShelf.count > 0
-        clip: true
-        contentWidth: FileShelf.count <= root.visibleCapacity
-            ? width : FileShelf.count * root.overflowCellWidth
-        contentHeight: height
-        interactive: !root.reorderActive && FileShelf.count > root.visibleCapacity
-        boundsBehavior: Flickable.StopAtBounds
-        flickDeceleration: 1800
+
+        Column {
+            z: 2
+            anchors.centerIn: parent
+            spacing: 8
+            visible: root.dropPreviewOnly || FileShelf.count === 0
+
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "\udb80\ude4b"
+                color: StyleTokens.textTertiary
+                font.family: root.iconFontFamily
+                font.pixelSize: 28
+            }
+
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                visible: !root.dropPreviewOnly
+                text: "Drag files or folders onto Tide Island"
+                color: StyleTokens.textSecondary
+                font.family: root.textFontFamily
+                font.pixelSize: 12
+            }
+
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                visible: !root.dropPreviewOnly
+                text: "Drag a file to reorder it or drop it into another application"
+                color: StyleTokens.textTertiary
+                font.family: root.textFontFamily
+                font.pixelSize: 10
+            }
+        }
+
+        Flickable {
+            id: trayViewport
+            z: 2
+            anchors.fill: parent
+            anchors.leftMargin: root.horizontalPadding
+            anchors.rightMargin: root.horizontalPadding
+            visible: !root.dropPreviewOnly && FileShelf.count > 0
+            clip: true
+            contentWidth: FileShelf.count <= root.visibleCapacity
+                ? width : FileShelf.count * root.overflowCellWidth
+            contentHeight: height
+            interactive: !root.reorderActive && FileShelf.count > root.visibleCapacity
+            boundsBehavior: Flickable.StopAtBounds
+            flickDeceleration: 1800
 
         Repeater {
             model: FileShelf
@@ -583,5 +639,6 @@ FocusScope {
                 }
             }
         }
+    }
     }
 }

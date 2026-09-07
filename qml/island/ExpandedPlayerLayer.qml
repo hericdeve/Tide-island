@@ -28,6 +28,8 @@ Item {
     property int hoveredSlotIndex: -1
     property bool isDraggingWidget: false
 
+    readonly property int currentPage: expandedPageStrip ? expandedPageStrip.currentPage : 0
+
     function showPage(pageIdx) {
         if (expandedPageStrip) {
             expandedPageStrip.settlePage(pageIdx);
@@ -100,18 +102,50 @@ Item {
         anchors.fill: parent
         clip: true
 
+        Timer {
+            id: wheelResetTimer
+            interval: 180
+            repeat: false
+            onTriggered: {
+                horizontalWheelHandler.accumulated = 0;
+                horizontalWheelHandler.gestureLocked = false;
+            }
+        }
+
         WheelHandler {
             id: horizontalWheelHandler
             target: null
             acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+            property real accumulated: 0
+            property bool gestureLocked: false
+
             onWheel: function(event) {
                 if (!expandedPageStrip || expandedPageStrip.pageCount <= 1) return;
-                const deltaX = event.pixelDelta ? event.pixelDelta.x : (event.angleDelta ? event.angleDelta.x / 5 : 0);
-                if (deltaX < -40) {
-                    expandedPageStrip.settlePage(expandedPageStrip.currentPage + 1);
+                if (event.phase === Qt.ScrollMomentum) {
                     event.accepted = true;
-                } else if (deltaX > 40) {
+                    return;
+                }
+                if (horizontalWheelHandler.gestureLocked) {
+                    wheelResetTimer.restart();
+                    event.accepted = true;
+                    return;
+                }
+
+                const deltaX = event.pixelDelta ? event.pixelDelta.x : (event.angleDelta ? event.angleDelta.x / 5 : 0);
+                if (Math.abs(deltaX) < 1) return;
+
+                wheelResetTimer.restart();
+                horizontalWheelHandler.accumulated += deltaX;
+
+                if (horizontalWheelHandler.accumulated < -20) {
+                    expandedPageStrip.settlePage(expandedPageStrip.currentPage + 1);
+                    horizontalWheelHandler.accumulated = 0;
+                    horizontalWheelHandler.gestureLocked = true;
+                    event.accepted = true;
+                } else if (horizontalWheelHandler.accumulated > 20) {
                     expandedPageStrip.settlePage(expandedPageStrip.currentPage - 1);
+                    horizontalWheelHandler.accumulated = 0;
+                    horizontalWheelHandler.gestureLocked = true;
                     event.accepted = true;
                 }
             }

@@ -52,6 +52,52 @@ Item {
 
     clip: true
 
+    // Interactive horizontal swipe/drag gesture handling for page switching
+    DragHandler {
+        id: swipeDragHandler
+        target: null
+        enabled: root.pageCount > 1 && !root.isDraggingWidget
+        acceptedButtons: Qt.LeftButton
+        xAxis.enabled: true
+        yAxis.enabled: false
+        grabPermissions: PointerHandler.CanTakeOverFromItems | PointerHandler.ApprovesTakeOverByAnything
+
+        property real startPageProgress: 0
+        property double swipeStartTime: 0
+
+        onActiveChanged: {
+            if (active) {
+                settleAnimation.stop();
+                startPageProgress = root.pageProgress;
+                swipeStartTime = Date.now();
+            } else {
+                const elapsedMs = Math.max(16, Date.now() - swipeStartTime);
+                const velocityX = activeTranslation.x / elapsedMs;
+
+                let target = Math.round(root.pageProgress);
+                if (velocityX > 0.35) {
+                    target = Math.floor(root.pageProgress);
+                } else if (velocityX < -0.35) {
+                    target = Math.ceil(root.pageProgress);
+                }
+                root.settlePage(target);
+            }
+        }
+
+        onActiveTranslationChanged: {
+            if (active) {
+                const deltaPages = -activeTranslation.x / root.pageSlideDistance;
+                let newProgress = startPageProgress + deltaPages;
+                if (newProgress < 0) {
+                    newProgress = newProgress * 0.25;
+                } else if (newProgress > root.pageCount - 1) {
+                    newProgress = (root.pageCount - 1) + (newProgress - (root.pageCount - 1)) * 0.25;
+                }
+                root.pageProgress = newProgress;
+            }
+        }
+    }
+
     Repeater {
         model: root.pageCount
 

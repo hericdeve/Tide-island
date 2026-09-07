@@ -71,10 +71,10 @@ Item {
         anchors.fill: parent
         visible: root.hasWidget
 
-        // Wiggle parameters
-        readonly property real angleAmplitude: (root.slotSpan > 1 ? 0.8 : 1.2) * (root.slotIndex % 2 === 0 ? 1.0 : -1.0)
-        readonly property int rotDuration: 130 + ((root.slotIndex * 37) % 25)
-        readonly property int transDuration: 155 + ((root.slotIndex * 43) % 30)
+        // Wiggle parameters (subtle, gentle iOS home screen dancing effect)
+        readonly property real angleAmplitude: (root.slotSpan > 1 ? 0.45 : 0.7) * (root.slotIndex % 2 === 0 ? 1.0 : -1.0)
+        readonly property int rotDuration: 150 + ((root.slotIndex * 37) % 25)
+        readonly property int transDuration: 175 + ((root.slotIndex * 43) % 30)
 
         property real currentRotation: 0
         property real xOffset: 0
@@ -277,16 +277,16 @@ Item {
             NumberAnimation {
                 target: jiggleContainer
                 property: "xOffset"
-                from: -(root.slotIndex % 2 === 0 ? 0.6 : -0.6)
-                to: (root.slotIndex % 2 === 0 ? 0.6 : -0.6)
+                from: -(root.slotIndex % 2 === 0 ? 0.35 : -0.35)
+                to: (root.slotIndex % 2 === 0 ? 0.35 : -0.35)
                 duration: jiggleContainer.transDuration
                 easing.type: Easing.InOutQuad
             }
             NumberAnimation {
                 target: jiggleContainer
                 property: "yOffset"
-                from: -0.8
-                to: 0.8
+                from: -0.45
+                to: 0.45
                 duration: Math.round(jiggleContainer.transDuration * 1.08)
                 easing.type: Easing.InOutQuad
             }
@@ -295,16 +295,16 @@ Item {
             NumberAnimation {
                 target: jiggleContainer
                 property: "xOffset"
-                from: (root.slotIndex % 2 === 0 ? 0.6 : -0.6)
-                to: -(root.slotIndex % 2 === 0 ? 0.6 : -0.6)
+                from: (root.slotIndex % 2 === 0 ? 0.35 : -0.35)
+                to: -(root.slotIndex % 2 === 0 ? 0.35 : -0.35)
                 duration: jiggleContainer.transDuration
                 easing.type: Easing.InOutQuad
             }
             NumberAnimation {
                 target: jiggleContainer
                 property: "yOffset"
-                from: 0.8
-                to: -0.8
+                from: 0.45
+                to: -0.45
                 duration: Math.round(jiggleContainer.transDuration * 1.08)
                 easing.type: Easing.InOutQuad
             }

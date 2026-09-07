@@ -255,7 +255,7 @@ PanelWindow {
             return true;
         return false;
     }
-    readonly property bool topGestureInputActive: !root.overviewVisible && (islandContainer.canShowSideSwipe || islandContainer.islandState === "expanded")
+    readonly property bool topGestureInputActive: !root.overviewVisible && islandContainer.canShowSideSwipe
     readonly property bool autoHideRuntimeEnabled: !shellRootController
         || shellRootController.islandAutoHideRuntimeEnabled === undefined
         || !!shellRootController.islandAutoHideRuntimeEnabled
@@ -3246,7 +3246,28 @@ PanelWindow {
                         textFontFamily: root.textFontFamily
                         showCondition: islandContainer.fileShelfLayerVisible
                         dropPreviewOnly: !islandContainer.fileShelfOpenedManually
+                        batteryCapacity: islandContainer.batteryCapacity
+                        isCharging: islandContainer.isCharging
+                        cameraMirrorActive: expandedPlayerLoader.item ? expandedPlayerLoader.item.cameraMirrorActive : false
+                        isEditMode: expandedPlayerLoader.item ? expandedPlayerLoader.item.isEditMode : false
+                        currentPage: expandedPlayerLoader.item ? expandedPlayerLoader.item.currentPage : 0
                         onCloseRequested: islandContainer.smartRestoreState()
+                        onPageSelected: (idx) => {
+                            if (expandedPlayerLoader.item) {
+                                expandedPlayerLoader.item.showPage(idx);
+                            }
+                            islandContainer.showExpandedPlayer();
+                        }
+                        onCameraToggleRequested: {
+                            if (expandedPlayerLoader.item) {
+                                expandedPlayerLoader.item.cameraMirrorActive = !expandedPlayerLoader.item.cameraMirrorActive;
+                            }
+                        }
+                        onEditModeToggleRequested: {
+                            if (expandedPlayerLoader.item) {
+                                expandedPlayerLoader.item.isEditMode = !expandedPlayerLoader.item.isEditMode;
+                            }
+                        }
                     }
                 }
             }

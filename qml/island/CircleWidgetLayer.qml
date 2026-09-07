@@ -298,8 +298,6 @@ Item {
                         root.currentPageIndex = Math.min(root.pageCount - 1, root.currentPageIndex + 1);
                     else
                         root.currentPageIndex = Math.max(0, root.currentPageIndex - 1);
-                } else if (dy > 14) {
-                    root.expandRequested();
                 }
             } else {
                 root.expandRequested();

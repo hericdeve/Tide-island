@@ -496,8 +496,6 @@ Item {
                     } else {
                         root.prevFace();
                     }
-                } else if (dy > 14) {
-                    root.expandRequested();
                 }
             } else {
                 root.expandRequested();
