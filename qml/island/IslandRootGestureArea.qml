@@ -22,17 +22,17 @@ MouseArea {
         const deltaY = wheel.pixelDelta.y !== 0 ? wheel.pixelDelta.y : wheel.angleDelta.y / 4;
 
         // Check if gesture is primarily vertical (scroll down to open notch, scroll up to close)
-        if (Math.abs(deltaY) > Math.abs(deltaX) * 1.2 && Math.abs(deltaY) > 2) {
+        if (!isSwiping && Math.abs(deltaY) > Math.abs(deltaX) * 1.3 && Math.abs(deltaY) > 3) {
             verticalAccumulatedDelta += deltaY;
             verticalSettleTimer.restart();
 
             // Swipe down (negative deltaY) to open notch
-            if (verticalAccumulatedDelta < -60 && islandController.canShowSideSwipe) {
+            if (verticalAccumulatedDelta < -50 && islandController.islandState !== "expanded") {
                 verticalAccumulatedDelta = 0;
                 islandController.showExpandedPlayer(false);
             }
             // Swipe up (positive deltaY) to close if already expanded
-            else if (verticalAccumulatedDelta > 60 && islandController.islandState === "expanded") {
+            else if (verticalAccumulatedDelta > 50 && islandController.islandState === "expanded") {
                 verticalAccumulatedDelta = 0;
                 islandController.smartRestoreState();
             }
@@ -40,14 +40,18 @@ MouseArea {
             return;
         }
 
+        if (!islandController.canShowSideSwipe)
+            return;
+
         if (!isSwiping) {
             isSwiping = true;
             swipeStartProgress = islandController.swipeTransitionProgress;
             accumulatedDelta = 0;
+            islandController.sideSwipeDragging = true;
             islandController.cancelSideSwipeSettle();
         }
 
-        accumulatedDelta += deltaX * 0.8;
+        accumulatedDelta += deltaX * 1.5;
 
         const nextProgress = islandController.advanceSideSwipeProgress(swipeStartProgress, accumulatedDelta);
         islandController.swipeTransitionProgress = nextProgress;
@@ -67,13 +71,14 @@ MouseArea {
     Timer {
         id: swipeSettleTimer
 
-        interval: 150
+        interval: 220
 
         onTriggered: {
             if (!root.isSwiping || !root.islandController)
                 return;
 
             root.isSwiping = false;
+            root.islandController.sideSwipeDragging = false;
             const settleResult = root.islandController.resolveSideSwipeSettle(
                 root.swipeStartProgress,
                 root.islandController.swipeTransitionProgress

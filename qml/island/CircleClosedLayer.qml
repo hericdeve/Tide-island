@@ -87,8 +87,10 @@ Item {
         anchors.fill: parent
         visible: root.currentFaceIndex === 0
         opacity: visible ? 1 : 0
+        scale: visible ? 1.0 : 0.88
 
         Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.InOutQuad } }
+        Behavior on scale { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
 
         // Outer circular progress ring
         Canvas {
@@ -193,8 +195,10 @@ Item {
         anchors.fill: parent
         visible: root.currentFaceIndex === 1
         opacity: visible ? 1 : 0
+        scale: visible ? 1.0 : 0.88
 
         Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.InOutQuad } }
+        Behavior on scale { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
 
         // Subtle outer boundary circle
         Rectangle {
@@ -242,8 +246,10 @@ Item {
         anchors.fill: parent
         visible: root.currentFaceIndex === 2
         opacity: visible ? 1 : 0
+        scale: visible ? 1.0 : 0.88
 
         Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.InOutQuad } }
+        Behavior on scale { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
 
         Canvas {
             id: activityCanvas
@@ -338,8 +344,10 @@ Item {
         anchors.fill: parent
         visible: root.currentFaceIndex === 3
         opacity: visible ? 1 : 0
+        scale: visible ? 1.0 : 0.88
 
         Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.InOutQuad } }
+        Behavior on scale { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
 
         // Subtle outer boundary circle
         Rectangle {
@@ -358,18 +366,66 @@ Item {
         }
     }
 
-    // --- Wheel Navigation (Rotary dial complication cycling) ---
+    Timer {
+        id: wheelResetTimer
+        interval: 220
+        repeat: false
+        onTriggered: {
+            circleWheelHandler.accumulatedX = 0;
+            circleWheelHandler.accumulatedY = 0;
+        }
+    }
+
+    // --- Wheel Navigation (Rotary dial complication cycling & gestures) ---
     WheelHandler {
+        id: circleWheelHandler
         target: null
         acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+        property real accumulatedX: 0
+        property real accumulatedY: 0
+
         onWheel: function(event) {
-            const rawDelta = event.angleDelta.y !== 0 ? event.angleDelta.y : event.angleDelta.x;
-            if (rawDelta < 0) {
-                root.nextFace();
-            } else if (rawDelta > 0) {
-                root.prevFace();
+            const isTouchPad = (event.device.type === PointerDevice.TouchPad);
+            const dx = event.pixelDelta.x !== 0 ? event.pixelDelta.x : (event.angleDelta.x / 6);
+            const dy = event.pixelDelta.y !== 0 ? event.pixelDelta.y : (event.angleDelta.y / 6);
+
+            wheelResetTimer.restart();
+
+            if (isTouchPad) {
+                accumulatedX += dx;
+                accumulatedY += dy;
+
+                // Two-finger horizontal swipe on touchpad: cycle complication faces
+                if (Math.abs(accumulatedX) > 18 && Math.abs(accumulatedX) > Math.abs(accumulatedY) * 1.1) {
+                    if (accumulatedX < 0) {
+                        root.nextFace();
+                    } else {
+                        root.prevFace();
+                    }
+                    accumulatedX = 0;
+                    accumulatedY = 0;
+                    event.accepted = true;
+                    return;
+                }
+
+                // Two-finger vertical pull down on touchpad: expand player
+                if (accumulatedY < -24 && Math.abs(accumulatedY) > Math.abs(accumulatedX) * 1.1) {
+                    accumulatedX = 0;
+                    accumulatedY = 0;
+                    root.expandRequested();
+                    event.accepted = true;
+                    return;
+                }
+            } else {
+                // Physical mouse wheel: scroll up/down cycles faces
+                const delta = event.angleDelta.y !== 0 ? event.angleDelta.y : event.angleDelta.x;
+                if (delta < 0) {
+                    root.nextFace();
+                } else if (delta > 0) {
+                    root.prevFace();
+                }
+                event.accepted = true;
             }
-            event.accepted = true;
         }
     }
 
@@ -392,20 +448,26 @@ Item {
 
         onPositionChanged: (mouse) => {
             const dx = mouse.x - startX;
-            if (Math.abs(dx) > 10) {
+            const dy = mouse.y - startY;
+            if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
                 moved = true;
             }
         }
 
         onReleased: (mouse) => {
             const dx = mouse.x - startX;
-            if (moved && Math.abs(dx) > 12) {
-                if (dx < 0) {
-                    root.nextFace();
-                } else {
-                    root.prevFace();
+            const dy = mouse.y - startY;
+            if (moved) {
+                if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 12) {
+                    if (dx < 0) {
+                        root.nextFace();
+                    } else {
+                        root.prevFace();
+                    }
+                } else if (dy > 14) {
+                    root.expandRequested();
                 }
-            } else if (!moved) {
+            } else {
                 root.expandRequested();
             }
             moved = false;
