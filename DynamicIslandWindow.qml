@@ -1354,28 +1354,34 @@ PanelWindow {
             return 0;
         }
 
+        function sideSwipeNormalRestWidth() {
+            return islandContainer.currentTrack !== ""
+                ? Math.round(userConfig.notchClosedWidth + 2 * Math.max(0, userConfig.notchClosedHeight - 12) + 20)
+                : userConfig.notchClosedWidth;
+        }
+
         function sideSwipeRestWidthForProgress(progressValue) {
             if (progressValue <= -0.5) return customCapsuleWidth;
             if (progressValue >= 0.5) return lyricsCapsuleWidth;
-            return mainCapsule.baseTargetWidth;
+            return sideSwipeNormalRestWidth();
         }
 
         function customSideSwipeDragDistance() {
             const view = customSwipeLoader.item;
             if (view && view.dragDistance > 0) return view.dragDistance;
-            return Math.max(mainCapsule.baseTargetWidth, customCapsuleWidth + 4);
+            return Math.max(sideSwipeNormalRestWidth(), customCapsuleWidth + 4);
         }
 
         function lyricsSideSwipeDragDistance() {
             const view = lyricsSwipeLoader.item;
             if (view && view.dragDistance > 0) return view.dragDistance;
-            return Math.max(mainCapsule.baseTargetWidth, lyricsCapsuleWidth + 2);
+            return Math.max(sideSwipeNormalRestWidth(), lyricsCapsuleWidth + 2);
         }
 
         function sideSwipeDragDistanceForDirection(direction) {
             if (direction === "left") return customSideSwipeDragDistance();
             if (direction === "right") return lyricsSideSwipeDragDistance();
-            return mainCapsule.baseTargetWidth;
+            return sideSwipeNormalRestWidth();
         }
 
         function advanceSideSwipeProgress(currentProgress, deltaX, swipeAnchorProgress) {
@@ -1437,7 +1443,7 @@ PanelWindow {
                 if (finalProgress >= -0.72 || flickRight) {
                     settleAction = "time";
                     settleProgress = 0;
-                    settleWidth = mainCapsule.baseTargetWidth;
+                    settleWidth = sideSwipeNormalRestWidth();
                 } else {
                     settleAction = "custom";
                     settleProgress = -1;
@@ -1448,7 +1454,7 @@ PanelWindow {
                 if (finalProgress <= 0.72 || flickLeft) {
                     settleAction = "time";
                     settleProgress = 0;
-                    settleWidth = mainCapsule.baseTargetWidth;
+                    settleWidth = sideSwipeNormalRestWidth();
                 } else {
                     settleAction = "lyrics";
                     settleProgress = 1;
@@ -1467,7 +1473,7 @@ PanelWindow {
                 } else {
                     settleAction = "time";
                     settleProgress = 0;
-                    settleWidth = mainCapsule.baseTargetWidth;
+                    settleWidth = sideSwipeNormalRestWidth();
                 }
             }
 
@@ -1851,7 +1857,7 @@ PanelWindow {
         }
         Timer {
             id: sideSwipeSettleReset
-            interval: mainCapsule.morphDuration
+            interval: islandContainer.swipeAnimationDuration + 10
             onTriggered: islandContainer.finishSideSwipeSettle()
         }
         Timer {
@@ -2067,8 +2073,8 @@ PanelWindow {
                 enabled: !islandContainer.sideSwipeDragging && !capsuleMouseArea.sideSwipeInteractive
 
                 NumberAnimation {
-                    duration: mainCapsule.morphDuration
-                    easing.type: Easing.OutQuint
+                    duration: islandContainer.sideSwipeSettling ? islandContainer.swipeAnimationDuration : mainCapsule.morphDuration
+                    easing.type: Easing.OutCubic
                 }
             }
             Behavior on height {
