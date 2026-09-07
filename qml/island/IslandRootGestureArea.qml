@@ -14,6 +14,16 @@ MouseArea {
     property real swipeStartProgress: 0
     property double swipeStartTime: 0
     property bool isSwiping: false
+    property bool gestureLocked: false
+
+    Timer {
+        id: gestureLockoutTimer
+        interval: 320
+        repeat: false
+        onTriggered: {
+            root.gestureLocked = false;
+        }
+    }
 
     function commitSwipeSettle() {
         swipeSettleTimer.stop();
@@ -22,6 +32,8 @@ MouseArea {
 
         root.isSwiping = false;
         root.islandController.sideSwipeDragging = false;
+        root.gestureLocked = true;
+        gestureLockoutTimer.restart();
 
         const elapsedMs = Math.max(16, Date.now() - root.swipeStartTime);
         const velocity = root.accumulatedDelta / elapsedMs;
@@ -67,6 +79,13 @@ MouseArea {
             return;
         }
 
+        // If locked out after completing a panel transition in this stroke, absorb all remaining stroke events!
+        if (gestureLocked) {
+            gestureLockoutTimer.restart();
+            wheel.accepted = true;
+            return;
+        }
+
         const deltaX = wheel.pixelDelta.x !== 0 ? wheel.pixelDelta.x : (wheel.angleDelta.x / 5);
         const deltaY = wheel.pixelDelta.y !== 0 ? wheel.pixelDelta.y : (wheel.angleDelta.y / 5);
 
@@ -106,6 +125,22 @@ MouseArea {
         const nextProgress = islandController.advanceSideSwipeProgress(swipeStartProgress, accumulatedDelta, swipeStartProgress);
         islandController.swipeTransitionProgress = nextProgress;
         capsule.displayedWidth = capsule.sideSwipePreviewWidth;
+
+        // When a long swipe reaches the adjacent destination boundary, lock in immediately
+        // so the remaining travel of the stroke CANNOT blow past into the next panel!
+        if (swipeStartProgress <= -0.5 && nextProgress >= 0) {
+            commitSwipeSettle();
+            wheel.accepted = true;
+            return;
+        } else if (swipeStartProgress >= 0.5 && nextProgress <= 0) {
+            commitSwipeSettle();
+            wheel.accepted = true;
+            return;
+        } else if (Math.abs(swipeStartProgress) < 0.5 && (nextProgress >= 1 || nextProgress <= -1)) {
+            commitSwipeSettle();
+            wheel.accepted = true;
+            return;
+        }
 
         swipeSettleTimer.restart();
         wheel.accepted = true;

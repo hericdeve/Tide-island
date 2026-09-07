@@ -368,12 +368,12 @@ Item {
 
     Timer {
         id: wheelResetTimer
-        interval: 240
+        interval: 320
         repeat: false
         onTriggered: {
             circleWheelHandler.accumulatedX = 0;
             circleWheelHandler.accumulatedY = 0;
-            circleWheelHandler.gestureTriggered = false;
+            circleWheelHandler.gestureLocked = false;
         }
     }
 
@@ -384,65 +384,75 @@ Item {
         acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
         property real accumulatedX: 0
         property real accumulatedY: 0
-        property bool gestureTriggered: false
+        property bool gestureLocked: false
 
         onWheel: function(event) {
-            const isTouchPad = (event.device.type === PointerDevice.TouchPad);
-            const dx = event.pixelDelta.x !== 0 ? event.pixelDelta.x : (event.angleDelta.x / 6);
-            const dy = event.pixelDelta.y !== 0 ? event.pixelDelta.y : (event.angleDelta.y / 6);
+            // Ignore kinetic momentum
+            if (event.phase === Qt.ScrollMomentum) {
+                event.accepted = true;
+                return;
+            }
+
+            // Fingers lifted from touchpad: keep lockout active for a short quiet period so residual events do not chain
+            if (event.phase === Qt.ScrollEnd) {
+                wheelResetTimer.restart();
+                event.accepted = true;
+                return;
+            }
+
+            // If a face change already occurred in this swipe stroke, stay locked until stroke completely finishes
+            if (circleWheelHandler.gestureLocked) {
+                wheelResetTimer.restart();
+                event.accepted = true;
+                return;
+            }
 
             wheelResetTimer.restart();
 
-            if (isTouchPad) {
-                // Once triggered during a continuous touchpad swipe gesture, lock out further face changes until fingers lift
-                if (circleWheelHandler.gestureTriggered) {
-                    event.accepted = true;
-                    return;
-                }
+            const dx = event.pixelDelta.x !== 0 ? event.pixelDelta.x : (event.angleDelta.x / 5);
+            const dy = event.pixelDelta.y !== 0 ? event.pixelDelta.y : (event.angleDelta.y / 5);
 
-                circleWheelHandler.accumulatedX += dx;
-                circleWheelHandler.accumulatedY += dy;
+            circleWheelHandler.accumulatedX += dx;
+            circleWheelHandler.accumulatedY += dy;
 
-                // Two-finger horizontal swipe on touchpad: change to EXACTLY ONE next/prev face per swipe
-                if (Math.abs(circleWheelHandler.accumulatedX) > 18 && Math.abs(circleWheelHandler.accumulatedX) > Math.abs(circleWheelHandler.accumulatedY) * 1.1) {
-                    circleWheelHandler.gestureTriggered = true;
-                    if (circleWheelHandler.accumulatedX < 0) {
-                        root.nextFace();
-                    } else {
-                        root.prevFace();
-                    }
-                    circleWheelHandler.accumulatedX = 0;
-                    circleWheelHandler.accumulatedY = 0;
-                    event.accepted = true;
-                    return;
+            // Horizontal swipe: change EXACTLY ONE face per stroke, then lock out until the stroke finishes
+            if (Math.abs(circleWheelHandler.accumulatedX) > 16 && Math.abs(circleWheelHandler.accumulatedX) > Math.abs(circleWheelHandler.accumulatedY) * 1.1) {
+                circleWheelHandler.gestureLocked = true;
+                if (circleWheelHandler.accumulatedX < 0) {
+                    root.nextFace();
+                } else {
+                    root.prevFace();
                 }
+                circleWheelHandler.accumulatedX = 0;
+                circleWheelHandler.accumulatedY = 0;
+                event.accepted = true;
+                return;
+            }
 
-                // Two-finger vertical pull down on touchpad: expand player (once per gesture)
-                if (circleWheelHandler.accumulatedY < -24 && Math.abs(circleWheelHandler.accumulatedY) > Math.abs(circleWheelHandler.accumulatedX) * 1.1) {
-                    circleWheelHandler.gestureTriggered = true;
-                    circleWheelHandler.accumulatedX = 0;
-                    circleWheelHandler.accumulatedY = 0;
-                    root.expandRequested();
-                    event.accepted = true;
-                    return;
-                }
-            } else {
-                // Physical mouse wheel: one notch = one face change
-                if (circleWheelHandler.gestureTriggered) {
-                    event.accepted = true;
-                    return;
-                }
-                const delta = event.angleDelta.y !== 0 ? event.angleDelta.y : event.angleDelta.x;
-                if (Math.abs(delta) >= 60) {
-                    circleWheelHandler.gestureTriggered = true;
-                    if (delta < 0) {
-                        root.nextFace();
-                    } else if (delta > 0) {
-                        root.prevFace();
-                    }
+            // Two-finger vertical pull down on touchpad: expand player (once per stroke)
+            if (circleWheelHandler.accumulatedY < -24 && Math.abs(circleWheelHandler.accumulatedY) > Math.abs(circleWheelHandler.accumulatedX) * 1.1) {
+                circleWheelHandler.gestureLocked = true;
+                circleWheelHandler.accumulatedX = 0;
+                circleWheelHandler.accumulatedY = 0;
+                root.expandRequested();
+                event.accepted = true;
+                return;
+            }
+
+            // Discrete mouse wheel click fallback
+            const discreteDelta = event.angleDelta.y !== 0 ? event.angleDelta.y : event.angleDelta.x;
+            if (Math.abs(discreteDelta) >= 60) {
+                circleWheelHandler.gestureLocked = true;
+                if (discreteDelta < 0) {
+                    root.nextFace();
+                } else if (discreteDelta > 0) {
+                    root.prevFace();
                 }
                 event.accepted = true;
+                return;
             }
+
+            event.accepted = true;
         }
     }
 
