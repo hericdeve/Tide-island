@@ -136,14 +136,37 @@ Item {
         }
     }
 
-    NumberAnimation {
+    SequentialAnimation {
         id: holdProgressAnim
-        target: root
-        property: "holdProgress"
-        from: 0.0
-        to: 1.0
-        duration: 520
-        easing.type: Easing.Linear
+
+        // Delay before radial progress starts filling — prevents progress ring from flashing on quick clicks
+        PauseAnimation {
+            duration: 250
+        }
+
+        NumberAnimation {
+            target: root
+            property: "holdProgress"
+            from: 0.0
+            to: 1.0
+            duration: 450
+            easing.type: Easing.Linear
+        }
+
+        ScriptAction {
+            script: {
+                if (tapArea.pressed && !tapArea.moved) {
+                    tapArea.isHoldTriggered = true;
+                    root.holdProgress = 0.0;
+                    if (userConfig) {
+                        const nextTitle = "Page " + (root.pageCount + 1);
+                        userConfig.addPage("circle", nextTitle, 1);
+                        root.currentPageIndex = Math.max(0, root.pageCount - 1);
+                    }
+                    popAnim.restart();
+                }
+            }
+        }
     }
 
     SequentialAnimation {
@@ -180,7 +203,7 @@ Item {
             ctx.beginPath();
             ctx.arc(center, center, radius, -Math.PI / 2, -Math.PI / 2 + 2 * Math.PI * root.holdProgress, false);
             ctx.lineWidth = 3;
-            ctx.strokeStyle = "#b56cff";
+            ctx.strokeStyle = "#d9ffffff";
             ctx.lineCap = "round";
             ctx.stroke();
         }
@@ -200,16 +223,16 @@ Item {
         height: parent.height
         radius: width / 2
         color: "transparent"
-        border.width: 2.5
-        border.color: "#b56cff"
+        border.width: 2
+        border.color: "#66ffffff"
         visible: root.isDropTargetActive
         z: 95
 
         SequentialAnimation on border.color {
             running: root.isDropTargetActive
             loops: Animation.Infinite
-            ColorAnimation { from: "#b56cff"; to: "#e879f9"; duration: 600 }
-            ColorAnimation { from: "#e879f9"; to: "#b56cff"; duration: 600 }
+            ColorAnimation { from: "#59ffffff"; to: "#bfffffff"; duration: 600 }
+            ColorAnimation { from: "#bfffffff"; to: "#59ffffff"; duration: 600 }
         }
     }
 
@@ -219,7 +242,6 @@ Item {
         cursorShape: Qt.PointingHandCursor
         hoverEnabled: true
         acceptedButtons: Qt.LeftButton | Qt.RightButton
-        pressAndHoldInterval: 520
 
         property real startX: 0
         property real startY: 0
@@ -234,6 +256,7 @@ Item {
             startY = mouse.y;
             moved = false;
             isHoldTriggered = false;
+            root.holdProgress = 0.0;
             holdProgressAnim.restart();
         }
 
@@ -247,18 +270,11 @@ Item {
             }
         }
 
-        onPressAndHold: (mouse) => {
-            if (mouse.button === Qt.LeftButton && !moved) {
-                isHoldTriggered = true;
-                holdProgressAnim.stop();
-                root.holdProgress = 0.0;
-                if (userConfig) {
-                    const nextTitle = "Page " + (root.pageCount + 1);
-                    userConfig.addPage("circle", nextTitle, 1);
-                    root.currentPageIndex = Math.max(0, root.pageCount - 1);
-                }
-                popAnim.restart();
-            }
+        onCanceled: {
+            holdProgressAnim.stop();
+            root.holdProgress = 0.0;
+            moved = false;
+            isHoldTriggered = false;
         }
 
         onReleased: (mouse) => {
@@ -389,9 +405,9 @@ Item {
                     width: Math.min(44, parent.width - 24)
                     height: width
                     radius: width / 2
-                    color: "#161220"
-                    border.width: 1.5
-                    border.color: "#b56cff"
+                    color: "#14ffffff"
+                    border.width: 1
+                    border.color: "#2effffff"
                     z: 20
 
                     Column {
@@ -403,7 +419,7 @@ Item {
                             text: "󰐕"
                             font.family: root.iconFontFamily
                             font.pixelSize: 14
-                            color: "#b56cff"
+                            color: "#ffffff"
                         }
 
                         Text {
@@ -412,7 +428,7 @@ Item {
                             font.family: root.textFontFamily
                             font.pixelSize: 8
                             font.weight: Font.Bold
-                            color: "#88888e"
+                            color: "#8e8e93"
                         }
                     }
                 }

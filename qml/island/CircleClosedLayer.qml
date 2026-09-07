@@ -59,7 +59,7 @@ Item {
         width: 1
         height: 1
         visible: false
-        property color extractedColor: "#b56cff"
+        property color extractedColor: "#ffffff"
 
         onPaint: {
             const ctx = getContext("2d");

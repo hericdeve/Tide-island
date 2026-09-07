@@ -147,8 +147,8 @@ Item {
 
                 Text {
                     text: root.lyricsText
-                    color: "#b56cff"
-                    opacity: root.isPlaying ? 1.0 : 0.65
+                    color: "#ffffff"
+                    opacity: root.isPlaying ? 0.9 : 0.6
                     font.pixelSize: Math.round(10 * root.uiScale)
                     font.family: root.textFontFamily
                     font.weight: Font.Medium
@@ -178,7 +178,7 @@ Item {
                     Rectangle {
                         height: parent.height
                         radius: 1.5
-                        color: "#b56cff"
+                        color: "#ffffff"
                         width: parent.width * Math.max(0, Math.min(1, root.trackProgress))
                     }
                 }
@@ -284,7 +284,7 @@ Item {
                     Text {
                         anchors.centerIn: parent
                         text: "󰒝"
-                        color: (activePlayer && activePlayer.shuffle) ? "#b56cff" : "#8e8e93"
+                        color: (activePlayer && activePlayer.shuffle) ? "#ffffff" : "#8e8e93"
                         font.family: root.iconFontFamily
                         font.pixelSize: 13
                     }
@@ -306,7 +306,7 @@ Item {
                     Text {
                         anchors.centerIn: parent
                         text: (activePlayer && String(activePlayer.loopStatus).toLowerCase().indexOf("track") !== -1) ? "󰑘" : "󰑖"
-                        color: (activePlayer && String(activePlayer.loopStatus).toLowerCase() !== "none") ? "#b56cff" : "#8e8e93"
+                        color: (activePlayer && String(activePlayer.loopStatus).toLowerCase() !== "none") ? "#ffffff" : "#8e8e93"
                         font.family: root.iconFontFamily
                         font.pixelSize: 13
                     }

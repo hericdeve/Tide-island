@@ -143,6 +143,10 @@ Item {
                     if (userConfig)
                         userConfig.addPage("expanded", "", 3);
                 }
+                onSetSlotsRequested: (pIdx, sCount) => {
+                    if (userConfig)
+                        userConfig.setPageSlots("expanded", pIdx, sCount);
+                }
                 onShelfRequested: root.shelfRequested()
                 onCameraToggleRequested: root.cameraMirrorActive = !root.cameraMirrorActive
                 onEditModeToggleRequested: root.isEditMode = !root.isEditMode

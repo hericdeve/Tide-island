@@ -38,7 +38,7 @@ Item {
 
             // Active progress
             if (root.trackProgress > 0.01) {
-                ctx.strokeStyle = "#b56cff";
+                ctx.strokeStyle = "#ffffff";
                 ctx.lineWidth = 3;
                 ctx.lineCap = "round";
                 ctx.beginPath();
@@ -71,7 +71,7 @@ Item {
             text: root.isPlaying ? "󰎆" : "󰐊"
             font.family: root.iconFontFamily
             font.pixelSize: Math.round(parent.width * 0.45)
-            color: "#b56cff"
+            color: "#ffffff"
             visible: !root.currentArtUrl || root.currentArtUrl === ""
         }
     }

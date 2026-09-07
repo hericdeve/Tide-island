@@ -23,116 +23,49 @@ Item {
     readonly property real spacing: 12
     readonly property real slotBaseWidth: Math.max(40, (gridContainer.width - (slotCount - 1) * spacing) / slotCount)
 
-    // Edit controls header (shown above slot grid when in edit mode)
+    readonly property bool showEditHeader: root.isEditMode && root.pageData && !root.pageData.isHome
+
+    // Edit controls header (shown above slot grid when in edit mode on non-Home pages)
     Item {
         id: editHeader
         width: parent.width
-        height: 24
-        visible: root.isEditMode
-
-        Row {
-            anchors.left: parent.left
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: 6
-
-            Text {
-                text: "Slots:"
-                font.family: root.widgetContext ? root.widgetContext.textFontFamily : "Sans Serif"
-                font.pixelSize: 11
-                font.weight: Font.Medium
-                color: "#8e8e93"
-                anchors.verticalCenter: parent.verticalCenter
-            }
-
-            // Decrement slots button
-            Rectangle {
-                width: 20
-                height: 20
-                radius: 10
-                color: decMouse.containsMouse ? "#48484a" : "#2c2c2e"
-                enabled: root.slotCount > 1
-                opacity: enabled ? 1.0 : 0.4
-
-                Text {
-                    anchors.centerIn: parent
-                    text: "-"
-                    font.pixelSize: 12
-                    font.weight: Font.Bold
-                    color: "white"
-                }
-
-                MouseArea {
-                    id: decMouse
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: root.setSlotsRequested(root.pageIndex, root.slotCount - 1)
-                }
-            }
-
-            Text {
-                text: String(root.slotCount)
-                font.family: root.widgetContext ? root.widgetContext.textFontFamily : "Sans Serif"
-                font.pixelSize: 12
-                font.weight: Font.Bold
-                color: "white"
-                anchors.verticalCenter: parent.verticalCenter
-            }
-
-            // Increment slots button
-            Rectangle {
-                width: 20
-                height: 20
-                radius: 10
-                color: incMouse.containsMouse ? "#48484a" : "#2c2c2e"
-                enabled: root.slotCount < 6
-                opacity: enabled ? 1.0 : 0.4
-
-                Text {
-                    anchors.centerIn: parent
-                    text: "+"
-                    font.pixelSize: 12
-                    font.weight: Font.Bold
-                    color: "white"
-                }
-
-                MouseArea {
-                    id: incMouse
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: root.setSlotsRequested(root.pageIndex, root.slotCount + 1)
-                }
-            }
-        }
+        height: root.showEditHeader ? 24 : 0
+        visible: root.showEditHeader
 
         // Delete page button (disabled for Home page)
         Rectangle {
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
-            width: 86
+            width: delRow.implicitWidth + 16
             height: 22
             radius: 11
-            color: delMouse.containsMouse ? "#ff453a" : "#2c2c2e"
-            visible: root.pageData && !root.pageData.isHome
+            color: delMouse.pressed ? "#ff453a" : (delMouse.containsMouse ? "#29ff453a" : "#12ffffff")
+            border.width: 1
+            border.color: delMouse.containsMouse ? "#66ff453a" : "#1affffff"
+
+            Behavior on color { ColorAnimation { duration: 120 } }
+            Behavior on border.color { ColorAnimation { duration: 120 } }
 
             Row {
+                id: delRow
                 anchors.centerIn: parent
-                spacing: 4
+                spacing: 5
 
                 Text {
                     text: "󰅖"
                     font.family: root.widgetContext ? root.widgetContext.iconFontFamily : "Sans Serif"
-                    font.pixelSize: 11
-                    color: "white"
+                    font.pixelSize: 10
+                    color: delMouse.containsMouse ? "#ff6961" : "#8e8e93"
+                    anchors.verticalCenter: parent.verticalCenter
                 }
 
                 Text {
                     text: "Delete Page"
                     font.family: root.widgetContext ? root.widgetContext.textFontFamily : "Sans Serif"
-                    font.pixelSize: 10
+                    font.pixelSize: 11
                     font.weight: Font.Medium
-                    color: "white"
+                    color: delMouse.containsMouse ? "#ffffff" : "#8e8e93"
+                    anchors.verticalCenter: parent.verticalCenter
                 }
             }
 
@@ -149,8 +82,8 @@ Item {
     // Main Slot Grid Container
     Item {
         id: gridContainer
-        anchors.top: root.isEditMode ? editHeader.bottom : parent.top
-        anchors.topMargin: root.isEditMode ? 4 : 0
+        anchors.top: root.showEditHeader ? editHeader.bottom : parent.top
+        anchors.topMargin: root.showEditHeader ? 4 : 0
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom

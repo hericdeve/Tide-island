@@ -29,7 +29,7 @@ Item {
             text: root.isPlaying ? "󰎆" : "󰐊"
             font.family: root.iconFontFamily
             font.pixelSize: 13
-            color: root.isPlaying ? "#b56cff" : "#8e8e93"
+            color: root.isPlaying ? "#ffffff" : "#8e8e93"
             anchors.verticalCenter: parent.verticalCenter
         }
 

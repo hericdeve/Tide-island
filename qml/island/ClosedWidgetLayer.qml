@@ -213,16 +213,16 @@ Item {
         anchors.fill: parent
         radius: height / 2
         color: "transparent"
-        border.width: 2
-        border.color: "#b56cff"
+        border.width: 1.5
+        border.color: "#66ffffff"
         visible: root.isDropTargetActive
         z: 95
 
         SequentialAnimation on border.color {
             running: root.isDropTargetActive
             loops: Animation.Infinite
-            ColorAnimation { from: "#b56cff"; to: "#e879f9"; duration: 600 }
-            ColorAnimation { from: "#e879f9"; to: "#b56cff"; duration: 600 }
+            ColorAnimation { from: "#59ffffff"; to: "#bfffffff"; duration: 600 }
+            ColorAnimation { from: "#bfffffff"; to: "#59ffffff"; duration: 600 }
         }
     }
 }

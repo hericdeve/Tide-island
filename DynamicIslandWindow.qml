@@ -164,7 +164,7 @@ PanelWindow {
         root.overviewWindowHeight,
         Math.ceil(root.controlCenterWindowHeight),
         islandContainer.isDraggingWidgetFromLibrary ? 560 : 0,
-        islandContainer.widgetStagingActive ? Math.ceil(mainCapsule.y + mainCapsule.height + 14 + 60 + 20) : 0
+        islandContainer.widgetStagingActive ? Math.ceil(mainCapsule.y + mainCapsule.height + 14 + (stagingTrayItem.height > 0 ? stagingTrayItem.height : 76) + 24) : 0
     )
     // Grow the layer surface immediately, but keep the old extent while the
     // capsule finishes its collapse animation. A later expansion interrupts
@@ -1805,6 +1805,32 @@ PanelWindow {
         property string stagedWidgetId: ""
         property string stagedSizeType: "full"
         property int stagedSlotSpan: 1
+
+        // Staged widget context for live preview loader in floating staging tray
+        readonly property var stagingWidgetContext: ({
+            activePlayer: islandContainer.activePlayer,
+            currentTrack: islandContainer.currentTrack,
+            currentArtist: islandContainer.currentArtist,
+            currentArtUrl: islandContainer.currentArtUrl,
+            lyricsText: islandContainer.lyricsDisplayText,
+            timePlayed: islandContainer.timePlayed,
+            timeTotal: islandContainer.timeTotal,
+            trackProgress: islandContainer.trackProgress,
+            isPlaying: islandContainer.activePlayer ? islandContainer.activePlayer.playbackState === MprisPlaybackState.Playing : false,
+            batteryCapacity: islandContainer.batteryCapacity,
+            isCharging: islandContainer.isCharging,
+            currentCpuUsage: islandContainer.currentCpuUsage,
+            currentRamUsage: islandContainer.currentRamUsage,
+            currentTime: timeObj.currentTime,
+            currentDateLabel: timeObj.currentDateLabel,
+            iconFontFamily: root.iconFontFamily,
+            textFontFamily: root.textFontFamily,
+            heroFontFamily: root.heroFontFamily,
+            faceScale: 0.85,
+            circleDiameter: 48,
+            uiScale: 1.0,
+            isEditMode: false
+        })
 
         function stageWidgetForPlacement(widgetId, sizeType, slotSpan) {
             stagedWidgetId = widgetId;
@@ -3683,10 +3709,10 @@ PanelWindow {
             Rectangle {
                 anchors.fill: parent
                 radius: 17
-                color: "#16141f"
-                border.width: 1.5
-                border.color: "#b56cff"
-                opacity: 0.95
+                color: "#161618"
+                border.width: 1
+                border.color: "#26ffffff"
+                opacity: 0.96
 
                 Row {
                     id: ghostRow
@@ -3711,7 +3737,9 @@ PanelWindow {
                         width: sizeBadgeText.implicitWidth + 10
                         height: 18
                         radius: 9
-                        color: "#b56cff"
+                        color: "#1fffffff"
+                        border.width: 1
+                        border.color: "#26ffffff"
 
                         Text {
                             id: sizeBadgeText
@@ -3737,210 +3765,160 @@ PanelWindow {
             z: 95
             visible: islandContainer.widgetStagingActive && islandContainer.stagedWidgetId !== ""
             opacity: visible ? 1.0 : 0.0
-            scale: visible ? 1.0 : 0.92
-            width: Math.min(root.width - 48, 380)
-            height: 56
+            scale: visible ? 1.0 : 0.94
+            width: trayContentRow.implicitWidth + 24
+            height: trayContentRow.implicitHeight + 16
             x: Math.round(mainCapsule.x + mainCapsule.width / 2 - width / 2)
             y: Math.round(mainCapsule.y + mainCapsule.height + 12)
 
-            Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.OutQuad } }
-            Behavior on scale { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
-            Behavior on x { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
-            Behavior on y { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
+            Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutQuad } }
+            Behavior on scale { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+            Behavior on x { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
+            Behavior on y { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
+            Behavior on width { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+            Behavior on height { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
 
             Rectangle {
                 anchors.fill: parent
-                radius: height / 2
-                color: "#0d0d11"
-                border.width: 1.5
-                border.color: "#b56cff"
+                radius: Math.min(22, height / 2)
+                color: "#161618"
+                border.width: 1
+                border.color: "#1fffffff"
                 clip: true
 
                 Row {
-                    anchors.fill: parent
-                    anchors.leftMargin: 12
-                    anchors.rightMargin: 10
-                    spacing: 10
+                    id: trayContentRow
+                    anchors.centerIn: parent
+                    spacing: 12
 
-                    // Widget token icon
+                    // 1. Only the widget example
                     Rectangle {
+                        id: widgetPreviewBox
                         anchors.verticalCenter: parent.verticalCenter
-                        width: 36
-                        height: 36
-                        radius: 18
-                        color: "#1e162d"
+                        width: {
+                            if (islandContainer.stagedSizeType === "circle") return 48;
+                            if (islandContainer.stagedSizeType === "minimum") return 200;
+                            return islandContainer.stagedSlotSpan >= 2 ? 260 : 190;
+                        }
+                        height: {
+                            if (islandContainer.stagedSizeType === "circle") return 48;
+                            if (islandContainer.stagedSizeType === "minimum") return 36;
+                            return 60;
+                        }
+                        radius: islandContainer.stagedSizeType === "circle" ? 24 : (islandContainer.stagedSizeType === "minimum" ? 18 : 12)
+                        color: "#000000"
                         border.width: 1
-                        border.color: "#b56cff"
-                        Text {
-                            anchors.centerIn: parent
-                            text: {
-                                const w = WidgetRegistry.getWidget(islandContainer.stagedWidgetId);
-                                return w ? (w.icon || "󰐕") : "󰐕";
-                            }
-                            font.family: root.iconFontFamily
-                            font.pixelSize: 18
-                            color: "#d8b4fe"
-                        }
-                    }
+                        border.color: "#14ffffff"
+                        clip: true
 
-                    // Name & Instructions
-                    Column {
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: parent.width - 162
-                        spacing: 2
-                        Row {
-                            spacing: 6
-                            Text {
-                                text: {
-                                    const w = WidgetRegistry.getWidget(islandContainer.stagedWidgetId);
-                                    return w ? w.name : islandContainer.stagedWidgetId;
-                                }
-                                font.family: root.textFontFamily
-                                font.pixelSize: 12
-                                font.weight: Font.Bold
-                                color: "white"
-                                elide: Text.ElideRight
-                                maximumLineCount: 1
-                            }
-                            Rectangle {
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: trayBadge.implicitWidth + 8
-                                height: 15
-                                radius: 7.5
-                                color: "#b56cff"
-                                Text {
-                                    id: trayBadge
-                                    anchors.centerIn: parent
-                                    text: islandContainer.stagedSizeType === "full" ? "Full" : (islandContainer.stagedSizeType === "minimum" ? "Min" : "Circle")
-                                    font.family: root.textFontFamily
-                                    font.pixelSize: 9
-                                    font.weight: Font.Bold
-                                    color: "white"
-                                }
-                            }
-                        }
-                        Text {
-                            text: "Drag handle to slot • Navigate pages above"
-                            font.family: root.textFontFamily
-                            font.pixelSize: 10
-                            color: "#9999a0"
-                            elide: Text.ElideRight
-                            maximumLineCount: 1
-                        }
-                    }
-
-                    // Drag handle to place in slot
-                    Rectangle {
-                        id: stageDragHandle
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: 52
-                        height: 32
-                        radius: 16
-                        color: stageDragMouse.dragging ? "#c285ff" : (stageDragMouse.containsMouse ? "#a855f7" : "#b56cff")
-
-                        Row {
-                            anchors.centerIn: parent
-                            spacing: 3
-                            Text { text: "󰍡"; font.family: root.iconFontFamily; font.pixelSize: 13; color: "white" }
-                            Text { text: "Place"; font.family: root.textFontFamily; font.pixelSize: 10; font.weight: Font.Bold; color: "white" }
-                        }
-
-                        MouseArea {
-                            id: stageDragMouse
+                        Loader {
                             anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: dragging ? Qt.ClosedHandCursor : Qt.PointingHandCursor
-                            preventStealing: dragging
-                            property real startX: 0
-                            property real startY: 0
-                            property bool dragging: false
-                            property bool wasDragging: false
+                            anchors.margins: islandContainer.stagedSizeType === "full" ? 3 : 0
+                            source: (islandContainer.stagedWidgetId !== "")
+                                ? WidgetRegistry.getComponentUrl(islandContainer.stagedWidgetId, islandContainer.stagedSizeType)
+                                : ""
 
-                            onPressed: (mouse) => {
-                                if (mouse.button !== Qt.LeftButton) return;
-                                startX = mouse.x;
-                                startY = mouse.y;
-                                dragging = false;
-                                wasDragging = false;
-                            }
-                            onPositionChanged: (mouse) => {
-                                if (!pressed || (mouse.buttons & Qt.LeftButton) === 0) return;
-                                const dx = mouse.x - startX;
-                                const dy = mouse.y - startY;
-                                if (!dragging && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) {
-                                    dragging = true;
-                                    wasDragging = true;
-                                    islandContainer.isDraggingWidgetFromLibrary = true;
-                                    islandContainer.draggedWidgetData = {
-                                        widgetId: islandContainer.stagedWidgetId,
-                                        sizeType: islandContainer.stagedSizeType,
-                                        slotSpan: islandContainer.stagedSlotSpan
-                                    };
-                                    const winPos = stageDragHandle.mapToItem(null, mouse.x, mouse.y);
-                                    islandContainer.dragPointerPos = Qt.point(winPos.x, winPos.y);
-                                    islandContainer.updateDragHitTest(winPos.x, winPos.y);
-                                } else if (dragging) {
-                                    const winPos = stageDragHandle.mapToItem(null, mouse.x, mouse.y);
-                                    islandContainer.handleWidgetDragMoved(winPos.x, winPos.y);
+                            onLoaded: {
+                                if (item) {
+                                    item.widgetContext = islandContainer.stagingWidgetContext;
+                                    item.slotSpan = islandContainer.stagedSlotSpan;
+                                    item.isEditMode = false;
                                 }
                             }
-                            onReleased: (mouse) => {
-                                if (dragging) {
-                                    const winPos = stageDragHandle.mapToItem(null, mouse.x, mouse.y);
-                                    const hit = islandContainer.isPointOverCapsule(winPos.x, winPos.y);
-                                    if (hit) {
+                            onStatusChanged: {
+                                if (status === Loader.Ready && item) {
+                                    item.widgetContext = islandContainer.stagingWidgetContext;
+                                    item.slotSpan = islandContainer.stagedSlotSpan;
+                                    item.isEditMode = false;
+                                }
+                            }
+                        }
+                    }
+
+                    // 2. Up to 3 subtle buttons to add to the 3 possible slots
+                    Row {
+                        id: slotButtonsRow
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 6
+
+                        readonly property int slotCount: {
+                            if (islandContainer.stagedSizeType === "circle") return 1;
+                            if (!userConfig || !userConfig.widgetLayouts) return 3;
+                            const mode = islandContainer.stagedSizeType === "full" ? "expanded" : "minimum";
+                            const layout = userConfig.widgetLayouts[mode];
+                            if (!layout || !layout.pages || layout.pages.length === 0) return 3;
+                            const pageIdx = (mode === "expanded") ? islandContainer.rememberedPlayerPage
+                                : (closedWidgetLoader.item ? closedWidgetLoader.item.currentPageIndex : 0);
+                            const page = layout.pages[Math.max(0, Math.min(layout.pages.length - 1, pageIdx))];
+                            return Math.min(3, Math.max(1, page && page.slots !== undefined ? page.slots : 3));
+                        }
+
+                        Repeater {
+                            model: slotButtonsRow.slotCount
+
+                            Rectangle {
+                                readonly property int slotIndex: index
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: Math.max(54, slotBtnText.implicitWidth + 16)
+                                height: 30
+                                radius: 8
+                                color: slotBtnMouse.pressed
+                                    ? "#38ffffff"
+                                    : (slotBtnMouse.containsMouse ? "#24ffffff" : "#14ffffff")
+                                border.width: 1
+                                border.color: slotBtnMouse.containsMouse ? "#33ffffff" : "#14ffffff"
+
+                                Text {
+                                    id: slotBtnText
+                                    anchors.centerIn: parent
+                                    text: "Slot " + (parent.slotIndex + 1)
+                                    font.family: root.textFontFamily
+                                    font.pixelSize: 11
+                                    font.weight: Font.Medium
+                                    color: slotBtnMouse.containsMouse ? "#ffffff" : "#c4c4c8"
+                                }
+
+                                MouseArea {
+                                    id: slotBtnMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        let targetPage = 0;
                                         if (islandContainer.stagedSizeType === "full") {
-                                            const targetPage = islandContainer.rememberedPlayerPage;
-                                            const targetSlot = islandContainer.hoveredSlotIndex >= 0 ? islandContainer.hoveredSlotIndex : 0;
-                                            islandContainer.commitStagedWidgetToSlot(targetPage, targetSlot);
+                                            targetPage = islandContainer.rememberedPlayerPage;
                                         } else if (islandContainer.stagedSizeType === "minimum") {
-                                            const targetPage = closedWidgetLoader.item ? closedWidgetLoader.item.currentPageIndex : 0;
-                                            const targetSlot = islandContainer.hoveredSlotIndex >= 0 ? islandContainer.hoveredSlotIndex : 0;
-                                            islandContainer.commitStagedWidgetToSlot(targetPage, targetSlot);
+                                            targetPage = closedWidgetLoader.item ? closedWidgetLoader.item.currentPageIndex : 0;
                                         } else if (islandContainer.stagedSizeType === "circle") {
-                                            const targetPage = circleClosedLoader.item ? circleClosedLoader.item.currentPageIndex : 0;
-                                            islandContainer.commitStagedWidgetToSlot(targetPage, 0);
+                                            targetPage = circleClosedLoader.item ? circleClosedLoader.item.currentPageIndex : 0;
                                         }
-                                    }
-                                    dragging = false;
-                                    islandContainer.isDraggingWidgetFromLibrary = false;
-                                    islandContainer.draggedWidgetData = null;
-                                    islandContainer.hoveredSlotIndex = -1;
-                                }
-                            }
-                            onClicked: (mouse) => {
-                                if (!wasDragging && !dragging && mouse.button === Qt.LeftButton) {
-                                    if (islandContainer.stagedSizeType === "full") {
-                                        const targetPage = islandContainer.rememberedPlayerPage;
-                                        islandContainer.commitStagedWidgetToSlot(targetPage, 0);
-                                    } else if (islandContainer.stagedSizeType === "minimum") {
-                                        const targetPage = closedWidgetLoader.item ? closedWidgetLoader.item.currentPageIndex : 0;
-                                        islandContainer.commitStagedWidgetToSlot(targetPage, 0);
-                                    } else if (islandContainer.stagedSizeType === "circle") {
-                                        const targetPage = circleClosedLoader.item ? circleClosedLoader.item.currentPageIndex : 0;
-                                        islandContainer.commitStagedWidgetToSlot(targetPage, 0);
+                                        islandContainer.commitStagedWidgetToSlot(targetPage, parent.slotIndex);
                                     }
                                 }
                             }
                         }
                     }
 
-                    // Cancel button
+                    // 3. Subtle close/cancel button
                     Rectangle {
                         anchors.verticalCenter: parent.verticalCenter
                         width: 26
                         height: 26
                         radius: 13
-                        color: cancelStageMouse.containsMouse ? "#2a2a2e" : "#1a1a1e"
+                        color: cancelStageMouse.pressed
+                            ? "#33ffffff"
+                            : (cancelStageMouse.containsMouse ? "#1fffffff" : "#0fffffff")
                         border.width: 1
-                        border.color: "#2e2e34"
+                        border.color: cancelStageMouse.containsMouse ? "#2effffff" : "#0fffffff"
+
                         Text {
                             anchors.centerIn: parent
                             text: "󰅖"
                             font.family: root.iconFontFamily
                             font.pixelSize: 11
-                            color: "#88888e"
+                            color: cancelStageMouse.containsMouse ? "#ffffff" : "#88888e"
                         }
+
                         MouseArea {
                             id: cancelStageMouse
                             anchors.fill: parent
@@ -3997,10 +3975,10 @@ PanelWindow {
         Rectangle {
             anchors.fill: parent
             radius: 19
-            color: "#1c1c1e"
-            border.width: 1.5
-            border.color: "#b56cff"
-            opacity: 0.95
+            color: "#161618"
+            border.width: 1
+            border.color: "#2effffff"
+            opacity: 0.96
 
             Row {
                 anchors.centerIn: parent
@@ -4010,7 +3988,7 @@ PanelWindow {
                     anchors.verticalCenter: parent.verticalCenter
                     font.family: root.iconFontFamily
                     font.pixelSize: 14
-                    color: "#b56cff"
+                    color: "white"
                     text: {
                         if (!islandContainer.draggedWidgetData) return "";
                         const info = WidgetRegistry.getWidget(islandContainer.draggedWidgetData.widgetId);

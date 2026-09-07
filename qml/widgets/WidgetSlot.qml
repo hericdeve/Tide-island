@@ -30,9 +30,9 @@ Item {
         anchors.margins: 4
         radius: 12
         visible: !root.hasWidget && root.isEditMode
-        color: addMouse.containsMouse ? "#2a2a2e" : "#1a1a1c"
-        border.width: 1.5
-        border.color: addMouse.containsMouse ? "#b56cff" : "#3a3a3c"
+        color: addMouse.containsMouse ? "#14ffffff" : "#08ffffff"
+        border.width: 1
+        border.color: addMouse.containsMouse ? "#40ffffff" : "#1affffff"
 
         Column {
             anchors.centerIn: parent
@@ -43,7 +43,7 @@ Item {
                 text: "󰐕"
                 font.family: root.widgetContext ? root.widgetContext.iconFontFamily : "Sans Serif"
                 font.pixelSize: 22
-                color: addMouse.containsMouse ? "#b56cff" : "#8e8e93"
+                color: addMouse.containsMouse ? "#ffffff" : "#8e8e93"
             }
 
             Text {
@@ -114,8 +114,8 @@ Item {
         radius: 10
         visible: root.hasWidget && root.isEditMode
         color: "transparent"
-        border.width: 1.5
-        border.color: "#b56cff"
+        border.width: 1
+        border.color: "#33ffffff"
         z: 99
 
         // Slot badge at top-left
@@ -231,16 +231,16 @@ Item {
         anchors.margins: 2
         radius: 10
         visible: root.isDropTarget
-        color: "#24b56cff"
-        border.width: 2
-        border.color: "#b56cff"
+        color: "#14ffffff"
+        border.width: 1.5
+        border.color: "#66ffffff"
         z: 110
 
         SequentialAnimation on border.color {
             running: root.isDropTarget
             loops: Animation.Infinite
-            ColorAnimation { from: "#b56cff"; to: "#d8b4fe"; duration: 450 }
-            ColorAnimation { from: "#d8b4fe"; to: "#b56cff"; duration: 450 }
+            ColorAnimation { from: "#59ffffff"; to: "#bfffffff"; duration: 450 }
+            ColorAnimation { from: "#bfffffff"; to: "#59ffffff"; duration: 450 }
         }
 
         Row {
@@ -251,7 +251,7 @@ Item {
                 text: "󰐕"
                 font.family: root.widgetContext ? root.widgetContext.iconFontFamily : "Sans Serif"
                 font.pixelSize: 14
-                color: "#d8b4fe"
+                color: "white"
                 anchors.verticalCenter: parent.verticalCenter
             }
 

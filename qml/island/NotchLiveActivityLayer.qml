@@ -101,7 +101,7 @@ Item {
                     width: barWidth
                     height: Math.max(barWidth, parent.height * root.barLevel(index))
                     radius: barWidth / 2
-                    color: root.isPlaying ? "#b56cff" : "#5f4b72"
+                    color: root.isPlaying ? "#ffffff" : "#636366"
                     anchors.bottom: parent.bottom
 
                     Behavior on height {
