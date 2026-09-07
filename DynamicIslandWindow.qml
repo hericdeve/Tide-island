@@ -178,7 +178,8 @@ PanelWindow {
             return WlrLayer.Overlay;
         if (islandContainer.wallpaperPickerLayerVisible
                 || islandContainer.applicationLauncherLayerVisible
-                || islandContainer.fileShelfLayerVisible)
+                || islandContainer.fileShelfLayerVisible
+                || islandContainer.islandState === "widget_library")
             return WlrLayer.Overlay;
         return WlrLayer.Top;
     }
@@ -187,7 +188,8 @@ PanelWindow {
                 || islandContainer.wallpaperPickerLayerVisible
                 || islandContainer.applicationLauncherLayerVisible)
             return WlrKeyboardFocus.Exclusive;
-        if (islandContainer.fileShelfLayerVisible)
+        if (islandContainer.fileShelfLayerVisible
+                || islandContainer.islandState === "widget_library")
             return WlrKeyboardFocus.OnDemand;
         // Keep keyboard focus on the overview until an overview action closes it.
         // Click-to-focus closes the overview before focusing the selected client.
@@ -895,6 +897,7 @@ PanelWindow {
             || fileShelfLayerVisible
             || expandedPlayerKeyboardFocusRequested
             || (root.monitorFocused && (root.overviewVisible || root.connectivityPromptActive))
+            || islandState === "widget_library"
 
         property string islandState: "normal"
         property string splitIcon: root.defaultSplitIcon

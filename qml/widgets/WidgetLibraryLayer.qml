@@ -2,11 +2,10 @@ import QtQuick
 import IslandBackend
 import "."
 
-// Revamped Widget Library Showcase
-// Displays a detailed card for each widget describing it, indicating available
-// size variations (Full, Minimum, Circle), and expanding downwards to display
-// all available versions stacked on top of each other.
-// Swiping left/right or using wheel/keyboard navigates between widgets.
+// Clean, minimal Widget Library Showcase
+// Pure black background matching notch app.
+// Direct widget previews with no redundant titles or separators.
+// Only displays the size variations each widget actually implements.
 Item {
     id: root
 
@@ -42,12 +41,23 @@ Item {
     readonly property bool currentSupportsTargetMode: {
         if (!currentWidget || !currentWidget.supportedSizes) return false;
         const req = targetMode === "expanded" ? "full" : (targetMode === "circle" ? "circle" : "minimum");
+        if (req === "full" && (!currentWidget.fullComponent || currentWidget.fullComponent === "")) return false;
+        if (req === "minimum" && (!currentWidget.minimumComponent || currentWidget.minimumComponent === "")) return false;
+        if (req === "circle" && (!currentWidget.circleComponent || currentWidget.circleComponent === "")) return false;
         return currentWidget.supportedSizes.indexOf(req) !== -1;
     }
 
-    readonly property bool currentSupportsFull: currentWidget && currentWidget.supportedSizes && currentWidget.supportedSizes.indexOf("full") !== -1
-    readonly property bool currentSupportsMinimum: currentWidget && currentWidget.supportedSizes && currentWidget.supportedSizes.indexOf("minimum") !== -1
-    readonly property bool currentSupportsCircle: currentWidget && currentWidget.supportedSizes && currentWidget.supportedSizes.indexOf("circle") !== -1
+    readonly property bool currentSupportsFull: currentWidget && currentWidget.supportedSizes
+        && currentWidget.supportedSizes.indexOf("full") !== -1
+        && !!currentWidget.fullComponent && currentWidget.fullComponent !== ""
+    readonly property bool currentSupportsMinimum: currentWidget && currentWidget.supportedSizes
+        && currentWidget.supportedSizes.indexOf("minimum") !== -1
+        && !!currentWidget.minimumComponent && currentWidget.minimumComponent !== ""
+    readonly property bool currentSupportsCircle: currentWidget && currentWidget.supportedSizes
+        && currentWidget.supportedSizes.indexOf("circle") !== -1
+        && !!currentWidget.circleComponent && currentWidget.circleComponent !== ""
+
+    readonly property real contentHeight: mainCol.implicitHeight + 28
 
     function nextWidget() {
         if (widgetCount <= 0) return;
@@ -91,10 +101,10 @@ Item {
     focus: showCondition
 
     Behavior on opacity {
-        NumberAnimation { duration: 220; easing.type: Easing.OutQuad }
+        NumberAnimation { duration: 200; easing.type: Easing.OutQuad }
     }
     Behavior on scale {
-        NumberAnimation { duration: 220; easing.type: Easing.OutBack }
+        NumberAnimation { duration: 200; easing.type: Easing.OutBack }
     }
 
     Keys.onLeftPressed: root.prevWidget()
@@ -113,11 +123,11 @@ Item {
             const dx = event.pixelDelta.x !== 0 ? event.pixelDelta.x : (event.angleDelta.x / 5);
             if (Math.abs(dx) > 1) {
                 accumulatedX += dx;
-                if (accumulatedX < -22) {
+                if (accumulatedX < -20) {
                     root.nextWidget();
                     accumulatedX = 0;
                     event.accepted = true;
-                } else if (accumulatedX > 22) {
+                } else if (accumulatedX > 20) {
                     root.prevWidget();
                     accumulatedX = 0;
                     event.accepted = true;
@@ -126,65 +136,58 @@ Item {
         }
     }
 
+    // Pure black background matching notch app
     Rectangle {
         id: bg
         anchors.fill: parent
-        radius: 24
-        color: "#18181b"
+        radius: 26
+        color: "#000000"
         border.width: 1
-        border.color: "#343438"
+        border.color: "#242426"
         clip: true
 
         Column {
+            id: mainCol
             anchors.fill: parent
             anchors.margins: 14
-            spacing: 10
+            spacing: 12
 
-            // ── Header Bar ───────────────────────────────────────────────────
+            // ── Minimal Top Navigation Bar ──────────────────────────────────
             Item {
                 width: parent.width
-                height: 32
+                height: 24
 
+                // Dot pagination indicator & counter
                 Row {
                     anchors.left: parent.left
                     anchors.verticalCenter: parent.verticalCenter
-                    spacing: 8
+                    spacing: 5
 
-                    Rectangle {
-                        width: 28
-                        height: 28
-                        radius: 8
-                        color: "#271c38"
-                        border.width: 1
-                        border.color: "#b56cff"
+                    Repeater {
+                        model: root.widgetCount
 
-                        Text {
-                            anchors.centerIn: parent
-                            text: "󰏖"
-                            font.family: root.iconFontFamily
-                            font.pixelSize: 15
-                            color: "#b56cff"
+                        Rectangle {
+                            width: index === root.currentIndex ? 14 : 4
+                            height: 4
+                            radius: 2
+                            color: index === root.currentIndex ? "#b56cff" : "#333336"
+
+                            Behavior on width {
+                                NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
+                            }
+                            Behavior on color {
+                                ColorAnimation { duration: 180 }
+                            }
                         }
                     }
 
-                    Column {
+                    Text {
                         anchors.verticalCenter: parent.verticalCenter
-                        spacing: 0
-
-                        Text {
-                            text: "Widget Library"
-                            font.family: root.textFontFamily
-                            font.pixelSize: 14
-                            font.weight: Font.Bold
-                            color: "white"
-                        }
-
-                        Text {
-                            text: "Swipe left/right to browse available widgets"
-                            font.family: root.textFontFamily
-                            font.pixelSize: 10
-                            color: "#8e8e93"
-                        }
+                        text: (root.currentIndex + 1) + "/" + root.widgetCount
+                        font.family: root.textFontFamily
+                        font.pixelSize: 10
+                        font.weight: Font.Medium
+                        color: "#66666a"
                     }
                 }
 
@@ -195,19 +198,19 @@ Item {
 
                     Repeater {
                         model: [
-                            { id: "expanded", label: "Expanded (Full)" },
-                            { id: "minimum", label: "Closed (Min)" },
-                            { id: "circle", label: "Circle (Dial)" }
+                            { id: "expanded", label: "Expanded" },
+                            { id: "minimum", label: "Closed" },
+                            { id: "circle", label: "Circle" }
                         ]
 
                         Rectangle {
                             readonly property bool isSelected: root.targetMode === modelData.id
-                            width: modeText.implicitWidth + 16
-                            height: 24
-                            radius: 12
-                            color: isSelected ? "#b56cff" : (modeMouse.containsMouse ? "#2c2c30" : "#222225")
+                            width: modeText.implicitWidth + 14
+                            height: 20
+                            radius: 10
+                            color: isSelected ? "#2a1c3d" : (modeMouse.containsMouse ? "#1c1c1f" : "#111113")
                             border.width: 1
-                            border.color: isSelected ? "#c285ff" : "#323236"
+                            border.color: isSelected ? "#b56cff" : "#242426"
 
                             Text {
                                 id: modeText
@@ -216,7 +219,7 @@ Item {
                                 font.family: root.textFontFamily
                                 font.pixelSize: 10
                                 font.weight: parent.isSelected ? Font.Bold : Font.Normal
-                                color: parent.isSelected ? "white" : "#a1a1a6"
+                                color: parent.isSelected ? "#d8b4fe" : "#77777c"
                             }
 
                             MouseArea {
@@ -230,21 +233,21 @@ Item {
                     }
                 }
 
-                // Close button
+                // Minimal close button
                 Rectangle {
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
-                    width: 26
-                    height: 26
-                    radius: 13
-                    color: closeMouse.containsMouse ? "#323236" : "transparent"
+                    width: 22
+                    height: 22
+                    radius: 11
+                    color: closeMouse.containsMouse ? "#222225" : "transparent"
 
                     Text {
                         anchors.centerIn: parent
                         text: "󰅖"
                         font.family: root.iconFontFamily
-                        font.pixelSize: 13
-                        color: closeMouse.containsMouse ? "white" : "#8e8e93"
+                        font.pixelSize: 12
+                        color: closeMouse.containsMouse ? "white" : "#77777c"
                     }
 
                     MouseArea {
@@ -257,15 +260,15 @@ Item {
                 }
             }
 
-            // ── Widget Hero Card & Swiper Controls ───────────────────────────
+            // ── Widget Card (Describes Widget & Shows Available Variations) ──
             Rectangle {
-                id: heroCard
+                id: widgetCard
                 width: parent.width
-                height: 116
-                radius: 16
-                color: "#222226"
+                height: 74
+                radius: 14
+                color: "#0d0d0f"
                 border.width: 1
-                border.color: "#38383e"
+                border.color: "#1e1e22"
 
                 // Touch / Mouse Drag to swipe left/right
                 MouseArea {
@@ -284,7 +287,7 @@ Item {
                     }
                     onReleased: (mouse) => {
                         const dx = mouse.x - startX;
-                        if (moved && Math.abs(dx) > 28) {
+                        if (moved && Math.abs(dx) > 26) {
                             if (dx < 0)
                                 root.nextWidget();
                             else
@@ -295,24 +298,25 @@ Item {
 
                 Row {
                     anchors.fill: parent
-                    anchors.margins: 12
-                    spacing: 12
+                    anchors.leftMargin: 10
+                    anchors.rightMargin: 10
+                    spacing: 10
 
                     // Previous widget button
                     Rectangle {
                         anchors.verticalCenter: parent.verticalCenter
-                        width: 28
-                        height: 28
-                        radius: 14
-                        color: prevMouse.containsMouse ? "#383840" : "#2a2a2e"
+                        width: 26
+                        height: 26
+                        radius: 13
+                        color: prevMouse.containsMouse ? "#25252a" : "#161619"
                         border.width: 1
-                        border.color: "#3a3a42"
+                        border.color: "#28282d"
 
                         Text {
                             anchors.centerIn: parent
                             text: "󰅁"
                             font.family: root.iconFontFamily
-                            font.pixelSize: 14
+                            font.pixelSize: 13
                             color: "white"
                         }
 
@@ -325,59 +329,18 @@ Item {
                         }
                     }
 
-                    // Widget icon
-                    Rectangle {
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: 50
-                        height: 50
-                        radius: 14
-                        color: "#18181c"
-                        border.width: 1.5
-                        border.color: root.currentSupportsTargetMode ? "#b56cff" : "#444448"
-
-                        Text {
-                            anchors.centerIn: parent
-                            text: root.currentWidget ? root.currentWidget.icon : "󰏖"
-                            font.family: root.iconFontFamily
-                            font.pixelSize: 26
-                            color: root.currentSupportsTargetMode ? "#b56cff" : "#8e8e93"
-                        }
-                    }
-
-                    // Main info: title, description, variations available
+                    // Title and description
                     Column {
                         anchors.verticalCenter: parent.verticalCenter
-                        width: parent.width - 28 - 50 - 140 - 48
-                        spacing: 4
+                        width: parent.width - 136
+                        spacing: 3
 
-                        Row {
-                            spacing: 8
-                            Text {
-                                text: root.currentWidget ? root.currentWidget.name : ""
-                                font.family: root.textFontFamily
-                                font.pixelSize: 15
-                                font.weight: Font.Bold
-                                color: "white"
-                            }
-
-                            // Carousel indicator tag: "2 of 7"
-                            Rectangle {
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: countText.implicitWidth + 8
-                                height: 16
-                                radius: 8
-                                color: "#2e2e34"
-
-                                Text {
-                                    id: countText
-                                    anchors.centerIn: parent
-                                    text: (root.currentIndex + 1) + " of " + root.widgetCount
-                                    font.family: root.textFontFamily
-                                    font.pixelSize: 9
-                                    font.weight: Font.DemiBold
-                                    color: "#8e8e93"
-                                }
-                            }
+                        Text {
+                            text: root.currentWidget ? root.currentWidget.name : ""
+                            font.family: root.textFontFamily
+                            font.pixelSize: 14
+                            font.weight: Font.Bold
+                            color: "white"
                         }
 
                         Text {
@@ -385,469 +348,177 @@ Item {
                             text: root.currentWidget ? root.currentWidget.description : ""
                             font.family: root.textFontFamily
                             font.pixelSize: 11
-                            color: "#a1a1a6"
+                            color: "#88888e"
                             wrapMode: Text.WordWrap
                             maximumLineCount: 2
                             elide: Text.ElideRight
                         }
-
-                        // Available variations badges
-                        Row {
-                            spacing: 6
-
-                            Text {
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: "Sizes:"
-                                font.family: root.textFontFamily
-                                font.pixelSize: 10
-                                color: "#6e6e73"
-                            }
-
-                            // Full badge
-                            Rectangle {
-                                width: 54
-                                height: 18
-                                radius: 5
-                                color: root.currentSupportsFull ? "#14281a" : "#1c1c1e"
-                                border.width: 1
-                                border.color: root.currentSupportsFull ? "#30d158" : "#2e2e32"
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: "󰍹 Full"
-                                    font.family: root.textFontFamily
-                                    font.pixelSize: 9
-                                    font.weight: Font.DemiBold
-                                    color: root.currentSupportsFull ? "#30d158" : "#555"
-                                }
-                            }
-
-                            // Min badge
-                            Rectangle {
-                                width: 50
-                                height: 18
-                                radius: 5
-                                color: root.currentSupportsMinimum ? "#0e1e36" : "#1c1c1e"
-                                border.width: 1
-                                border.color: root.currentSupportsMinimum ? "#0a84ff" : "#2e2e32"
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: "󰍺 Min"
-                                    font.family: root.textFontFamily
-                                    font.pixelSize: 9
-                                    font.weight: Font.DemiBold
-                                    color: root.currentSupportsMinimum ? "#0a84ff" : "#555"
-                                }
-                            }
-
-                            // Circle badge
-                            Rectangle {
-                                width: 58
-                                height: 18
-                                radius: 5
-                                color: root.currentSupportsCircle ? "#2b1b0e" : "#1c1c1e"
-                                border.width: 1
-                                border.color: root.currentSupportsCircle ? "#ff9f0a" : "#2e2e32"
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: "󰚌 Circle"
-                                    font.family: root.textFontFamily
-                                    font.pixelSize: 9
-                                    font.weight: Font.DemiBold
-                                    color: root.currentSupportsCircle ? "#ff9f0a" : "#555"
-                                }
-                            }
-                        }
                     }
 
-                    // Add button & Next button column
-                    Row {
+                    // Add button: Icon only!
+                    Rectangle {
                         anchors.verticalCenter: parent.verticalCenter
-                        spacing: 8
+                        width: 34
+                        height: 34
+                        radius: 17
+                        color: root.currentSupportsTargetMode
+                            ? (addMouse.containsMouse ? "#c285ff" : "#b56cff")
+                            : "#1a1a1d"
+                        border.width: 1
+                        border.color: root.currentSupportsTargetMode ? "#d8b4fe" : "#28282d"
+                        opacity: root.currentSupportsTargetMode ? 1.0 : 0.35
 
-                        // Action button
-                        Rectangle {
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: 120
-                            height: 36
-                            radius: 10
-                            color: root.currentSupportsTargetMode
-                                ? (addMouse.containsMouse ? "#a34bfb" : "#b56cff")
-                                : "#28282c"
-                            border.width: 1
-                            border.color: root.currentSupportsTargetMode ? "#c285ff" : "#38383e"
-                            enabled: root.currentSupportsTargetMode
+                        Text {
+                            anchors.centerIn: parent
+                            text: "󰐕"
+                            font.family: root.iconFontFamily
+                            font.pixelSize: 16
+                            font.weight: Font.Bold
+                            color: root.currentSupportsTargetMode ? "white" : "#555"
+                        }
 
-                            Column {
-                                anchors.centerIn: parent
-                                spacing: 0
-
-                                Text {
-                                    anchors.horizontalCenter: parent.horizontalCenter
-                                    text: root.currentSupportsTargetMode ? "+ Add to Notch" : "Unsupported"
-                                    font.family: root.textFontFamily
-                                    font.pixelSize: 12
-                                    font.weight: Font.Bold
-                                    color: root.currentSupportsTargetMode ? "white" : "#666"
-                                }
-
-                                Text {
-                                    anchors.horizontalCenter: parent.horizontalCenter
-                                    text: root.currentSupportsTargetMode ? ("in " + root.targetMode) : ("for " + root.targetMode)
-                                    font.family: root.textFontFamily
-                                    font.pixelSize: 9
-                                    color: root.currentSupportsTargetMode ? "#e9d5ff" : "#555"
-                                }
-                            }
-
-                            MouseArea {
-                                id: addMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: root.currentSupportsTargetMode ? Qt.PointingHandCursor : Qt.ArrowCursor
-                                onClicked: {
-                                    if (root.currentWidget && userConfig) {
-                                        userConfig.setSlotWidget(
-                                            root.targetMode,
-                                            root.targetPageIndex,
-                                            root.targetSlotIndex,
-                                            root.currentWidget.id,
-                                            root.currentWidget.defaultSlotSpan || 1
-                                        );
-                                        root.widgetSelected(root.currentWidget.id);
-                                        root.closeRequested();
-                                    }
+                        MouseArea {
+                            id: addMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: root.currentSupportsTargetMode ? Qt.PointingHandCursor : Qt.ArrowCursor
+                            onClicked: {
+                                if (root.currentSupportsTargetMode && root.currentWidget && userConfig) {
+                                    userConfig.setSlotWidget(
+                                        root.targetMode,
+                                        root.targetPageIndex,
+                                        root.targetSlotIndex,
+                                        root.currentWidget.id,
+                                        root.currentWidget.defaultSlotSpan || 1
+                                    );
+                                    root.widgetSelected(root.currentWidget.id);
+                                    root.closeRequested();
                                 }
                             }
                         }
+                    }
 
-                        // Next widget button
-                        Rectangle {
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: 28
-                            height: 28
-                            radius: 14
-                            color: nextMouse.containsMouse ? "#383840" : "#2a2a2e"
-                            border.width: 1
-                            border.color: "#3a3a42"
+                    // Next widget button
+                    Rectangle {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 26
+                        height: 26
+                        radius: 13
+                        color: nextMouse.containsMouse ? "#25252a" : "#161619"
+                        border.width: 1
+                        border.color: "#28282d"
 
-                            Text {
-                                anchors.centerIn: parent
-                                text: "󰅂"
-                                font.family: root.iconFontFamily
-                                font.pixelSize: 14
-                                color: "white"
-                            }
+                        Text {
+                            anchors.centerIn: parent
+                            text: "󰅂"
+                            font.family: root.iconFontFamily
+                            font.pixelSize: 13
+                            color: "white"
+                        }
 
-                            MouseArea {
-                                id: nextMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: root.nextWidget()
-                            }
+                        MouseArea {
+                            id: nextMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.nextWidget()
                         }
                     }
                 }
             }
 
-            // ── Section Divider Label ────────────────────────────────────────
-            Row {
-                width: parent.width
-                spacing: 8
-
-                Text {
-                    text: "AVAILABLE VARIATIONS (EXPANDED BELOW)"
-                    font.family: root.textFontFamily
-                    font.pixelSize: 10
-                    font.weight: Font.Bold
-                    color: "#8e8e93"
-                    anchors.verticalCenter: parent.verticalCenter
-                }
-
-                Rectangle {
-                    height: 1
-                    width: parent.width - 250
-                    color: "#2c2c30"
-                    anchors.verticalCenter: parent.verticalCenter
-                }
-
-                // Dot pagination indicator
-                Row {
-                    anchors.verticalCenter: parent.verticalCenter
-                    spacing: 4
-
-                    Repeater {
-                        model: root.widgetCount
-
-                        Rectangle {
-                            width: index === root.currentIndex ? 16 : 5
-                            height: 5
-                            radius: 2.5
-                            color: index === root.currentIndex ? "#b56cff" : "#38383e"
-
-                            Behavior on width {
-                                NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
-                            }
-                            Behavior on color {
-                                ColorAnimation { duration: 180 }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // ── Stacked Previews Container (Scrollable) ──────────────────────
+            // ── Stacked Widget Variations Previews (Only Implemented Ones, No Titles) ──
             Flickable {
                 id: previewsFlickable
                 width: parent.width
-                height: parent.height - 32 - 116 - 20 - 30
+                height: Math.max(80, parent.height - 24 - 74 - 24)
                 contentWidth: width
-                contentHeight: previewsColumn.implicitHeight + 10
+                contentHeight: previewsColumn.implicitHeight
                 clip: true
                 boundsBehavior: Flickable.StopAtBounds
 
                 Column {
                     id: previewsColumn
                     width: parent.width
-                    spacing: 10
+                    spacing: 8
 
-                    // 1. FULL VARIATION PREVIEW (Expanded Notch)
-                    Rectangle {
-                        visible: root.currentSupportsFull
-                        width: parent.width
-                        height: 144
-                        radius: 14
-                        color: "#131316"
-                        border.width: 1
-                        border.color: "#28282c"
-                        clip: true
-
-                        Column {
-                            anchors.fill: parent
-                            anchors.margins: 8
-                            spacing: 6
-
-                            // Label header
-                            Row {
-                                spacing: 6
-                                Rectangle {
-                                    width: 8
-                                    height: 8
-                                    radius: 4
-                                    color: "#30d158"
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-                                Text {
-                                    text: "Full Version (Expanded Notch — " + (root.currentWidget ? root.currentWidget.defaultSlotSpan : 1) + " Slot Span)"
-                                    font.family: root.textFontFamily
-                                    font.pixelSize: 10
-                                    font.weight: Font.Bold
-                                    color: "#30d158"
-                                }
+                    Repeater {
+                        model: {
+                            if (!root.currentWidget) return [];
+                            const list = [];
+                            if (root.currentSupportsFull) {
+                                list.push({
+                                    type: "full",
+                                    source: root.currentWidget.fullComponent,
+                                    itemHeight: 134,
+                                    cardWidth: previewsColumn.width,
+                                    cardHeight: 134,
+                                    cardRadius: 12,
+                                    slotSpan: root.currentWidget.defaultSlotSpan || 2
+                                });
                             }
-
-                            // Component preview container
-                            Item {
-                                width: parent.width
-                                height: parent.height - 20
-                                clip: true
-
-                                Loader {
-                                    id: fullPreviewLoader
-                                    anchors.fill: parent
-                                    active: root.currentSupportsFull && !!root.currentWidget && !!root.currentWidget.fullComponent
-                                    source: active ? root.currentWidget.fullComponent : ""
-
-                                    onLoaded: {
-                                        if (item) {
-                                            item.widgetContext = root.previewWidgetContext;
-                                            item.slotSpan = root.currentWidget.defaultSlotSpan || 2;
-                                            item.isEditMode = false;
-                                        }
-                                    }
-                                    onStatusChanged: {
-                                        if (status === Loader.Ready && item) {
-                                            item.widgetContext = root.previewWidgetContext;
-                                            item.slotSpan = root.currentWidget.defaultSlotSpan || 2;
-                                            item.isEditMode = false;
-                                        }
-                                    }
-                                }
+                            if (root.currentSupportsMinimum) {
+                                list.push({
+                                    type: "minimum",
+                                    source: root.currentWidget.minimumComponent,
+                                    itemHeight: 38,
+                                    cardWidth: Math.min(previewsColumn.width - 24, 240),
+                                    cardHeight: 34,
+                                    cardRadius: 17,
+                                    slotSpan: 1
+                                });
                             }
+                            if (root.currentSupportsCircle) {
+                                list.push({
+                                    type: "circle",
+                                    source: root.currentWidget.circleComponent,
+                                    itemHeight: 62,
+                                    cardWidth: 58,
+                                    cardHeight: 58,
+                                    cardRadius: 29,
+                                    slotSpan: 1
+                                });
+                            }
+                            return list;
                         }
-                    }
 
-                    // 2. MINIMUM VARIATION PREVIEW (Closed Notch Pill)
-                    Rectangle {
-                        visible: root.currentSupportsMinimum
-                        width: parent.width
-                        height: 64
-                        radius: 14
-                        color: "#131316"
-                        border.width: 1
-                        border.color: "#28282c"
-                        clip: true
+                        Item {
+                            id: previewDelegate
+                            required property var modelData
+                            width: previewsColumn.width
+                            height: previewDelegate.modelData.itemHeight
 
-                        Column {
-                            anchors.fill: parent
-                            anchors.margins: 8
-                            spacing: 4
-
-                            // Label header
-                            Row {
-                                spacing: 6
-                                Rectangle {
-                                    width: 8
-                                    height: 8
-                                    radius: 4
-                                    color: "#0a84ff"
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-                                Text {
-                                    text: "Minimum Version (Closed Notch Pill)"
-                                    font.family: root.textFontFamily
-                                    font.pixelSize: 10
-                                    font.weight: Font.Bold
-                                    color: "#0a84ff"
-                                }
-                            }
-
-                            // Compact pill container
                             Rectangle {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                width: Math.min(parent.width - 32, 260)
-                                height: 32
-                                radius: 16
-                                color: "#000000"
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: previewDelegate.modelData.cardWidth
+                                height: previewDelegate.modelData.cardHeight
+                                radius: previewDelegate.modelData.cardRadius
+                                color: "#08080a"
                                 border.width: 1
-                                border.color: "#323236"
+                                border.color: "#1c1c20"
                                 clip: true
 
                                 Loader {
-                                    id: minPreviewLoader
                                     anchors.fill: parent
-                                    active: root.currentSupportsMinimum && !!root.currentWidget && !!root.currentWidget.minimumComponent
-                                    source: active ? root.currentWidget.minimumComponent : ""
+                                    anchors.margins: previewDelegate.modelData.type === "full" ? 4 : 0
+                                    source: previewDelegate.modelData.source
 
                                     onLoaded: {
                                         if (item) {
                                             item.widgetContext = root.previewWidgetContext;
-                                            item.slotSpan = 1;
+                                            item.slotSpan = previewDelegate.modelData.slotSpan;
                                             item.isEditMode = false;
                                         }
                                     }
                                     onStatusChanged: {
                                         if (status === Loader.Ready && item) {
                                             item.widgetContext = root.previewWidgetContext;
-                                            item.slotSpan = 1;
+                                            item.slotSpan = previewDelegate.modelData.slotSpan;
                                             item.isEditMode = false;
                                         }
                                     }
                                 }
-                            }
-                        }
-                    }
-
-                    // 3. CIRCLE VARIATION PREVIEW (Smartwatch Dial)
-                    Rectangle {
-                        visible: root.currentSupportsCircle
-                        width: parent.width
-                        height: 86
-                        radius: 14
-                        color: "#131316"
-                        border.width: 1
-                        border.color: "#28282c"
-                        clip: true
-
-                        Column {
-                            anchors.fill: parent
-                            anchors.margins: 8
-                            spacing: 4
-
-                            // Label header
-                            Row {
-                                spacing: 6
-                                Rectangle {
-                                    width: 8
-                                    height: 8
-                                    radius: 4
-                                    color: "#ff9f0a"
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-                                Text {
-                                    text: "Circle Version (Smartwatch Dial Complication)"
-                                    font.family: root.textFontFamily
-                                    font.pixelSize: 10
-                                    font.weight: Font.Bold
-                                    color: "#ff9f0a"
-                                }
-                            }
-
-                            // Circular dial container
-                            Rectangle {
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                width: 54
-                                height: 54
-                                radius: 27
-                                color: "#000000"
-                                border.width: 1
-                                border.color: "#323236"
-                                clip: true
-
-                                Loader {
-                                    id: circlePreviewLoader
-                                    anchors.fill: parent
-                                    active: root.currentSupportsCircle && !!root.currentWidget && !!root.currentWidget.circleComponent
-                                    source: active ? root.currentWidget.circleComponent : ""
-
-                                    onLoaded: {
-                                        if (item) {
-                                            item.widgetContext = root.previewWidgetContext;
-                                            item.slotSpan = 1;
-                                            item.isEditMode = false;
-                                        }
-                                    }
-                                    onStatusChanged: {
-                                        if (status === Loader.Ready && item) {
-                                            item.widgetContext = root.previewWidgetContext;
-                                            item.slotSpan = 1;
-                                            item.isEditMode = false;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // Note when a widget only implements Circle (e.g. boring face)
-                    Rectangle {
-                        visible: !root.currentSupportsFull && !root.currentSupportsMinimum && root.currentSupportsCircle
-                        width: parent.width
-                        height: 38
-                        radius: 10
-                        color: "#1c1824"
-                        border.width: 1
-                        border.color: "#3d2a54"
-
-                        Row {
-                            anchors.centerIn: parent
-                            spacing: 8
-
-                            Text {
-                                text: "󰚌"
-                                font.family: root.iconFontFamily
-                                font.pixelSize: 14
-                                color: "#ff9f0a"
-                            }
-
-                            Text {
-                                text: "This widget is exclusively designed as a Circle Mode complication."
-                                font.family: root.textFontFamily
-                                font.pixelSize: 11
-                                color: "#bfa3dd"
                             }
                         }
                     }

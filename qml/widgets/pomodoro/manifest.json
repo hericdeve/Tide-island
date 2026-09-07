@@ -3,6 +3,6 @@
   "name": "Pomodoro Timer",
   "description": "Focus timer with progress ring and quick duration presets",
   "icon": "󰄉",
-  "supportedSizes": ["full", "minimum", "circle"],
+  "supportedSizes": ["minimum", "circle"],
   "defaultSlotSpan": 1
 }

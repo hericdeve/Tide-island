@@ -10,7 +10,7 @@ Item {
 
     readonly property string textFontFamily: widgetContext ? widgetContext.textFontFamily : "Sans Serif"
     readonly property var nextEv: CalendarBackend ? CalendarBackend.nextEvent(new Date()) : null
-    readonly property bool hasUpcoming: nextEv && nextEv.title
+    readonly property bool hasUpcoming: !!(nextEv && nextEv.title)
 
     anchors.fill: parent
 

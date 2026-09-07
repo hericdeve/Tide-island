@@ -45,9 +45,9 @@ QtObject {
             name: "Pomodoro Timer",
             description: "Focus timer with progress ring and quick duration presets",
             icon: "󰄉",
-            supportedSizes: ["full", "minimum", "circle"],
+            supportedSizes: ["minimum", "circle"],
             defaultSlotSpan: 1,
-            fullComponent: Qt.resolvedUrl("pomodoro/Full.qml"),
+            fullComponent: "",
             minimumComponent: Qt.resolvedUrl("pomodoro/Minimum.qml"),
             circleComponent: Qt.resolvedUrl("pomodoro/Circle.qml")
         },
