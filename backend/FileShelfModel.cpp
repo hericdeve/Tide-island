@@ -1,15 +1,22 @@
 #include "FileShelfModel.h"
 
+#include <QClipboard>
+#include <QCoreApplication>
+#include <QDateTime>
 #include <QDir>
 #include <QDirIterator>
+#include <QFile>
 #include <QFileInfo>
+#include <QGuiApplication>
 #include <QIcon>
+#include <QMimeData>
 #include <QMimeDatabase>
 #include <QMimeType>
 #include <QRegularExpression>
 #include <QSettings>
 #include <QStandardPaths>
 #include <QStringList>
+#include <QTextStream>
 
 #include <utility>
 
@@ -163,6 +170,10 @@ QVariant FileShelfModel::data(const QModelIndex &index, int role) const
         return entry.directory;
     case ExistsRole:
         return entry.exists;
+    case IsSnippetRole:
+        return entry.isSnippet;
+    case SnippetTextRole:
+        return entry.snippetText;
     default:
         return QVariant();
     }
@@ -181,6 +192,8 @@ QHash<int, QByteArray> FileShelfModel::roleNames() const
         {IconSourceRole, "iconSource"},
         {DirectoryRole, "directory"},
         {ExistsRole, "exists"},
+        {IsSnippetRole, "isSnippet"},
+        {SnippetTextRole, "snippetText"},
     };
 }
 
@@ -307,7 +320,29 @@ FileShelfModel::Entry FileShelfModel::entryForUrl(const QUrl &sourceUrl)
     if (entry.fallbackIconName.isEmpty())
         entry.fallbackIconName = QStringLiteral("unknown");
     entry.iconSource = themedIconSource(entry.iconName, entry.fallbackIconName);
+
+    const QString clippingsDir = QDir::cleanPath(clippingsDirectoryPath());
+    const QString cleanFilePath = QDir::cleanPath(absolutePath);
+    if (!clippingsDir.isEmpty() && cleanFilePath.startsWith(clippingsDir)) {
+        entry.isSnippet = true;
+    }
+
+    if (entry.isSnippet || mimeType.inherits(QStringLiteral("text/plain"))) {
+        if (info.size() <= 65536) {
+            QFile file(absolutePath);
+            if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+                QTextStream stream(&file);
+                entry.snippetText = stream.read(10240);
+            }
+        }
+    }
     return entry;
+}
+
+QString FileShelfModel::clippingsDirectoryPath()
+{
+    const QString base = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation);
+    return QDir(base).filePath(QStringLiteral("tide-island/shelf_clippings"));
 }
 
 QString FileShelfModel::identityForUrl(const QUrl &url)
@@ -358,6 +393,92 @@ int FileShelfModel::addUriList(const QString &uriList)
     return added;
 }
 
+int FileShelfModel::addTextSnippet(const QString &text, const QString &suggestedTitle)
+{
+    const QString trimmedText = text.trimmed();
+    if (trimmedText.isEmpty())
+        return 0;
+
+    const QString dirPath = clippingsDirectoryPath();
+    QDir dir(dirPath);
+    if (!dir.exists() && !dir.mkpath(QStringLiteral(".")))
+        return 0;
+
+    QString baseTitle = suggestedTitle.trimmed();
+    if (baseTitle.isEmpty()) {
+        const QString firstLine = trimmedText.section(QLatin1Char('\n'), 0, 0).trimmed();
+        baseTitle = firstLine.left(25).trimmed();
+    }
+    if (baseTitle.isEmpty()) {
+        baseTitle = QStringLiteral("Snippet");
+    }
+
+    static const QRegularExpression invalidChars(QStringLiteral(R"([\\/:*?"<>|\r\n\t])"));
+    QString safeTitle = baseTitle;
+    safeTitle.replace(invalidChars, QStringLiteral("_"));
+    safeTitle = safeTitle.trimmed();
+    if (safeTitle.isEmpty())
+        safeTitle = QStringLiteral("Snippet");
+
+    const QString timestamp = QDateTime::currentDateTime().toString(QStringLiteral("yyyyMMdd_HHmmss_zzz"));
+    const QString fileName = QStringLiteral("%1_%2.txt").arg(safeTitle, timestamp);
+    const QString filePath = dir.filePath(fileName);
+
+    QFile file(filePath);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+        return 0;
+
+    QTextStream stream(&file);
+    stream << text;
+    file.close();
+
+    return addUrl(QUrl::fromLocalFile(filePath)) ? 1 : 0;
+}
+
+int FileShelfModel::pasteFromClipboard()
+{
+    if (!qobject_cast<QGuiApplication *>(QCoreApplication::instance()))
+        return 0;
+
+    QClipboard *clipboard = QGuiApplication::clipboard();
+    if (!clipboard)
+        return 0;
+
+    const QMimeData *mimeData = clipboard->mimeData();
+    if (!mimeData)
+        return 0;
+
+    if (mimeData->hasUrls()) {
+        int added = 0;
+        for (const QUrl &url : mimeData->urls()) {
+            if (addUrl(url))
+                ++added;
+        }
+        if (added > 0)
+            return added;
+    }
+
+    if (mimeData->hasFormat(QStringLiteral("text/uri-list"))) {
+        const int added = addUriList(QString::fromUtf8(mimeData->data(QStringLiteral("text/uri-list"))));
+        if (added > 0)
+            return added;
+    }
+
+    if (mimeData->hasFormat(QStringLiteral("x-special/gnome-copied-files"))) {
+        const int added = addUriList(QString::fromUtf8(mimeData->data(QStringLiteral("x-special/gnome-copied-files"))));
+        if (added > 0)
+            return added;
+    }
+
+    if (mimeData->hasText()) {
+        const QString text = clipboard->text();
+        if (!text.trimmed().isEmpty())
+            return addTextSnippet(text);
+    }
+
+    return 0;
+}
+
 QVariantMap FileShelfModel::get(int index) const
 {
     if (index < 0 || index >= m_entries.size())
@@ -375,6 +496,8 @@ QVariantMap FileShelfModel::get(int index) const
         {QStringLiteral("iconSource"), entry.iconSource},
         {QStringLiteral("directory"), entry.directory},
         {QStringLiteral("exists"), entry.exists},
+        {QStringLiteral("isSnippet"), entry.isSnippet},
+        {QStringLiteral("snippetText"), entry.snippetText},
     };
 }
 

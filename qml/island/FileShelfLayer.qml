@@ -131,11 +131,14 @@ FocusScope {
             center - trayViewport.width / 2));
     }
 
-    function dragMimeData(fileUrl, filePath) {
+    function dragMimeData(fileUrl, filePath, snippetText) {
         const url = String(fileUrl);
+        const textPayload = (snippetText !== undefined && snippetText !== null && String(snippetText).length > 0)
+            ? String(snippetText)
+            : String(filePath);
         return {
             "text/uri-list": url + "\r\n",
-            "text/plain": String(filePath),
+            "text/plain": textPayload,
             "x-special/gnome-copied-files": "copy\n" + url + "\n"
         };
     }
@@ -276,6 +279,16 @@ FocusScope {
     }
 
     Keys.onPressed: event => {
+        if ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_V) {
+            const pasted = FileShelf.pasteFromClipboard();
+            if (pasted > 0) {
+                root.selectedIndex = FileShelf.count - 1;
+                root.ensureSelectedVisible();
+            }
+            event.accepted = true;
+            return;
+        }
+
         switch (event.key) {
         case Qt.Key_Escape:
             root.closeRequested();
@@ -448,7 +461,7 @@ FocusScope {
                     Drag.proposedAction: Qt.CopyAction
                     Drag.hotSpot: Qt.point(width / 2, height / 2)
                     Drag.imageSource: systemIcon.source
-                    Drag.mimeData: root.dragMimeData(fileDelegate.uri, fileDelegate.filePath)
+                    Drag.mimeData: root.dragMimeData(fileDelegate.uri, fileDelegate.filePath, fileDelegate.isSnippet ? fileDelegate.snippetText : "")
 
                     transform: [
                         Translate {

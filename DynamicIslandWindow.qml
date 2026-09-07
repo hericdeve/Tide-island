@@ -233,6 +233,8 @@ PanelWindow {
             return WlrKeyboardFocus.OnDemand;
         if (root.monitorFocused && root.connectivityPromptActive)
             return WlrKeyboardFocus.OnDemand;
+        if (capsuleHoverHandler.hovered)
+            return WlrKeyboardFocus.OnDemand;
         return WlrKeyboardFocus.None;
     }
     readonly property string iconFontFamily: userConfig.iconFontFamily
@@ -841,12 +843,15 @@ PanelWindow {
     function dragCarriesFiles(dragEvent) {
         if (!dragEvent)
             return false;
-        if (dragEvent.hasUrls)
+        if (dragEvent.hasUrls || dragEvent.hasText)
             return true;
 
         const formats = dragEvent.formats || [];
         return formats.indexOf("text/uri-list") >= 0
-            || formats.indexOf("x-special/gnome-copied-files") >= 0;
+            || formats.indexOf("x-special/gnome-copied-files") >= 0
+            || formats.indexOf("text/plain") >= 0
+            || formats.indexOf("text/plain;charset=utf-8") >= 0
+            || formats.indexOf("UTF8_STRING") >= 0;
     }
 
     function addFilesFromDrop(dropEvent) {
@@ -862,6 +867,20 @@ PanelWindow {
             added += FileShelf.addUriList(dropEvent.getDataAsString("text/uri-list"));
         if (added === 0 && formats.indexOf("x-special/gnome-copied-files") >= 0)
             added += FileShelf.addUriList(dropEvent.getDataAsString("x-special/gnome-copied-files"));
+        if (added === 0) {
+            let text = "";
+            if (formats.indexOf("text/plain;charset=utf-8") >= 0)
+                text = dropEvent.getDataAsString("text/plain;charset=utf-8");
+            else if (formats.indexOf("text/plain") >= 0)
+                text = dropEvent.getDataAsString("text/plain");
+            else if (formats.indexOf("UTF8_STRING") >= 0)
+                text = dropEvent.getDataAsString("UTF8_STRING");
+            else if (dropEvent.hasText && dropEvent.text)
+                text = dropEvent.text;
+
+            if (text && text.trim().length > 0)
+                added += FileShelf.addTextSnippet(text);
+        }
         return added;
     }
 
@@ -1194,6 +1213,16 @@ PanelWindow {
         }
 
         Keys.onPressed: (event) => {
+            if ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_V) {
+                const pasted = FileShelf.pasteFromClipboard();
+                if (pasted > 0) {
+                    if (!islandContainer.fileShelfLayerVisible)
+                        islandContainer.showFileShelf(true);
+                    event.accepted = true;
+                    return;
+                }
+            }
+
             if (event.key === Qt.Key_Escape) {
                 if (root.overviewVisible) {
                     root.closeOverviewEverywhere();
@@ -2510,10 +2539,11 @@ PanelWindow {
 
             HoverHandler {
                 id: capsuleHoverHandler
-                enabled: root.hoverExpandEnabled || root.autoHideEnabled
+                enabled: true
 
                 onHoveredChanged: {
                     if (hovered) {
+                        islandContainer.forceActiveFocus();
                         if (root.autoHideEnabled) {
                             root.autoHidePointerInside = true;
                             root.showAutoHiddenIsland();

@@ -8,13 +8,20 @@
 class FileShelfModelTests final : public QObject {
     Q_OBJECT
 
+private:
+    QTemporaryDir m_tempDir;
+
 private slots:
+    void initTestCase();
     void addsLocalFilesAndFoldersWithoutDuplicates();
     void parsesStandardAndGnomeUriLists();
     void reordersEntriesWithoutChangingCount();
     void refreshRemovesMissingEntries();
     void removeDoesNotDeleteSourceFiles();
     void clearDoesNotDeleteSourceFiles();
+    void addsTextSnippetAsFileEntry();
+    void rejectsEmptyTextSnippet();
+    void pasteFromClipboardSafelyReturnsZeroWithoutGui();
 };
 
 namespace {
@@ -27,6 +34,12 @@ QString createFile(const QString &path)
     file.close();
     return path;
 }
+}
+
+void FileShelfModelTests::initTestCase()
+{
+    QVERIFY(m_tempDir.isValid());
+    qputenv("XDG_DATA_HOME", m_tempDir.path().toLocal8Bit());
 }
 
 void FileShelfModelTests::addsLocalFilesAndFoldersWithoutDuplicates()
@@ -147,6 +160,40 @@ void FileShelfModelTests::removeDoesNotDeleteSourceFiles()
 
     QCOMPARE(model.rowCount(), 0);
     QVERIFY(QFileInfo::exists(filePath));
+}
+
+void FileShelfModelTests::addsTextSnippetAsFileEntry()
+{
+    FileShelfModel model;
+    const QString snippet = QStringLiteral("echo 'Hello Tide Island!'\nSecond line of snippet.");
+    const int added = model.addTextSnippet(snippet, QStringLiteral("Custom Shell Snippet"));
+    QCOMPARE(added, 1);
+    QCOMPARE(model.rowCount(), 1);
+
+    const QVariantMap entry = model.get(0);
+    QVERIFY(entry.value(QStringLiteral("isSnippet")).toBool());
+    QCOMPARE(entry.value(QStringLiteral("snippetText")).toString(), snippet);
+    QVERIFY(entry.value(QStringLiteral("fileName")).toString().contains(QStringLiteral("Custom Shell Snippet")));
+    QVERIFY(entry.value(QStringLiteral("filePath")).toString().endsWith(QStringLiteral(".txt")));
+    QVERIFY(QFile::exists(entry.value(QStringLiteral("filePath")).toString()));
+
+    QFile file(entry.value(QStringLiteral("filePath")).toString());
+    QVERIFY(file.open(QIODevice::ReadOnly | QIODevice::Text));
+    QCOMPARE(QString::fromUtf8(file.readAll()), snippet);
+}
+
+void FileShelfModelTests::rejectsEmptyTextSnippet()
+{
+    FileShelfModel model;
+    QCOMPARE(model.addTextSnippet(QStringLiteral("")), 0);
+    QCOMPARE(model.addTextSnippet(QStringLiteral("   \n\t   ")), 0);
+    QCOMPARE(model.rowCount(), 0);
+}
+
+void FileShelfModelTests::pasteFromClipboardSafelyReturnsZeroWithoutGui()
+{
+    FileShelfModel model;
+    QCOMPARE(model.pasteFromClipboard(), 0);
 }
 
 QTEST_GUILESS_MAIN(FileShelfModelTests)

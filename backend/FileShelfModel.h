@@ -23,6 +23,8 @@ public:
         IconSourceRole,
         DirectoryRole,
         ExistsRole,
+        IsSnippetRole,
+        SnippetTextRole,
     };
     Q_ENUM(Role)
 
@@ -35,6 +37,8 @@ public:
 
     Q_INVOKABLE int addUrls(const QVariant &urls);
     Q_INVOKABLE int addUriList(const QString &uriList);
+    Q_INVOKABLE int addTextSnippet(const QString &text, const QString &suggestedTitle = QString());
+    Q_INVOKABLE int pasteFromClipboard();
     Q_INVOKABLE QVariantMap get(int index) const;
     Q_INVOKABLE bool move(int sourceIndex, int targetIndex);
     Q_INVOKABLE bool removeAt(int index);
@@ -55,7 +59,11 @@ private:
         QString iconSource;
         bool directory = false;
         bool exists = false;
+        bool isSnippet = false;
+        QString snippetText;
     };
+
+    static QString clippingsDirectoryPath();
 
     static QList<QUrl> urlsFromVariant(const QVariant &value);
     static QList<QUrl> urlsFromUriList(const QString &uriList);
