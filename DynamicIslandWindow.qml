@@ -1005,7 +1005,6 @@ PanelWindow {
                 ? swipeTransitionProgress < 0
                 : (
                     islandState === "custom"
-                    || (islandState === "normal" && swipeTransitionProgress < 0)
                     || (islandState === "split" && splitOriginSide === "left")
                     || (islandState === "long_capsule"
                         && (workspaceOriginSide === "left" || swipeTransitionProgress < 0))
@@ -1013,10 +1012,9 @@ PanelWindow {
             )
         readonly property bool lyricsSwipeVisible: !root.overviewVisible && (
             capsuleMouseArea.sideSwipeInteractive
-            ? swipeTransitionProgress >= 0
+            ? swipeTransitionProgress > 0.01
             : (
                 islandState === "lyrics"
-                || (islandState === "normal" && swipeTransitionProgress >= 0)
                 || (islandState === "split" && splitOriginSide === "right")
                 || (islandState === "long_capsule"
                     && (workspaceOriginSide === "right" || swipeTransitionProgress > 0))
@@ -2784,16 +2782,13 @@ PanelWindow {
                 }
             }
 
+            // Legacy closed notch live activity layer (superseded by widget-based ClosedWidgetLayer)
             Loader {
                 id: notchLiveActivityLoader
                 anchors.fill: parent
-                active: !root.overviewVisible
-                    && userConfig.notchMode !== "circle"
-                    && islandContainer.islandState === "normal"
-                    && islandContainer.currentTrack !== ""
-                    && Math.abs(islandContainer.swipeTransitionProgress) < 0.01
+                active: false
                 asynchronous: false
-                visible: active
+                visible: false
 
                 sourceComponent: Component {
                     NotchLiveActivityLayer {
@@ -2808,17 +2803,13 @@ PanelWindow {
                 }
             }
 
+            // Legacy closed notch face animation (boring_face is now a Circle widget)
             Loader {
                 id: boringFaceLoader
                 anchors.centerIn: parent
-                active: !root.overviewVisible
-                    && userConfig.notchMode !== "circle"
-                    && userConfig.showBoringFace
-                    && islandContainer.islandState === "normal"
-                    && islandContainer.currentTrack === ""
-                    && Math.abs(islandContainer.swipeTransitionProgress) < 0.01
+                active: false
                 asynchronous: false
-                visible: active
+                visible: false
 
                 sourceComponent: Component {
                     BoringFaceAnimation {}
@@ -2826,7 +2817,6 @@ PanelWindow {
             }
 
             // Widget-based closed notch layer — renders Minimum widgets from widgetLayouts.minimum.
-            // Sits on top of boringFaceLoader when active so it replaces the default face.
             Loader {
                 id: closedWidgetLoader
                 anchors.fill: parent
