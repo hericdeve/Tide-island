@@ -368,11 +368,12 @@ Item {
 
     Timer {
         id: wheelResetTimer
-        interval: 220
+        interval: 240
         repeat: false
         onTriggered: {
             circleWheelHandler.accumulatedX = 0;
             circleWheelHandler.accumulatedY = 0;
+            circleWheelHandler.gestureTriggered = false;
         }
     }
 
@@ -383,6 +384,7 @@ Item {
         acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
         property real accumulatedX: 0
         property real accumulatedY: 0
+        property bool gestureTriggered: false
 
         onWheel: function(event) {
             const isTouchPad = (event.device.type === PointerDevice.TouchPad);
@@ -392,37 +394,52 @@ Item {
             wheelResetTimer.restart();
 
             if (isTouchPad) {
-                accumulatedX += dx;
-                accumulatedY += dy;
-
-                // Two-finger horizontal swipe on touchpad: cycle complication faces
-                if (Math.abs(accumulatedX) > 18 && Math.abs(accumulatedX) > Math.abs(accumulatedY) * 1.1) {
-                    if (accumulatedX < 0) {
-                        root.nextFace();
-                    } else {
-                        root.prevFace();
-                    }
-                    accumulatedX = 0;
-                    accumulatedY = 0;
+                // Once triggered during a continuous touchpad swipe gesture, lock out further face changes until fingers lift
+                if (circleWheelHandler.gestureTriggered) {
                     event.accepted = true;
                     return;
                 }
 
-                // Two-finger vertical pull down on touchpad: expand player
-                if (accumulatedY < -24 && Math.abs(accumulatedY) > Math.abs(accumulatedX) * 1.1) {
-                    accumulatedX = 0;
-                    accumulatedY = 0;
+                circleWheelHandler.accumulatedX += dx;
+                circleWheelHandler.accumulatedY += dy;
+
+                // Two-finger horizontal swipe on touchpad: change to EXACTLY ONE next/prev face per swipe
+                if (Math.abs(circleWheelHandler.accumulatedX) > 18 && Math.abs(circleWheelHandler.accumulatedX) > Math.abs(circleWheelHandler.accumulatedY) * 1.1) {
+                    circleWheelHandler.gestureTriggered = true;
+                    if (circleWheelHandler.accumulatedX < 0) {
+                        root.nextFace();
+                    } else {
+                        root.prevFace();
+                    }
+                    circleWheelHandler.accumulatedX = 0;
+                    circleWheelHandler.accumulatedY = 0;
+                    event.accepted = true;
+                    return;
+                }
+
+                // Two-finger vertical pull down on touchpad: expand player (once per gesture)
+                if (circleWheelHandler.accumulatedY < -24 && Math.abs(circleWheelHandler.accumulatedY) > Math.abs(circleWheelHandler.accumulatedX) * 1.1) {
+                    circleWheelHandler.gestureTriggered = true;
+                    circleWheelHandler.accumulatedX = 0;
+                    circleWheelHandler.accumulatedY = 0;
                     root.expandRequested();
                     event.accepted = true;
                     return;
                 }
             } else {
-                // Physical mouse wheel: scroll up/down cycles faces
+                // Physical mouse wheel: one notch = one face change
+                if (circleWheelHandler.gestureTriggered) {
+                    event.accepted = true;
+                    return;
+                }
                 const delta = event.angleDelta.y !== 0 ? event.angleDelta.y : event.angleDelta.x;
-                if (delta < 0) {
-                    root.nextFace();
-                } else if (delta > 0) {
-                    root.prevFace();
+                if (Math.abs(delta) >= 60) {
+                    circleWheelHandler.gestureTriggered = true;
+                    if (delta < 0) {
+                        root.nextFace();
+                    } else if (delta > 0) {
+                        root.prevFace();
+                    }
                 }
                 event.accepted = true;
             }

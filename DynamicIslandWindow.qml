@@ -1376,9 +1376,20 @@ PanelWindow {
             return mainCapsule.baseTargetWidth;
         }
 
-        function advanceSideSwipeProgress(currentProgress, deltaX) {
-            const minProgress = hasCustomLeftItems ? -1 : 0;
-            let nextProgress = Math.max(minProgress, Math.min(1, currentProgress));
+        function advanceSideSwipeProgress(currentProgress, deltaX, swipeAnchorProgress) {
+            const anchor = swipeAnchorProgress !== undefined ? swipeAnchorProgress : currentProgress;
+            let minProgress = hasCustomLeftItems ? -1 : 0;
+            let maxProgress = 1;
+
+            if (anchor <= -0.5) {
+                // Starting from Custom: can only move right towards Normal (capped at 0, no skipping to Lyrics)
+                maxProgress = 0;
+            } else if (anchor >= 0.5) {
+                // Starting from Lyrics: can only move left towards Normal (floored at 0, no skipping to Custom)
+                minProgress = 0;
+            }
+
+            let nextProgress = Math.max(minProgress, Math.min(maxProgress, currentProgress));
             let remainingDelta = deltaX;
 
             if (remainingDelta > 0) {
@@ -1389,9 +1400,9 @@ PanelWindow {
                     remainingDelta -= progressToCenter * leftDistance;
                 }
 
-                if (remainingDelta > 0 && nextProgress < 1) {
+                if (remainingDelta > 0 && nextProgress < maxProgress) {
                     const rightDistance = Math.max(1, sideSwipeDragDistanceForDirection("right"));
-                    nextProgress = Math.min(1, nextProgress + remainingDelta / rightDistance);
+                    nextProgress = Math.min(maxProgress, nextProgress + remainingDelta / rightDistance);
                 }
             } else if (remainingDelta < 0) {
                 if (nextProgress > 0) {
@@ -1407,7 +1418,7 @@ PanelWindow {
                 }
             }
 
-            return Math.max(minProgress, Math.min(1, nextProgress));
+            return Math.max(minProgress, Math.min(maxProgress, nextProgress));
         }
 
         function resolveSideSwipeSettle(startProgress, finalProgress) {
@@ -1416,30 +1427,43 @@ PanelWindow {
             let settleWidth = sideSwipeRestWidthForProgress(startProgress);
             const activationThreshold = 0.32;
 
-            if (finalProgress >= activationThreshold) {
-                settleAction = "lyrics";
-                settleProgress = 1;
-                settleWidth = lyricsCapsuleWidth;
-            } else if (hasCustomLeftItems && finalProgress <= -activationThreshold) {
-                settleAction = "custom";
-                settleProgress = -1;
-                settleWidth = customCapsuleWidth;
-            } else if (startProgress <= -0.5) {
-                if (finalProgress >= -0.70) {
+            if (startProgress <= -0.5) {
+                // Starting from Custom: can ONLY settle to Normal (time) or stay in Custom!
+                if (finalProgress >= -0.68) {
                     settleAction = "time";
                     settleProgress = 0;
                     settleWidth = mainCapsule.baseTargetWidth;
+                } else {
+                    settleAction = "custom";
+                    settleProgress = -1;
+                    settleWidth = customCapsuleWidth;
                 }
             } else if (startProgress >= 0.5) {
-                if (finalProgress <= 0.70) {
+                // Starting from Lyrics: can ONLY settle to Normal (time) or stay in Lyrics!
+                if (finalProgress <= 0.68) {
+                    settleAction = "time";
+                    settleProgress = 0;
+                    settleWidth = mainCapsule.baseTargetWidth;
+                } else {
+                    settleAction = "lyrics";
+                    settleProgress = 1;
+                    settleWidth = lyricsCapsuleWidth;
+                }
+            } else {
+                // Starting from Normal: can settle to Lyrics (+1), Custom (-1), or stay in Normal (0)!
+                if (finalProgress >= activationThreshold) {
+                    settleAction = "lyrics";
+                    settleProgress = 1;
+                    settleWidth = lyricsCapsuleWidth;
+                } else if (hasCustomLeftItems && finalProgress <= -activationThreshold) {
+                    settleAction = "custom";
+                    settleProgress = -1;
+                    settleWidth = customCapsuleWidth;
+                } else {
                     settleAction = "time";
                     settleProgress = 0;
                     settleWidth = mainCapsule.baseTargetWidth;
                 }
-            } else {
-                settleAction = "time";
-                settleProgress = 0;
-                settleWidth = mainCapsule.baseTargetWidth;
             }
 
             return {
@@ -2175,7 +2199,8 @@ PanelWindow {
                     const adjustedDeltaX = deltaY < sideSwipeVerticalTolerance ? deltaX : 0;
                     const nextProgress = islandContainer.advanceSideSwipeProgress(
                         islandContainer.swipeTransitionProgress,
-                        adjustedDeltaX
+                        adjustedDeltaX,
+                        swipeStartProgress
                     );
 
                     swipeMoved = swipeMoved || Math.abs(nextProgress - swipeStartProgress) > 0.03 || deltaY > 6;
@@ -2311,7 +2336,8 @@ PanelWindow {
                     const deltaX = (centerPoint.x - swipeStartX) * 1.4;
                     const nextProgress = islandContainer.advanceSideSwipeProgress(
                         swipeStartProgress,
-                        deltaX
+                        deltaX,
+                        swipeStartProgress
                     );
 
                     if (Math.abs(nextProgress - swipeStartProgress) > 0.03) {
