@@ -1110,8 +1110,10 @@ PanelWindow {
             SmoothedAnimation { velocity: 1.2; duration: 180; easing.type: Easing.InOutQuad }
         }
         Behavior on swipeTransitionProgress {
+            enabled: !islandContainer.sideSwipeDragging && !capsuleMouseArea.sideSwipeInteractive
+
             NumberAnimation {
-                duration: (islandContainer.sideSwipeDragging || capsuleMouseArea.sideSwipeInteractive) ? 0 : islandContainer.swipeAnimationDuration
+                duration: islandContainer.swipeAnimationDuration
                 easing.type: Easing.OutCubic
             }
         }
@@ -1421,15 +1423,18 @@ PanelWindow {
             return Math.max(minProgress, Math.min(maxProgress, nextProgress));
         }
 
-        function resolveSideSwipeSettle(startProgress, finalProgress) {
+        function resolveSideSwipeSettle(startProgress, finalProgress, swipeVelocity) {
             let settleAction = "";
             let settleProgress = sideSwipeRestProgressForProgress(startProgress);
             let settleWidth = sideSwipeRestWidthForProgress(startProgress);
-            const activationThreshold = 0.32;
+            const activationThreshold = 0.28;
+            const velocity = swipeVelocity !== undefined ? swipeVelocity : 0;
+            const flickRight = velocity > 0.35;
+            const flickLeft = velocity < -0.35;
 
             if (startProgress <= -0.5) {
                 // Starting from Custom: can ONLY settle to Normal (time) or stay in Custom!
-                if (finalProgress >= -0.68) {
+                if (finalProgress >= -0.72 || flickRight) {
                     settleAction = "time";
                     settleProgress = 0;
                     settleWidth = mainCapsule.baseTargetWidth;
@@ -1440,7 +1445,7 @@ PanelWindow {
                 }
             } else if (startProgress >= 0.5) {
                 // Starting from Lyrics: can ONLY settle to Normal (time) or stay in Lyrics!
-                if (finalProgress <= 0.68) {
+                if (finalProgress <= 0.72 || flickLeft) {
                     settleAction = "time";
                     settleProgress = 0;
                     settleWidth = mainCapsule.baseTargetWidth;
@@ -1451,11 +1456,11 @@ PanelWindow {
                 }
             } else {
                 // Starting from Normal: can settle to Lyrics (+1), Custom (-1), or stay in Normal (0)!
-                if (finalProgress >= activationThreshold) {
+                if (finalProgress >= activationThreshold || flickRight) {
                     settleAction = "lyrics";
                     settleProgress = 1;
                     settleWidth = lyricsCapsuleWidth;
-                } else if (hasCustomLeftItems && finalProgress <= -activationThreshold) {
+                } else if (hasCustomLeftItems && (finalProgress <= -activationThreshold || flickLeft)) {
                     settleAction = "custom";
                     settleProgress = -1;
                     settleWidth = customCapsuleWidth;
@@ -2058,9 +2063,11 @@ PanelWindow {
                     displayedWidth = baseTargetWidth;
             }
 
-            Behavior on displayedWidth  {
+            Behavior on displayedWidth {
+                enabled: !islandContainer.sideSwipeDragging && !capsuleMouseArea.sideSwipeInteractive
+
                 NumberAnimation {
-                    duration: (islandContainer.sideSwipeDragging || capsuleMouseArea.sideSwipeInteractive) ? 0 : mainCapsule.morphDuration
+                    duration: mainCapsule.morphDuration
                     easing.type: Easing.OutQuint
                 }
             }

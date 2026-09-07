@@ -12,14 +12,63 @@ MouseArea {
     property real accumulatedDelta: 0
     property real verticalAccumulatedDelta: 0
     property real swipeStartProgress: 0
+    property double swipeStartTime: 0
     property bool isSwiping: false
+
+    function commitSwipeSettle() {
+        swipeSettleTimer.stop();
+        if (!root.isSwiping || !root.islandController)
+            return;
+
+        root.isSwiping = false;
+        root.islandController.sideSwipeDragging = false;
+
+        const elapsedMs = Math.max(16, Date.now() - root.swipeStartTime);
+        const velocity = root.accumulatedDelta / elapsedMs;
+
+        const settleResult = root.islandController.resolveSideSwipeSettle(
+            root.swipeStartProgress,
+            root.islandController.swipeTransitionProgress,
+            velocity
+        );
+        root.islandController.beginSideSwipeSettle(settleResult.width);
+
+        switch (settleResult.action) {
+        case "time":
+            root.islandController.showTimeCapsule();
+            break;
+        case "custom":
+            root.islandController.showCustomCapsule();
+            break;
+        case "lyrics":
+            root.islandController.showLyricsCapsule();
+            break;
+        default:
+            root.islandController.swipeTransitionProgress = settleResult.progress;
+        }
+    }
 
     onWheel: (wheel) => {
         if (!islandController || !capsule)
             return;
 
-        const deltaX = wheel.pixelDelta.x !== 0 ? wheel.pixelDelta.x : wheel.angleDelta.x / 4;
-        const deltaY = wheel.pixelDelta.y !== 0 ? wheel.pixelDelta.y : wheel.angleDelta.y / 4;
+        // Ignore kinetic momentum events so they do not keep gestures hanging after fingers lift
+        if (wheel.phase === Qt.ScrollMomentum) {
+            wheel.accepted = true;
+            return;
+        }
+
+        // Fingers lifted from touchpad: settle immediately without waiting for timeout
+        if (wheel.phase === Qt.ScrollEnd) {
+            if (isSwiping) {
+                commitSwipeSettle();
+            }
+            wheel.accepted = true;
+            return;
+        }
+
+        const deltaX = wheel.pixelDelta.x !== 0 ? wheel.pixelDelta.x : (wheel.angleDelta.x / 5);
+        const deltaY = wheel.pixelDelta.y !== 0 ? wheel.pixelDelta.y : (wheel.angleDelta.y / 5);
 
         // Check if gesture is primarily vertical (scroll down to open notch, scroll up to close)
         if (!isSwiping && Math.abs(deltaY) > Math.abs(deltaX) * 1.3 && Math.abs(deltaY) > 3) {
@@ -27,12 +76,12 @@ MouseArea {
             verticalSettleTimer.restart();
 
             // Swipe down (negative deltaY) to open notch
-            if (verticalAccumulatedDelta < -50 && islandController.islandState !== "expanded") {
+            if (verticalAccumulatedDelta < -40 && islandController.islandState !== "expanded") {
                 verticalAccumulatedDelta = 0;
                 islandController.showExpandedPlayer(false);
             }
             // Swipe up (positive deltaY) to close if already expanded
-            else if (verticalAccumulatedDelta > 50 && islandController.islandState === "expanded") {
+            else if (verticalAccumulatedDelta > 40 && islandController.islandState === "expanded") {
                 verticalAccumulatedDelta = 0;
                 islandController.smartRestoreState();
             }
@@ -45,20 +94,21 @@ MouseArea {
 
         if (!isSwiping) {
             isSwiping = true;
+            swipeStartTime = Date.now();
             swipeStartProgress = islandController.swipeTransitionProgress;
             accumulatedDelta = 0;
             islandController.sideSwipeDragging = true;
             islandController.cancelSideSwipeSettle();
         }
 
-        accumulatedDelta += deltaX * 1.5;
+        accumulatedDelta += deltaX * 2.8;
 
         const nextProgress = islandController.advanceSideSwipeProgress(swipeStartProgress, accumulatedDelta, swipeStartProgress);
         islandController.swipeTransitionProgress = nextProgress;
         capsule.displayedWidth = capsule.sideSwipePreviewWidth;
 
         swipeSettleTimer.restart();
-        wheel.accepted = false;
+        wheel.accepted = true;
     }
 
     Timer {
@@ -70,34 +120,8 @@ MouseArea {
 
     Timer {
         id: swipeSettleTimer
-
-        interval: 220
-
-        onTriggered: {
-            if (!root.isSwiping || !root.islandController)
-                return;
-
-            root.isSwiping = false;
-            root.islandController.sideSwipeDragging = false;
-            const settleResult = root.islandController.resolveSideSwipeSettle(
-                root.swipeStartProgress,
-                root.islandController.swipeTransitionProgress
-            );
-            root.islandController.beginSideSwipeSettle(settleResult.width);
-
-            switch (settleResult.action) {
-            case "time":
-                root.islandController.showTimeCapsule();
-                break;
-            case "custom":
-                root.islandController.showCustomCapsule();
-                break;
-            case "lyrics":
-                root.islandController.showLyricsCapsule();
-                break;
-            default:
-                root.islandController.swipeTransitionProgress = settleResult.progress;
-            }
-        }
+        interval: 180
+        repeat: false
+        onTriggered: root.commitSwipeSettle()
     }
 }
