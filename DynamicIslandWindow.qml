@@ -7,6 +7,7 @@ import "qml/common"
 import "qml/controlcenter"
 import "qml/connectivity"
 import "qml/island"
+import "qml/widgets"
 import "qml/workspace"
 
 PanelWindow {
@@ -1992,7 +1993,7 @@ PanelWindow {
                     case "application_launcher":
                         return 1100;
                     case "widget_library":
-                        return Math.min(root.width - 48, 860);
+                        return Math.min(root.width - 48, 700);
                     case "file_shelf":
                     case "expanded":
                     case "bluetooth_expanded":
@@ -2043,7 +2044,7 @@ PanelWindow {
                 case "application_launcher":
                     return 1100;
                 case "widget_library":
-                    return Math.min(root.width - 48, 860);
+                    return Math.min(root.width - 48, 700);
                 case "file_shelf":
                 case "expanded":
                 case "bluetooth_expanded":
@@ -2074,7 +2075,7 @@ PanelWindow {
                 case "application_launcher":
                     return 260;
                 case "widget_library":
-                    return 270;
+                    return 520;
                 case "file_shelf":
                 case "expanded":
                 case "bluetooth_expanded":
@@ -2101,7 +2102,7 @@ PanelWindow {
                 case "application_launcher":
                     return 34;
                 case "widget_library":
-                    return 24;
+                    return 26;
                 case "file_shelf":
                 case "expanded":
                 case "bluetooth_expanded":
@@ -2633,6 +2634,7 @@ PanelWindow {
                     && islandContainer.islandState !== "notification"
                     && islandContainer.islandState !== "long_capsule"
                     && islandContainer.islandState !== "split"
+                    && islandContainer.islandState !== "widget_library"
                 asynchronous: false
                 visible: active
 
@@ -2902,17 +2904,26 @@ PanelWindow {
                 active: islandContainer.islandState === "widget_library"
                 asynchronous: false
                 visible: active
-                source: "widgets/WidgetLibraryLayer.qml"
+                z: 100
 
-                onLoaded: {
-                    if (item) {
-                        item.iconFontFamily = root.iconFontFamily;
-                        item.textFontFamily = root.textFontFamily;
-                        item.targetMode = islandContainer.widgetLibraryTargetMode;
-                        item.targetPageIndex = islandContainer.widgetLibraryTargetPageIndex;
-                        item.targetSlotIndex = islandContainer.widgetLibraryTargetSlotIndex;
-                        item.showCondition = true;
-                        item.closeRequested.connect(() => islandContainer.smartRestoreState());
+                sourceComponent: Component {
+                    WidgetLibraryLayer {
+                        iconFontFamily: root.iconFontFamily
+                        textFontFamily: root.textFontFamily
+                        targetMode: islandContainer.widgetLibraryTargetMode
+                        targetPageIndex: islandContainer.widgetLibraryTargetPageIndex
+                        targetSlotIndex: islandContainer.widgetLibraryTargetSlotIndex
+                        showCondition: islandContainer.islandState === "widget_library"
+                        currentArtUrl: islandContainer.currentArtUrl
+                        currentTrack: islandContainer.currentTrack
+                        currentArtist: islandContainer.currentArtist
+                        batteryCapacity: islandContainer.batteryCapacity
+                        isCharging: islandContainer.isCharging
+                        currentCpuUsage: islandContainer.currentCpuUsage
+                        currentRamUsage: islandContainer.currentRamUsage
+                        currentTime: timeObj.currentTime
+                        currentDateLabel: timeObj.currentDateLabel
+                        onCloseRequested: islandContainer.smartRestoreState()
                     }
                 }
             }
