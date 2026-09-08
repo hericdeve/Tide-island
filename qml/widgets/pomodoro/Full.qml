@@ -90,7 +90,6 @@ Item {
                     height: 44
                     radius: 22
                     color: "#26ff453a"
-                    anchors.verticalCenter: parent.verticalCenter
 
                     Text {
                         anchors.centerIn: parent
@@ -102,7 +101,6 @@ Item {
                 }
 
                 Column {
-                    anchors.verticalCenter: parent.verticalCenter
                     spacing: 4
 
                     Text {
@@ -189,170 +187,179 @@ Item {
                     spacing: 4
 
                     // Header Row: Round Badge + Goal Stepper + Quick Actions
-                    Row {
+                    Item {
                         width: parent.width
                         height: 22
-                        spacing: 6
 
-                        // Round Badge
-                        Rectangle {
-                            height: 20
-                            width: badgeRow.implicitWidth + 12
-                            radius: 10
-                            color: root.themeColorBg
-                            border.width: 1
-                            border.color: root.themeColor
+                        Row {
+                            anchors.left: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: 6
 
-                            Row {
-                                id: badgeRow
-                                anchors.centerIn: parent
-                                spacing: 4
+                            // Round Badge
+                            Rectangle {
+                                height: 20
+                                width: badgeRow.implicitWidth + 12
+                                radius: 10
+                                color: root.themeColorBg
+                                border.width: 1
+                                border.color: root.themeColor
 
-                                Text {
-                                    text: root.isWork ? "󰄉" : "󱫠"
-                                    font.family: root.iconFontFamily
-                                    font.pixelSize: 10
-                                    color: root.themeColor
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-
-                                Text {
-                                    text: root.roundLabel + " " + root.roundNumber + "/" + root.roundsTotal
-                                    font.family: root.textFontFamily
-                                    font.pixelSize: 10
-                                    font.weight: Font.DemiBold
-                                    color: root.themeColor
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-                            }
-                        }
-
-                        // Goal Stepper Pill
-                        Rectangle {
-                            height: 20
-                            width: goalRow.implicitWidth + 8
-                            radius: 10
-                            color: "#1e1e24"
-                            border.width: 1
-                            border.color: "#32323a"
-
-                            Row {
-                                id: goalRow
-                                anchors.centerIn: parent
-                                spacing: 4
-
-                                Text {
-                                    text: "󰓠"
-                                    font.family: root.iconFontFamily
-                                    font.pixelSize: 9
-                                    color: "#a1a1aa"
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-
-                                Text {
-                                    text: (root.isWork ? Math.max(0, root.sessionWorkCount - 1) : root.sessionWorkCount) + "/" + root.goalRounds
-                                    font.family: root.textFontFamily
-                                    font.pixelSize: 10
-                                    font.weight: Font.Medium
-                                    color: "white"
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-
-                                // Decrement button
-                                Rectangle {
-                                    width: 14
-                                    height: 14
-                                    radius: 7
-                                    color: decMouse.containsMouse ? "#3f3f46" : "transparent"
-                                    anchors.verticalCenter: parent.verticalCenter
+                                Row {
+                                    id: badgeRow
+                                    anchors.centerIn: parent
+                                    spacing: 4
 
                                     Text {
-                                        anchors.centerIn: parent
-                                        text: "-"
-                                        font.pixelSize: 11
-                                        font.weight: Font.Bold
-                                        color: "#d4d4d8"
-                                    }
-                                    MouseArea {
-                                        id: decMouse
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: PomotroidBackend.setGoalRounds(root.goalRounds - 1)
-                                    }
-                                }
-
-                                // Increment button
-                                Rectangle {
-                                    width: 14
-                                    height: 14
-                                    radius: 7
-                                    color: incMouse.containsMouse ? "#3f3f46" : "transparent"
-                                    anchors.verticalCenter: parent.verticalCenter
-
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: "+"
+                                        text: root.isWork ? "󰄉" : "󱫠"
+                                        font.family: root.iconFontFamily
                                         font.pixelSize: 10
-                                        font.weight: Font.Bold
-                                        color: "#d4d4d8"
+                                        color: root.themeColor
+                                        anchors.verticalCenter: parent.verticalCenter
                                     }
-                                    MouseArea {
-                                        id: incMouse
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: PomotroidBackend.setGoalRounds(root.goalRounds + 1)
+
+                                    Text {
+                                        text: root.roundLabel + " " + root.roundNumber + "/" + root.roundsTotal
+                                        font.family: root.textFontFamily
+                                        font.pixelSize: 10
+                                        font.weight: Font.DemiBold
+                                        color: root.themeColor
+                                        anchors.verticalCenter: parent.verticalCenter
+                                    }
+                                }
+                            }
+
+                            // Goal Stepper Pill
+                            Rectangle {
+                                height: 20
+                                width: goalRow.implicitWidth + 8
+                                radius: 10
+                                color: "#1e1e24"
+                                border.width: 1
+                                border.color: "#32323a"
+
+                                Row {
+                                    id: goalRow
+                                    anchors.centerIn: parent
+                                    spacing: 4
+
+                                    Text {
+                                        text: "󰓠"
+                                        font.family: root.iconFontFamily
+                                        font.pixelSize: 9
+                                        color: "#a1a1aa"
+                                        anchors.verticalCenter: parent.verticalCenter
+                                    }
+
+                                    Text {
+                                        text: (root.isWork ? Math.max(0, root.sessionWorkCount - 1) : root.sessionWorkCount) + "/" + root.goalRounds
+                                        font.family: root.textFontFamily
+                                        font.pixelSize: 10
+                                        font.weight: Font.Medium
+                                        color: "white"
+                                        anchors.verticalCenter: parent.verticalCenter
+                                    }
+
+                                    // Decrement button
+                                    Rectangle {
+                                        width: 14
+                                        height: 14
+                                        radius: 7
+                                        color: decMouse.containsMouse ? "#3f3f46" : "transparent"
+                                        anchors.verticalCenter: parent.verticalCenter
+
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: "-"
+                                            font.pixelSize: 11
+                                            font.weight: Font.Bold
+                                            color: "#d4d4d8"
+                                        }
+                                        MouseArea {
+                                            id: decMouse
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: PomotroidBackend.setGoalRounds(root.goalRounds - 1)
+                                        }
+                                    }
+
+                                    // Increment button
+                                    Rectangle {
+                                        width: 14
+                                        height: 14
+                                        radius: 7
+                                        color: incMouse.containsMouse ? "#3f3f46" : "transparent"
+                                        anchors.verticalCenter: parent.verticalCenter
+
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: "+"
+                                            font.pixelSize: 10
+                                            font.weight: Font.Bold
+                                            color: "#d4d4d8"
+                                        }
+                                        MouseArea {
+                                            id: incMouse
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: PomotroidBackend.setGoalRounds(root.goalRounds + 1)
+                                        }
                                     }
                                 }
                             }
                         }
 
-                        Item { Layout.fillWidth: true }
+                        Row {
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: 4
 
-                        // Stats Window Button
-                        Rectangle {
-                            width: 20
-                            height: 20
-                            radius: 10
-                            color: statsMouse.containsMouse ? "#27272a" : "transparent"
+                            // Stats Window Button
+                            Rectangle {
+                                width: 20
+                                height: 20
+                                radius: 10
+                                color: statsMouse.containsMouse ? "#27272a" : "transparent"
 
-                            Text {
-                                anchors.centerIn: parent
-                                text: "󰄫"
-                                font.family: root.iconFontFamily
-                                font.pixelSize: 12
-                                color: statsMouse.containsMouse ? "white" : "#a1a1aa"
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "󰄫"
+                                    font.family: root.iconFontFamily
+                                    font.pixelSize: 12
+                                    color: statsMouse.containsMouse ? "white" : "#a1a1aa"
+                                }
+                                MouseArea {
+                                    id: statsMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: PomotroidBackend.openStatsWindow()
+                                }
                             }
-                            MouseArea {
-                                id: statsMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: PomotroidBackend.openStatsWindow()
-                            }
-                        }
 
-                        // Focus Main Window Button
-                        Rectangle {
-                            width: 20
-                            height: 20
-                            radius: 10
-                            color: mainWinMouse.containsMouse ? "#27272a" : "transparent"
+                            // Focus Main Window Button
+                            Rectangle {
+                                width: 20
+                                height: 20
+                                radius: 10
+                                color: mainWinMouse.containsMouse ? "#27272a" : "transparent"
 
-                            Text {
-                                anchors.centerIn: parent
-                                text: "󰖰"
-                                font.family: root.iconFontFamily
-                                font.pixelSize: 12
-                                color: mainWinMouse.containsMouse ? "white" : "#a1a1aa"
-                            }
-                            MouseArea {
-                                id: mainWinMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: PomotroidBackend.openMainWindow()
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "󰖰"
+                                    font.family: root.iconFontFamily
+                                    font.pixelSize: 12
+                                    color: mainWinMouse.containsMouse ? "white" : "#a1a1aa"
+                                }
+                                MouseArea {
+                                    id: mainWinMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: PomotroidBackend.openMainWindow()
+                                }
                             }
                         }
                     }
@@ -578,36 +585,40 @@ Item {
                     spacing: 5
 
                     // Title bar for tags
-                    Row {
+                    Item {
                         width: parent.width
                         height: 18
-                        spacing: 6
 
-                        Text {
-                            text: "󰓹"
-                            font.family: root.iconFontFamily
-                            font.pixelSize: 11
-                            color: "#a1a1aa"
+                        Row {
+                            anchors.left: parent.left
                             anchors.verticalCenter: parent.verticalCenter
+                            spacing: 6
+
+                            Text {
+                                text: "󰓹"
+                                font.family: root.iconFontFamily
+                                font.pixelSize: 11
+                                color: "#a1a1aa"
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+
+                            Text {
+                                text: "Session Tags"
+                                font.family: root.textFontFamily
+                                font.pixelSize: 10
+                                font.weight: Font.DemiBold
+                                color: "#a1a1aa"
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
                         }
 
                         Text {
-                            text: "Session Tags"
-                            font.family: root.textFontFamily
-                            font.pixelSize: 10
-                            font.weight: Font.DemiBold
-                            color: "#a1a1aa"
+                            anchors.right: parent.right
                             anchors.verticalCenter: parent.verticalCenter
-                        }
-
-                        Item { Layout.fillWidth: true }
-
-                        Text {
                             text: "Auto-synced"
                             font.family: root.textFontFamily
                             font.pixelSize: 9
                             color: "#52525b"
-                            anchors.verticalCenter: parent.verticalCenter
                         }
                     }
 
@@ -1050,139 +1061,148 @@ Item {
             visible: !root.isWide
 
             // Top Header: Round Badge + Tab switch (Timer / Tags) + Actions
-            Row {
+            Item {
                 width: parent.width
                 height: 22
-                spacing: 4
 
-                // Round Badge
-                Rectangle {
-                    height: 20
-                    width: compactBadgeRow.implicitWidth + 10
-                    radius: 10
-                    color: root.themeColorBg
-                    border.width: 1
-                    border.color: root.themeColor
+                Row {
+                    anchors.left: parent.left
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 4
 
-                    Row {
-                        id: compactBadgeRow
-                        anchors.centerIn: parent
-                        spacing: 4
+                    // Round Badge
+                    Rectangle {
+                        height: 20
+                        width: compactBadgeRow.implicitWidth + 10
+                        radius: 10
+                        color: root.themeColorBg
+                        border.width: 1
+                        border.color: root.themeColor
+
+                        Row {
+                            id: compactBadgeRow
+                            anchors.centerIn: parent
+                            spacing: 4
+
+                            Text {
+                                text: root.isWork ? "󰄉" : "󱫠"
+                                font.family: root.iconFontFamily
+                                font.pixelSize: 10
+                                color: root.themeColor
+                            }
+
+                            Text {
+                                text: root.roundNumber + "/" + root.roundsTotal
+                                font.family: root.textFontFamily
+                                font.pixelSize: 10
+                                font.weight: Font.DemiBold
+                                color: root.themeColor
+                            }
+                        }
+                    }
+
+                    // Tab Switcher Pill: Timer | Tags
+                    Rectangle {
+                        height: 20
+                        width: 80
+                        radius: 10
+                        color: "#18181b"
+                        border.width: 1
+                        border.color: "#27272a"
+
+                        Row {
+                            anchors.fill: parent
+
+                            Rectangle {
+                                width: 40
+                                height: parent.height
+                                radius: 10
+                                color: root.singleSlotTab === 0 ? "#27272a" : "transparent"
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "Timer"
+                                    font.family: root.textFontFamily
+                                    font.pixelSize: 9
+                                    font.weight: root.singleSlotTab === 0 ? Font.Bold : Font.Normal
+                                    color: root.singleSlotTab === 0 ? "white" : "#71717a"
+                                }
+                                MouseArea {
+                                    anchors.fill: parent
+                                    onClicked: root.singleSlotTab = 0
+                                }
+                            }
+
+                            Rectangle {
+                                width: 40
+                                height: parent.height
+                                radius: 10
+                                color: root.singleSlotTab === 1 ? "#27272a" : "transparent"
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "Tags"
+                                    font.family: root.textFontFamily
+                                    font.pixelSize: 9
+                                    font.weight: root.singleSlotTab === 1 ? Font.Bold : Font.Normal
+                                    color: root.singleSlotTab === 1 ? "white" : "#71717a"
+                                }
+                                MouseArea {
+                                    anchors.fill: parent
+                                    onClicked: root.singleSlotTab = 1
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Row {
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 4
+
+                    // Stats Button
+                    Rectangle {
+                        width: 20
+                        height: 20
+                        radius: 10
+                        color: cStatsMouse.containsMouse ? "#27272a" : "transparent"
 
                         Text {
-                            text: root.isWork ? "󰄉" : "󱫠"
+                            anchors.centerIn: parent
+                            text: "󰄫"
                             font.family: root.iconFontFamily
-                            font.pixelSize: 10
-                            color: root.themeColor
+                            font.pixelSize: 11
+                            color: "#a1a1aa"
                         }
+                        MouseArea {
+                            id: cStatsMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: PomotroidBackend.openStatsWindow()
+                        }
+                    }
+
+                    // Main Window Button
+                    Rectangle {
+                        width: 20
+                        height: 20
+                        radius: 10
+                        color: cMainMouse.containsMouse ? "#27272a" : "transparent"
 
                         Text {
-                            text: root.roundNumber + "/" + root.roundsTotal
-                            font.family: root.textFontFamily
-                            font.pixelSize: 10
-                            font.weight: Font.DemiBold
-                            color: root.themeColor
+                            anchors.centerIn: parent
+                            text: "󰖰"
+                            font.family: root.iconFontFamily
+                            font.pixelSize: 11
+                            color: "#a1a1aa"
                         }
-                    }
-                }
-
-                // Tab Switcher Pill: Timer | Tags
-                Rectangle {
-                    height: 20
-                    width: 80
-                    radius: 10
-                    color: "#18181b"
-                    border.width: 1
-                    border.color: "#27272a"
-
-                    Row {
-                        anchors.fill: parent
-
-                        Rectangle {
-                            width: 40
-                            height: parent.height
-                            radius: 10
-                            color: root.singleSlotTab === 0 ? "#27272a" : "transparent"
-                            Text {
-                                anchors.centerIn: parent
-                                text: "Timer"
-                                font.family: root.textFontFamily
-                                font.pixelSize: 9
-                                font.weight: root.singleSlotTab === 0 ? Font.Bold : Font.Normal
-                                color: root.singleSlotTab === 0 ? "white" : "#71717a"
-                            }
-                            MouseArea {
-                                anchors.fill: parent
-                                onClicked: root.singleSlotTab = 0
-                            }
+                        MouseArea {
+                            id: cMainMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: PomotroidBackend.openMainWindow()
                         }
-
-                        Rectangle {
-                            width: 40
-                            height: parent.height
-                            radius: 10
-                            color: root.singleSlotTab === 1 ? "#27272a" : "transparent"
-                            Text {
-                                anchors.centerIn: parent
-                                text: "Tags"
-                                font.family: root.textFontFamily
-                                font.pixelSize: 9
-                                font.weight: root.singleSlotTab === 1 ? Font.Bold : Font.Normal
-                                color: root.singleSlotTab === 1 ? "white" : "#71717a"
-                            }
-                            MouseArea {
-                                anchors.fill: parent
-                                onClicked: root.singleSlotTab = 1
-                            }
-                        }
-                    }
-                }
-
-                Item { Layout.fillWidth: true }
-
-                // Stats Button
-                Rectangle {
-                    width: 20
-                    height: 20
-                    radius: 10
-                    color: cStatsMouse.containsMouse ? "#27272a" : "transparent"
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: "󰄫"
-                        font.family: root.iconFontFamily
-                        font.pixelSize: 11
-                        color: "#a1a1aa"
-                    }
-                    MouseArea {
-                        id: cStatsMouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: PomotroidBackend.openStatsWindow()
-                    }
-                }
-
-                // Main Window Button
-                Rectangle {
-                    width: 20
-                    height: 20
-                    radius: 10
-                    color: cMainMouse.containsMouse ? "#27272a" : "transparent"
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: "󰖰"
-                        font.family: root.iconFontFamily
-                        font.pixelSize: 11
-                        color: "#a1a1aa"
-                    }
-                    MouseArea {
-                        id: cMainMouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: PomotroidBackend.openMainWindow()
                     }
                 }
             }
