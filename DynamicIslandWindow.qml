@@ -170,7 +170,7 @@ PanelWindow {
     readonly property real capsuleBottomMargin: (userConfig.notchMode === "notch") ? 0 : Math.max(4, userConfig.islandTopMargin)
     readonly property real capsuleVerticalMargin: root.isBottom ? root.capsuleBottomMargin : root.capsuleTopMargin
     readonly property real capsuleWindowHeight: Math.ceil(
-        root.capsuleVerticalMargin + mainCapsule.targetHeight + 12
+        root.capsuleVerticalMargin + Math.max(userConfig ? userConfig.notchOpenHeight : 190, mainCapsule.targetHeight) + 12
     )
     readonly property real connectivityDetailWindowHeight: root.anyConnectivityDetailMounted
         ? Math.ceil(root.capsuleVerticalMargin + root.connectivityDetailHeight + 12)
@@ -187,9 +187,12 @@ PanelWindow {
         islandContainer.isDraggingWidgetFromLibrary ? 560 : 0,
         islandContainer.widgetStagingActive ? Math.ceil(root.capsuleVerticalMargin + mainCapsule.targetHeight + 14 + (stagingTrayItem.height > 0 ? stagingTrayItem.height : 76) + 24) : 0
     )
-    // Grow the layer surface immediately, but keep the old extent while the
-    // capsule finishes its collapse animation. A later expansion interrupts
-    // the pending shrink instead of letting a stale timer clip new content.
+    // Maintain a stable baseline window height (notchOpenHeight) so normal
+    // capsule expand/collapse cycles do not trigger Wayland layer-shell surface
+    // resizes or buffer reallocations, eliminating post-collapse flicker.
+    // The Wayland input mask ensures regions outside the capsule remain click-through.
+    // Larger overlay modes (launcher, staging, overview) grow immediately and shrink
+    // after an exit grace period.
     property real retainedWindowHeight: 0
     implicitHeight: Math.max(root.requestedWindowHeight, root.retainedWindowHeight)
 
