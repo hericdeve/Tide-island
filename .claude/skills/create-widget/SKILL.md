@@ -199,6 +199,10 @@ Item {
     anchors.fill: parent
     clip: true
 
+    function requestPaint() {
+        if (progressRing) progressRing.requestPaint();
+    }
+
     // A subtle boundary ring is conventional for circle widgets
     Rectangle {
         anchors.centerIn: parent
@@ -221,18 +225,20 @@ Item {
         onProgressChanged: requestPaint()
         onWidthChanged: requestPaint()
         onHeightChanged: requestPaint()
+        onVisibleChanged: if (visible) requestPaint()
 
         onPaint: {
             const ctx = getContext("2d");
             ctx.clearRect(0, 0, width, height);
 
-            const center = width / 2;
-            const radius = center - 2;
+            const cx = width / 2;
+            const cy = height / 2;
+            const radius = Math.min(cx, cy) - 2;
             if (radius <= 0) return;
 
             // Track
             ctx.beginPath();
-            ctx.arc(center, center, radius, 0, 2 * Math.PI);
+            ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
             ctx.lineWidth = 2.2;
             ctx.strokeStyle = "#2c2c2e";
             ctx.stroke();
@@ -241,7 +247,7 @@ Item {
             if (progress > 0.005) {
                 const start = -Math.PI / 2;
                 ctx.beginPath();
-                ctx.arc(center, center, radius, start, start + 2 * Math.PI * progress);
+                ctx.arc(cx, cy, radius, start, start + 2 * Math.PI * progress);
                 ctx.lineWidth = 2.2;
                 ctx.lineCap = "round";
                 ctx.strokeStyle = "#0a84ff";

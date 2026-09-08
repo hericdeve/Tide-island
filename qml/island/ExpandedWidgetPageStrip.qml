@@ -47,13 +47,13 @@ Item {
         duration: 220
         easing.type: Easing.OutCubic
         onFinished: {
-            root.currentPage = Math.round(root.pageProgress);
+            root.currentPage = Math.max(0, Math.min(root.pageCount - 1, Math.round(root.pageProgress)));
         }
     }
 
     onPagesChanged: {
         if (!settleAnimation.running) {
-            const clamped = Math.max(0, Math.min(pageCount - 1, initialPage));
+            const clamped = Math.max(0, Math.min(pageCount - 1, currentPage));
             if (currentPage !== clamped) {
                 currentPage = clamped;
                 pageProgress = clamped;
@@ -71,8 +71,10 @@ Item {
     onInitialPageChanged: {
         if (!settleAnimation.running) {
             const clamped = Math.max(0, Math.min(pageCount - 1, initialPage));
-            currentPage = clamped;
-            pageProgress = clamped;
+            if (currentPage !== clamped) {
+                currentPage = clamped;
+                pageProgress = clamped;
+            }
         }
     }
 

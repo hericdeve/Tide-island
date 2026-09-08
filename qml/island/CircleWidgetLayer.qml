@@ -66,6 +66,11 @@ Item {
     // Hold-to-add-page progress (0.0 to 1.0)
     property real holdProgress: 0.0
 
+    function setPageDirect(target) {
+        const clamped = Math.max(0, Math.min(pageCount - 1, target));
+        currentPageIndex = clamped;
+    }
+
     readonly property real circleDiameter: Math.min(width, height)
     readonly property real faceScale: Math.max(0.5, Math.min(1.0, 0.62 + (circleDiameter - 44.0) * 0.008))
 
@@ -384,11 +389,27 @@ Item {
 
             anchors.fill: parent
             opacity: pIdx === root.currentPageIndex ? 1.0 : 0.0
-            scale: pIdx === root.currentPageIndex ? 1.0 : 0.88
-            visible: Math.abs(pIdx - root.currentPageIndex) <= 1
+            visible: pIdx === root.currentPageIndex || opacity > 0.001
+            enabled: pIdx === root.currentPageIndex
 
             Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.InOutQuad } }
-            Behavior on scale { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+
+            onVisibleChanged: {
+                if (visible && pageWidgetLoader.item && typeof pageWidgetLoader.item.requestPaint === "function") {
+                    pageWidgetLoader.item.requestPaint();
+                }
+            }
+
+            Connections {
+                target: root
+                function onCurrentPageIndexChanged() {
+                    if (pageItem.pIdx === root.currentPageIndex && pageWidgetLoader.item) {
+                        if (typeof pageWidgetLoader.item.requestPaint === "function") {
+                            pageWidgetLoader.item.requestPaint();
+                        }
+                    }
+                }
+            }
 
             // Top action button in edit mode:
             // - When page has a widget: removes widget (standard dark color, red on hover)
@@ -473,6 +494,7 @@ Item {
                 }
 
                 Loader {
+                    id: pageWidgetLoader
                     anchors.fill: parent
                     enabled: false
                     active: pageItem.hasWidget
@@ -483,6 +505,9 @@ Item {
                             item.widgetContext = root.sharedWidgetContext;
                             item.slotSpan = 1;
                             item.isEditMode = root.isEditMode;
+                            if (typeof item.requestPaint === "function") {
+                                item.requestPaint();
+                            }
                         }
                     }
                     onStatusChanged: {
@@ -490,8 +515,24 @@ Item {
                             item.widgetContext = root.sharedWidgetContext;
                             item.slotSpan = 1;
                             item.isEditMode = root.isEditMode;
+                            if (typeof item.requestPaint === "function") {
+                                item.requestPaint();
+                            }
                         }
                     }
+                }
+
+                Binding {
+                    target: pageWidgetLoader.item
+                    property: "isEditMode"
+                    value: root.isEditMode
+                    when: pageWidgetLoader.item !== null
+                }
+                Binding {
+                    target: pageWidgetLoader.item
+                    property: "widgetContext"
+                    value: root.sharedWidgetContext
+                    when: pageWidgetLoader.item !== null
                 }
 
                 // Rotation wiggle animation
@@ -625,6 +666,7 @@ Item {
                 readonly property int pageIndex: pageItem.pIdx
                 anchors.fill: parent
                 visible: !pageItem.hasWidget && !pageItem.isOfferPage && root.isEditMode
+                enabled: !pageItem.hasWidget && !pageItem.isOfferPage && root.isEditMode && pageItem.pIdx === root.currentPageIndex
 
                 // Centered prominent Add Widget button
                 Rectangle {
@@ -676,7 +718,8 @@ Item {
             Item {
                 id: offerPageItem
                 anchors.fill: parent
-                visible: pageItem.isOfferPage
+                visible: pageItem.isOfferPage && pageItem.pIdx === root.currentPageIndex
+                enabled: pageItem.isOfferPage && pageItem.pIdx === root.currentPageIndex
 
                 Rectangle {
                     anchors.centerIn: parent
@@ -686,7 +729,7 @@ Item {
                     color: addCirclePageMouse.containsMouse ? "#38ffffff" : "#20ffffff"
                     border.width: 1.5
                     border.color: addCirclePageMouse.containsMouse ? "#77ffffff" : "#44ffffff"
-                    z: 30
+                    z: 20
 
                     Column {
                         anchors.centerIn: parent

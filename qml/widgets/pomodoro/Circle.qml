@@ -33,6 +33,10 @@ Item {
 
     readonly property real diameter: Math.min(width, height)
 
+    function requestPaint() {
+        if (pomodoroArc) pomodoroArc.requestPaint();
+    }
+
     anchors.fill: parent
 
     Canvas {
@@ -43,14 +47,16 @@ Item {
         onPaint: {
             const ctx = getContext("2d");
             ctx.reset();
-            const center = root.diameter / 2;
+            const cx = width / 2;
+            const cy = height / 2;
             const strokeWidth = Math.max(2.5, Math.min(4, 3.0 + (root.diameter - 44) * 0.04));
-            const radius = center - strokeWidth / 2 - 1.0;
+            const radius = Math.min(cx, cy) - strokeWidth / 2 - 1.0;
+            if (radius <= 0) return;
 
             ctx.strokeStyle = "#27272a";
             ctx.lineWidth = strokeWidth;
             ctx.beginPath();
-            ctx.arc(center, center, radius, 0, Math.PI * 2);
+            ctx.arc(cx, cy, radius, 0, Math.PI * 2);
             ctx.stroke();
 
             if (root.connected) {
@@ -60,7 +66,7 @@ Item {
                 ctx.beginPath();
                 const startAngle = -Math.PI / 2;
                 const endAngle = startAngle + Math.PI * 2 * (1.0 - root.progress);
-                ctx.arc(center, center, radius, startAngle, endAngle);
+                ctx.arc(cx, cy, radius, startAngle, endAngle);
                 ctx.stroke();
             }
         }
@@ -68,6 +74,7 @@ Item {
 
     onWidthChanged: pomodoroArc.requestPaint()
     onHeightChanged: pomodoroArc.requestPaint()
+    onVisibleChanged: if (visible) pomodoroArc.requestPaint()
 
     Connections {
         target: PomotroidBackend

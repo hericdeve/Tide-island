@@ -19,42 +19,55 @@ Item {
     anchors.fill: parent
 
     readonly property real diameter: Math.min(width, height)
+    readonly property real ringStrokeWidth: Math.max(2.5, Math.min(4.5, 3.0 + (root.diameter - 44) * 0.04))
+
+    function requestPaint() {
+        if (progressArc) progressArc.requestPaint();
+    }
 
     Canvas {
         id: progressArc
         anchors.fill: parent
+        antialiasing: true
+
         onPaint: {
             const ctx = getContext("2d");
             ctx.reset();
-            const center = root.diameter / 2;
-            const radius = center - 2.5;
+            const cx = width / 2;
+            const cy = height / 2;
+            const strokeWidth = root.ringStrokeWidth;
+            const radius = Math.min(cx, cy) - strokeWidth / 2 - 1.0;
+            if (radius <= 0) return;
 
             // Background track
             ctx.strokeStyle = "#3a3a3c";
-            ctx.lineWidth = 3;
+            ctx.lineWidth = strokeWidth;
             ctx.beginPath();
-            ctx.arc(center, center, radius, 0, Math.PI * 2);
+            ctx.arc(cx, cy, radius, 0, Math.PI * 2);
             ctx.stroke();
 
             // Active progress
             if (root.trackProgress > 0.01) {
                 ctx.strokeStyle = "#ffffff";
-                ctx.lineWidth = 3;
+                ctx.lineWidth = strokeWidth;
                 ctx.lineCap = "round";
                 ctx.beginPath();
                 const startAngle = -Math.PI / 2;
                 const endAngle = startAngle + Math.PI * 2 * Math.min(1.0, root.trackProgress);
-                ctx.arc(center, center, radius, startAngle, endAngle);
+                ctx.arc(cx, cy, radius, startAngle, endAngle);
                 ctx.stroke();
             }
         }
     }
 
     onTrackProgressChanged: progressArc.requestPaint()
+    onWidthChanged: progressArc.requestPaint()
+    onHeightChanged: progressArc.requestPaint()
+    onVisibleChanged: if (visible) progressArc.requestPaint()
 
     ClippingRectangle {
         anchors.centerIn: parent
-        width: root.diameter - 14
+        width: Math.max(20, root.diameter - Math.round(root.ringStrokeWidth * 2 + 8))
         height: width
         radius: width / 2
         color: "#2c2c2e"

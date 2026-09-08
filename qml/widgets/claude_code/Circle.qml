@@ -34,6 +34,10 @@ Item {
         return "#a855f7";
     }
 
+    function requestPaint() {
+        if (ringCanvas) ringCanvas.requestPaint();
+    }
+
     anchors.fill: parent
 
     // Context Usage Radial Ring
@@ -45,14 +49,16 @@ Item {
         onPaint: {
             const ctx = getContext("2d");
             ctx.reset();
-            const center = root.diameter / 2;
-            const radius = center - 2.5;
+            const cx = width / 2;
+            const cy = height / 2;
+            const radius = Math.min(cx, cy) - 2.5;
+            if (radius <= 0) return;
 
             // Background track
             ctx.strokeStyle = "#27272a";
             ctx.lineWidth = 2.5;
             ctx.beginPath();
-            ctx.arc(center, center, radius, 0, Math.PI * 2);
+            ctx.arc(cx, cy, radius, 0, Math.PI * 2);
             ctx.stroke();
 
             // Context window usage arc
@@ -63,7 +69,7 @@ Item {
                 ctx.beginPath();
                 const startAngle = -Math.PI / 2;
                 const endAngle = startAngle + (Math.PI * 2 * root.contextPercent);
-                ctx.arc(center, center, radius, startAngle, endAngle);
+                ctx.arc(cx, cy, radius, startAngle, endAngle);
                 ctx.stroke();
             }
         }
@@ -74,6 +80,7 @@ Item {
         }
         onWidthChanged: requestPaint()
         onHeightChanged: requestPaint()
+        onVisibleChanged: if (visible) requestPaint()
     }
 
     // Thinking / Tool Rotating Radar Sweep

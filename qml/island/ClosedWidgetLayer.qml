@@ -84,6 +84,13 @@ Item {
         settleAnimation.restart();
     }
 
+    function setPageDirect(target) {
+        settleAnimation.stop();
+        const clamped = Math.max(0, Math.min(pageCount - 1, target));
+        currentPage = clamped;
+        pageProgress = clamped;
+    }
+
     NumberAnimation {
         id: settleAnimation
         target: root
@@ -770,7 +777,8 @@ Item {
                     color: addPillPageMouse.containsMouse ? "#38ffffff" : "#20ffffff"
                     border.width: 1
                     border.color: addPillPageMouse.containsMouse ? "#77ffffff" : "#44ffffff"
-                    visible: pageDelegateItem.isOfferPage
+                    visible: pageDelegateItem.isOfferPage && pageDelegateItem.pIdx === root.currentPage
+                    enabled: pageDelegateItem.isOfferPage && pageDelegateItem.pIdx === root.currentPage
                     z: 30
 
                     Row {
