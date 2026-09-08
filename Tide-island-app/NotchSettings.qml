@@ -114,6 +114,29 @@ PagePanel {
 
                     SplitLine { width: parent.width }
 
+                    ToggleRow {
+                        title: "Notch Border"
+                        description: "Display an outline border around the notch contour"
+                        keyName: "notchBorderEnabled"
+                        fallbackState: false
+                        width: parent.width
+                    }
+
+                    SplitLine { width: parent.width }
+
+                    ConfigRow {
+                        title: "Notch Border Width"
+                        description: "Thickness in pixels of the notch outline border (1-10, default 1)"
+                        keyName: "notchBorderWidth"
+                        fallbackText: "1"
+                        numeric: true
+                        minimumValue: 1
+                        maximumValue: 10
+                        width: parent.width
+                    }
+
+                    SplitLine { width: parent.width }
+
                     ConfigRow {
                         title: "Closed Notch Width"
                         description: "Width of notch when resting in Notch/Pill mode (default 185)"

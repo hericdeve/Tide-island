@@ -83,6 +83,17 @@ QtObject {
             fullComponent: Qt.resolvedUrl("system_stats/Full.qml"),
             minimumComponent: Qt.resolvedUrl("system_stats/Minimum.qml"),
             circleComponent: Qt.resolvedUrl("system_stats/Circle.qml")
+        },
+        {
+            id: "claude_code",
+            name: "Claude Code",
+            description: "AI assistant companion monitoring active sessions, tools, tokens, and consent requests",
+            icon: "󰚩",
+            supportedSizes: ["full", "minimum", "circle"],
+            defaultSlotSpan: 1,
+            fullComponent: Qt.resolvedUrl("claude_code/Full.qml"),
+            minimumComponent: Qt.resolvedUrl("claude_code/Minimum.qml"),
+            circleComponent: Qt.resolvedUrl("claude_code/Circle.qml")
         }
     ]
 

@@ -116,6 +116,15 @@ PanelWindow {
             height: stagingTrayItem.visible ? Math.ceil(stagingTrayItem.height) : 0
         }
 
+        // Keep input active over autohide edge reveal strip
+        Region {
+            intersection: Intersection.Combine
+            x: Math.floor(root.autoHideRevealX)
+            y: root.isBottom ? Math.floor(root.height - root.autoHideRevealHeight) : 0
+            width: root.autoHideEnabled ? Math.ceil(root.autoHideRevealWidth) : 0
+            height: root.autoHideEnabled ? Math.ceil(root.autoHideRevealHeight) : 0
+        }
+
         Region {
             intersection: Intersection.Combine
             x: Math.floor(mainCapsule.x)
@@ -291,6 +300,7 @@ PanelWindow {
         && isFullscreenActive
         && !islandContainer.expandedLayerVisible
         && !root.overviewVisible
+        && autoHideRevealSource !== "edge"
     readonly property bool autoHideTargetVisible: !fullscreenAutoHide && (autoHideMustShow
         || (!autoHideForcedHidden && (!autoHideEnabled || autoHideVisible)))
     readonly property bool autoHideSuppressesTransientReveal: (autoHideEnabled || autoHideForcedHidden)
@@ -300,8 +310,8 @@ PanelWindow {
         || (autoHideRevealSource === "edge" && autoHideTargetVisible)
         || islandContainer.notificationLayerVisible
     property real exclusiveZoneProgress: exclusiveZoneTargetActive ? 1 : 0
-    readonly property real autoHideRevealWidth: Math.min(root.width, Math.max(userConfig.islandWidth + 120, 240))
-    readonly property real autoHideRevealHeight: autoHideEnabled ? 10 : 0
+    readonly property real autoHideRevealWidth: Math.min(root.width, Math.max(mainCapsule.displayedWidth + 60, userConfig.islandWidth + 120, 240))
+    readonly property real autoHideRevealHeight: autoHideEnabled ? 12 : 0
     readonly property real autoHideRevealX: {
         if (root.isLeftAligned)
             return root.capsuleSideMargin;
@@ -312,13 +322,9 @@ PanelWindow {
             Math.min(root.width - autoHideRevealWidth, root.width * userConfig.islandPositionX / 100 - autoHideRevealWidth / 2)
         );
     }
-    readonly property real topGestureInputX: autoHideEnabled ? autoHideRevealX : 0
-    readonly property real topGestureInputWidth: topGestureInputActive
-        ? (autoHideEnabled ? autoHideRevealWidth : root.width)
-        : 0
-    readonly property real topGestureInputHeight: topGestureInputActive
-        ? (autoHideEnabled ? autoHideRevealHeight : root.baseExclusiveZone)
-        : 0
+    readonly property real topGestureInputX: 0
+    readonly property real topGestureInputWidth: topGestureInputActive ? root.width : 0
+    readonly property real topGestureInputHeight: topGestureInputActive ? root.baseExclusiveZone : 0
     readonly property real overviewCapsuleWidth: islandContainer.overviewView ? islandContainer.overviewView.width : 760
     readonly property real overviewCapsuleHeight: islandContainer.overviewView ? islandContainer.overviewView.height : 308
     readonly property real overviewCapsuleRadius: islandContainer.overviewView
@@ -2295,10 +2301,13 @@ PanelWindow {
             z: 5
             property int morphDuration: 300
             readonly property bool notificationHistorySurface: islandContainer.islandState === "notification_center"
-            property real outlineWidth: root.overviewContentVisible || notificationHistorySurface ? 1 : 0
+            readonly property bool borderEnabled: userConfig.notchBorderEnabled === true
+            property real outlineWidth: root.overviewContentVisible || notificationHistorySurface
+                ? 1
+                : (borderEnabled ? Math.max(1, userConfig.notchBorderWidth) : 0)
             property color outlineColor: root.overviewContentVisible
                 ? root.overviewCapsuleBorderColor
-                : (notificationHistorySurface ? "#1affffff" : StyleTokens.clearBlack)
+                : (notificationHistorySurface ? "#1affffff" : (borderEnabled ? "#33ffffff" : StyleTokens.clearBlack))
             property real displayedWidth: baseTargetWidth
             readonly property real baseTargetWidth: {
                 if (root.overviewVisible) return root.overviewCapsuleWidth;
@@ -4080,12 +4089,12 @@ PanelWindow {
 
         x: root.autoHideRevealX
         y: root.isBottom ? root.height - height : 0
-        z: 20
+        z: -1
         width: root.autoHideRevealWidth
         height: root.autoHideRevealHeight
         enabled: root.autoHideEnabled
         hoverEnabled: true
-        acceptedButtons: Qt.NoButton
+        acceptedButtons: Qt.LeftButton | Qt.RightButton
 
         onEntered: {
             root.autoHidePointerInside = true;
@@ -4093,8 +4102,15 @@ PanelWindow {
         }
 
         onExited: {
-            root.autoHidePointerInside = false;
-            root.scheduleAutoHide();
+            if (!capsuleHoverHandler.hovered) {
+                root.autoHidePointerInside = false;
+                root.scheduleAutoHide();
+            }
+        }
+
+        onPressed: {
+            root.autoHidePointerInside = true;
+            root.showAutoHiddenIsland("edge");
         }
     }
 

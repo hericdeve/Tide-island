@@ -16,6 +16,8 @@ private slots:
     void setValidNotchPositions();
     void setInvalidNotchPositionFallsBack();
     void notchPositionCaseAndTrimHandling();
+    void notchBorderEnabledDefaultsAndToggles();
+    void notchBorderWidthDefaultsAndBounds();
 };
 
 void UserConfigBackendTests::initTestCase()
@@ -73,6 +75,52 @@ void UserConfigBackendTests::notchPositionCaseAndTrimHandling()
 
     config.setNotchPosition(QStringLiteral("Bottom-Left"));
     QCOMPARE(config.notchPosition(), QStringLiteral("bottom-left"));
+}
+
+void UserConfigBackendTests::notchBorderEnabledDefaultsAndToggles()
+{
+    UserConfigBackend config;
+    QCOMPARE(config.notchBorderEnabled(), false);
+
+    QSignalSpy spy(&config, &UserConfigBackend::notchBorderEnabledChanged);
+
+    config.setNotchBorderEnabled(true);
+    QCOMPARE(config.notchBorderEnabled(), true);
+    QCOMPARE(spy.count(), 1);
+
+    config.setNotchBorderEnabled(false);
+    QCOMPARE(config.notchBorderEnabled(), false);
+    QCOMPARE(spy.count(), 2);
+}
+
+void UserConfigBackendTests::notchBorderWidthDefaultsAndBounds()
+{
+    UserConfigBackend config;
+    QCOMPARE(config.notchBorderWidth(), 1);
+
+    QSignalSpy spy(&config, &UserConfigBackend::notchBorderWidthChanged);
+
+    config.setNotchBorderWidth(3);
+    QCOMPARE(config.notchBorderWidth(), 3);
+    QCOMPARE(spy.count(), 1);
+
+    // Setting same value doesn't emit
+    config.setNotchBorderWidth(3);
+    QCOMPARE(spy.count(), 1);
+
+    // Clamping lower bound (min 1)
+    config.setNotchBorderWidth(0);
+    QCOMPARE(config.notchBorderWidth(), 1);
+    QCOMPARE(spy.count(), 2);
+
+    config.setNotchBorderWidth(-5);
+    QCOMPARE(config.notchBorderWidth(), 1);
+    QCOMPARE(spy.count(), 2);
+
+    // Clamping upper bound (max 10)
+    config.setNotchBorderWidth(20);
+    QCOMPARE(config.notchBorderWidth(), 10);
+    QCOMPARE(spy.count(), 3);
 }
 
 QTEST_MAIN(UserConfigBackendTests)

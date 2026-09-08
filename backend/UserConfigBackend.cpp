@@ -396,6 +396,79 @@ void UserConfigBackend::setNotchPosition(const QString &position)
     }
 }
 
+bool UserConfigBackend::notchBorderEnabled() const
+{
+    return m_notchBorderEnabled;
+}
+
+void UserConfigBackend::setNotchBorderEnabled(bool enabled)
+{
+    if (m_notchBorderEnabled == enabled)
+        return;
+
+    m_notchBorderEnabled = enabled;
+    emit notchBorderEnabledChanged();
+
+    QJsonObject configObject;
+    QFile configFile(m_userConfigPath);
+    if (configFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        const QByteArray bytes = configFile.readAll();
+        configFile.close();
+        if (!bytes.trimmed().isEmpty()) {
+            const QByteArray stripped = stripJsonComments(bytes);
+            QJsonDocument doc = QJsonDocument::fromJson(stripped);
+            if (doc.isObject()) {
+                configObject = doc.object();
+            }
+        }
+    }
+
+    configObject[QStringLiteral("notchBorderEnabled")] = m_notchBorderEnabled;
+
+    QSaveFile saveFile(m_userConfigPath);
+    if (saveFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        saveFile.write(QJsonDocument(configObject).toJson(QJsonDocument::Indented));
+        saveFile.commit();
+    }
+}
+
+int UserConfigBackend::notchBorderWidth() const
+{
+    return m_notchBorderWidth;
+}
+
+void UserConfigBackend::setNotchBorderWidth(int width)
+{
+    const int clamped = qBound(1, width, 10);
+    if (m_notchBorderWidth == clamped)
+        return;
+
+    m_notchBorderWidth = clamped;
+    emit notchBorderWidthChanged();
+
+    QJsonObject configObject;
+    QFile configFile(m_userConfigPath);
+    if (configFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        const QByteArray bytes = configFile.readAll();
+        configFile.close();
+        if (!bytes.trimmed().isEmpty()) {
+            const QByteArray stripped = stripJsonComments(bytes);
+            QJsonDocument doc = QJsonDocument::fromJson(stripped);
+            if (doc.isObject()) {
+                configObject = doc.object();
+            }
+        }
+    }
+
+    configObject[QStringLiteral("notchBorderWidth")] = m_notchBorderWidth;
+
+    QSaveFile saveFile(m_userConfigPath);
+    if (saveFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        saveFile.write(QJsonDocument(configObject).toJson(QJsonDocument::Indented));
+        saveFile.commit();
+    }
+}
+
 bool UserConfigBackend::boringNotchEnabled() const
 {
     return m_notchMode == QLatin1String("notch");
@@ -893,6 +966,8 @@ void UserConfigBackend::loadConfig()
         configuredNotchPosition = QStringLiteral("top-center");
     }
     updateField(this, m_notchPosition, configuredNotchPosition, &UserConfigBackend::notchPositionChanged);
+    updateField(this, m_notchBorderEnabled, jsonBool(configObject, QLatin1String("notchBorderEnabled"), false), &UserConfigBackend::notchBorderEnabledChanged);
+    updateField(this, m_notchBorderWidth, jsonBoundedInt(configObject, QLatin1String("notchBorderWidth"), 1, 1, 10), &UserConfigBackend::notchBorderWidthChanged);
     updateField(this, m_notchCircleClosedSize, jsonBoundedInt(configObject, QLatin1String("notchCircleClosedSize"), 44, 24, 160), &UserConfigBackend::notchCircleClosedSizeChanged);
     updateField(this, m_notchCircleExpandedRadius, jsonBoundedInt(configObject, QLatin1String("notchCircleExpandedRadius"), 48, 14, 95), &UserConfigBackend::notchCircleExpandedRadiusChanged);
 
