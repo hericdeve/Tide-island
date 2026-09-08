@@ -27,7 +27,10 @@ Item {
     property string iconFontFamily: "Sans Serif"
     property string textFontFamily: "Sans Serif"
 
-    property int currentPageIndex: 0
+    property int currentPageIndex: {
+        const circL = (userConfig && userConfig.widgetLayouts && userConfig.widgetLayouts.circle) ? userConfig.widgetLayouts.circle : null;
+        return (circL && circL.activePageIndex !== undefined) ? circL.activePageIndex : 0;
+    }
     property bool isDropTargetActive: false
     property bool dotsVisible: true
     property bool isEditMode: false
@@ -43,6 +46,9 @@ Item {
     onCurrentPageIndexChanged: {
         root.dotsVisible = true;
         dotsFadeTimer.restart();
+        if (userConfig) {
+            userConfig.setActivePage("circle", currentPageIndex);
+        }
     }
 
     onIsEditModeChanged: {
@@ -372,6 +378,9 @@ Item {
             readonly property var firstItem: items.length > 0 ? items[0] : null
             readonly property string widgetId: firstItem ? (firstItem.widgetId || "") : ""
             readonly property bool hasWidget: !isOfferPage && widgetId !== ""
+            readonly property bool isDeletePageAction: !hasWidget && pIdx > 0
+            readonly property bool isRemoveWidgetAction: hasWidget
+            readonly property bool showTopButton: root.isEditMode && !isOfferPage && (isRemoveWidgetAction || isDeletePageAction)
 
             anchors.fill: parent
             opacity: pIdx === root.currentPageIndex ? 1.0 : 0.0
@@ -380,6 +389,66 @@ Item {
 
             Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.InOutQuad } }
             Behavior on scale { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+
+            // Top action button in edit mode:
+            // - When page has a widget: removes widget (standard dark color, red on hover)
+            // - When custom page has no widget: deletes page (RED color)
+            Rectangle {
+                id: topActionBtn
+                anchors.top: parent.top
+                anchors.topMargin: 2
+                anchors.right: parent.right
+                anchors.rightMargin: 2
+                width: 14
+                height: 14
+                radius: 7
+                z: 99
+                visible: pageItem.showTopButton
+
+                color: pageItem.isDeletePageAction
+                    ? (topActionMouse.containsMouse ? "#ff6961" : "#ff453a")
+                    : (topActionMouse.containsMouse ? "#ff453a" : "#40000000")
+                border.width: 1
+                border.color: pageItem.isDeletePageAction
+                    ? (topActionMouse.containsMouse ? "#ffffff" : "#ff9f9a")
+                    : "#55ffffff"
+
+                transformOrigin: Item.Center
+                rotation: (root.isEditMode && pageItem.hasWidget) ? circleJiggleContainer.currentRotation : 0
+                transform: Translate {
+                    x: (root.isEditMode && pageItem.hasWidget) ? circleJiggleContainer.xOffset : 0
+                    y: (root.isEditMode && pageItem.hasWidget) ? circleJiggleContainer.yOffset : 0
+                }
+
+                Behavior on color { ColorAnimation { duration: 150 } }
+                Behavior on border.color { ColorAnimation { duration: 150 } }
+
+                Text {
+                    anchors.centerIn: parent
+                    text: "󰅖"
+                    font.family: root.iconFontFamily
+                    font.pixelSize: 8
+                    color: "white"
+                }
+
+                MouseArea {
+                    id: topActionMouse
+                    anchors.fill: parent
+                    anchors.margins: -4
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        if (!userConfig) return;
+                        if (pageItem.isDeletePageAction) {
+                            const targetIdx = pageItem.pIdx;
+                            userConfig.removePage("circle", targetIdx);
+                            root.currentPageIndex = Math.max(0, targetIdx - 1);
+                        } else if (pageItem.isRemoveWidgetAction) {
+                            userConfig.removeSlotWidget("circle", pageItem.pIdx, 0);
+                        }
+                    }
+                }
+            }
 
             // 1. Populated widget container with iOS home screen editing wiggle effect
             Item {
@@ -405,6 +474,7 @@ Item {
 
                 Loader {
                     anchors.fill: parent
+                    enabled: false
                     active: pageItem.hasWidget
                     source: active ? WidgetRegistry.getComponentUrl(pageItem.widgetId, "circle") : ""
 
@@ -420,42 +490,6 @@ Item {
                             item.widgetContext = root.sharedWidgetContext;
                             item.slotSpan = 1;
                             item.isEditMode = root.isEditMode;
-                        }
-                    }
-                }
-
-                // Remove widget button in edit mode
-                Rectangle {
-                    anchors.top: parent.top
-                    anchors.topMargin: 2
-                    anchors.right: parent.right
-                    anchors.rightMargin: 2
-                    width: 14
-                    height: 14
-                    radius: 7
-                    color: removeCircleMouse.containsMouse ? "#ff453a" : "#40000000"
-                    border.width: 1
-                    border.color: "#55ffffff"
-                    visible: root.isEditMode
-                    z: 99
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: "󰅖"
-                        font.family: root.iconFontFamily
-                        font.pixelSize: 8
-                        color: "white"
-                    }
-
-                    MouseArea {
-                        id: removeCircleMouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            if (userConfig) {
-                                userConfig.removeSlotWidget("circle", pageItem.pIdx, 0);
-                            }
                         }
                     }
                 }
@@ -633,43 +667,6 @@ Item {
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
                             root.widgetLibraryRequested("circle", pageItem.pIdx, 0);
-                        }
-                    }
-                }
-
-                // Delete custom page button at bottom (only for page > 0, Home cannot be deleted)
-                Rectangle {
-                    anchors.bottom: parent.bottom
-                    anchors.bottomMargin: 2
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    width: 14
-                    height: 14
-                    radius: 7
-                    color: delCircleMouse.containsMouse ? "#ff453a" : "#382a2a2e"
-                    border.width: 1
-                    border.color: "#33ffffff"
-                    visible: pageItem.pIdx > 0 && root.isEditMode
-                    z: 50
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: "󰅖"
-                        font.family: root.iconFontFamily
-                        font.pixelSize: 8
-                        color: "white"
-                    }
-
-                    MouseArea {
-                        id: delCircleMouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            if (userConfig) {
-                                const targetIdx = pageItem.pIdx;
-                                userConfig.removePage("circle", targetIdx);
-                                root.currentPageIndex = Math.max(0, targetIdx - 1);
-                            }
                         }
                     }
                 }

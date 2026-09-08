@@ -103,7 +103,8 @@ Item {
             for (let i = 0; i < root.items.length; ++i) {
                 const item = root.items[i];
                 const start = item.slotIndex;
-                const span = item.slotSpan || 1;
+                const rawSpan = item.slotSpan || 1;
+                const span = Math.max(1, Math.min(rawSpan, root.slotCount - start));
                 if (index > start && index < start + span)
                     return true;
             }
@@ -119,7 +120,8 @@ Item {
                 readonly property int currentSlotIndex: index
                 readonly property var placedItem: gridContainer.itemAtSlot(index)
                 readonly property bool coveredBySpan: gridContainer.isSlotCoveredBySpan(index)
-                readonly property int span: placedItem ? (placedItem.slotSpan || 1) : 1
+                readonly property int rawSpan: placedItem ? (placedItem.slotSpan || 1) : 1
+                readonly property int span: Math.max(1, Math.min(rawSpan, root.slotCount - currentSlotIndex))
 
                 visible: !coveredBySpan
                 x: currentSlotIndex * (root.slotBaseWidth + root.spacing)

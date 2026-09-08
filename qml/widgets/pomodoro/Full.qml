@@ -61,7 +61,7 @@ Item {
     // Single-slot view mode: 0 = Timer controls, 1 = Tags & metadata
     property int singleSlotTab: 0
 
-    readonly property bool isWide: slotSpan >= 2 && width >= 340
+    readonly property bool isWide: width >= 340 || slotSpan >= 2
 
     anchors.fill: parent
 
@@ -81,9 +81,11 @@ Item {
             border.width: 1
             border.color: "#27272a"
 
+            // Wide layout (horizontal row)
             Row {
                 anchors.centerIn: parent
                 spacing: 14
+                visible: root.isWide
 
                 Rectangle {
                     width: 44
@@ -154,6 +156,77 @@ Item {
                             cursorShape: Qt.PointingHandCursor
                             onClicked: PomotroidBackend.launchPomotroid()
                         }
+                    }
+                }
+            }
+
+            // Compact layout (vertical column for narrow 1-slot views)
+            Column {
+                anchors.centerIn: parent
+                spacing: 6
+                visible: !root.isWide
+
+                Rectangle {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: 34
+                    height: 34
+                    radius: 17
+                    color: "#26ff453a"
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: "󰄉"
+                        font.family: root.iconFontFamily
+                        font.pixelSize: 18
+                        color: "#ff453a"
+                    }
+                }
+
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: "Pomotroid Offline"
+                    font.family: root.textFontFamily
+                    font.pixelSize: 11
+                    font.weight: Font.Bold
+                    color: "white"
+                }
+
+                Rectangle {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: compactLaunchRow.implicitWidth + 16
+                    height: 22
+                    radius: 11
+                    color: compactLaunchMouse.pressed ? "#dc2626" : (compactLaunchMouse.containsMouse ? "#ef4444" : "#ff453a")
+
+                    Row {
+                        id: compactLaunchRow
+                        anchors.centerIn: parent
+                        spacing: 4
+
+                        Text {
+                            text: "󰐊"
+                            font.family: root.iconFontFamily
+                            font.pixelSize: 10
+                            color: "white"
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+
+                        Text {
+                            text: "Launch"
+                            font.family: root.textFontFamily
+                            font.pixelSize: 10
+                            font.weight: Font.DemiBold
+                            color: "white"
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                    }
+
+                    MouseArea {
+                        id: compactLaunchMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: PomotroidBackend.launchPomotroid()
                     }
                 }
             }

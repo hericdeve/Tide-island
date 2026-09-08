@@ -30,9 +30,13 @@ Item {
 
     readonly property int currentPage: expandedPageStrip ? expandedPageStrip.currentPage : 0
 
-    function showPage(pageIdx) {
+    function showPage(pageIdx, immediate) {
         if (expandedPageStrip) {
-            expandedPageStrip.settlePage(pageIdx);
+            if (immediate) {
+                expandedPageStrip.setPageDirect(pageIdx);
+            } else {
+                expandedPageStrip.settlePage(pageIdx);
+            }
         }
     }
 

@@ -131,6 +131,8 @@ Item {
 
 ### Minimum.qml template
 
+> **STRICT RULE — Non-Interactive:** `Minimum.qml` widgets **must not** contain `MouseArea`, `TapHandler`, or clickable controls. Clicking the closed notch is strictly reserved by the system to expand the notch (or swipe pages / enter edit mode). All interactive controls (buttons, play/pause, launches) belong exclusively in `Full.qml`.
+
 ```qml
 import QtQuick
 
@@ -176,6 +178,8 @@ Item {
 ---
 
 ### Circle.qml template
+
+> **STRICT RULE — Non-Interactive:** `Circle.qml` widgets **must not** contain `MouseArea`, `TapHandler`, or clickable controls. Clicking the circle notch is strictly reserved by the system to expand the notch (or swipe pages / enter edit mode). All interactive controls belong exclusively in `Full.qml`.
 
 ```qml
 import QtQuick
@@ -310,11 +314,13 @@ Expected output contains `Configuration Loaded` with no errors on your widget fi
 | Forgetting `anchors.fill: parent` at root | Widget won't fill its slot |
 | Using `slots` as a C++ parameter name | Qt macro conflict — use `slotCount` |
 | Using a pixel size that ignores `uiScale` | Multiply by `root.scale` for responsive sizing |
+| Adding `MouseArea` or click handlers in `Minimum.qml` or `Circle.qml` | **Never** make pill or circle widgets interactive. Clicks on closed/circle notch must only expand the notch. Place all interactivity in `Full.qml`. |
 
 ---
 
 ## Design conventions
 
+- **Interactivity policy:** Only `Full.qml` (expanded view) is interactive. `Minimum.qml` (closed pill) and `Circle.qml` (circle mode) are read-only, glanceable displays. Clicks on the closed or circle notch are reserved to expand the notch.
 - **Background:** Widgets render on a dark surface (`#1c1c1e`). No need to add your own background rectangle.
 - **Text color:** Primary text = `"white"`, secondary = `"#8e8e93"`, accent = `"#b56cff"`.
 - **Accent colors per ring/chart:** Battery green `#30d158`, CPU pink `#ff2d55`, RAM blue `#007aff`, generic blue `#0a84ff`.

@@ -35,37 +35,27 @@ Item {
 
     anchors.fill: parent
 
-    MouseArea {
-        anchors.fill: parent
-        hoverEnabled: true
-        cursorShape: Qt.PointingHandCursor
-        onClicked: {
-            if (root.connected) {
-                PomotroidBackend.toggleTimer();
-            } else {
-                PomotroidBackend.launchPomotroid();
-            }
-        }
-    }
-
     Canvas {
         id: pomodoroArc
         anchors.fill: parent
+        antialiasing: true
+
         onPaint: {
             const ctx = getContext("2d");
             ctx.reset();
             const center = root.diameter / 2;
-            const radius = center - 2.5;
+            const strokeWidth = Math.max(2.5, Math.min(4, 3.0 + (root.diameter - 44) * 0.04));
+            const radius = center - strokeWidth / 2 - 1.0;
 
             ctx.strokeStyle = "#27272a";
-            ctx.lineWidth = 3;
+            ctx.lineWidth = strokeWidth;
             ctx.beginPath();
             ctx.arc(center, center, radius, 0, Math.PI * 2);
             ctx.stroke();
 
             if (root.connected) {
                 ctx.strokeStyle = root.themeColor;
-                ctx.lineWidth = 3;
+                ctx.lineWidth = strokeWidth;
                 ctx.lineCap = "round";
                 ctx.beginPath();
                 const startAngle = -Math.PI / 2;
@@ -76,6 +66,9 @@ Item {
         }
     }
 
+    onWidthChanged: pomodoroArc.requestPaint()
+    onHeightChanged: pomodoroArc.requestPaint()
+
     Connections {
         target: PomotroidBackend
         function onTickChanged() { pomodoroArc.requestPaint(); }
@@ -85,33 +78,25 @@ Item {
 
     Column {
         anchors.centerIn: parent
-        spacing: 1
-
-        Text {
-            anchors.horizontalCenter: parent.horizontalCenter
-            text: root.isWork ? "󰄉" : "󱫠"
-            font.family: root.iconFontFamily
-            font.pixelSize: 12
-            color: root.themeColor
-        }
+        spacing: Math.max(0, Math.round((root.diameter - 44) * 0.05))
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             text: root.timeDisplay
             font.family: root.textFontFamily
-            font.pixelSize: 10
+            font.pixelSize: Math.max(12, Math.min(18, Math.round(13 + (root.diameter - 44) * 0.18)))
             font.weight: Font.Bold
+            font.letterSpacing: -0.3
             color: "white"
         }
 
         Text {
-            visible: root.connected
             anchors.horizontalCenter: parent.horizontalCenter
-            text: root.roundNumber + "/" + root.roundsTotal
+            text: root.connected ? (root.roundNumber + "/" + root.roundsTotal) : "Offline"
             font.family: root.textFontFamily
-            font.pixelSize: 8
+            font.pixelSize: Math.max(8, Math.min(12, Math.round(9 + (root.diameter - 44) * 0.08)))
             font.weight: Font.DemiBold
-            color: "#a1a1aa"
+            color: root.connected ? "#a1a1aa" : "#71717a"
         }
     }
 }

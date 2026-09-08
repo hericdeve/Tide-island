@@ -1009,6 +1009,7 @@ PanelWindow {
         property bool hoverExpandedActive: false
         property bool expandedPlayerKeyboardFocusRequested: false
         property bool openTimerPageWhenExpanded: false
+        property int targetExpandedPage: 0
         property int rememberedPlayerPage: {
             const exp = (userConfig && userConfig.widgetLayouts && userConfig.widgetLayouts.expanded) ? userConfig.widgetLayouts.expanded : null;
             return (exp && exp.activePageIndex !== undefined) ? exp.activePageIndex : 0;
@@ -1834,15 +1835,78 @@ PanelWindow {
             stopAutoHideTimer();
         }
 
-        function showExpandedPlayer(autoOpened) {
+        function resolveExpandedTargetPage() {
+            if (openTimerPageWhenExpanded) {
+                return 0;
+            }
+
+            let activeWidgetId = "";
+            if (userConfig && userConfig.notchMode === "circle") {
+                const circlePages = (userConfig.widgetLayouts && userConfig.widgetLayouts.circle && userConfig.widgetLayouts.circle.pages) || [];
+                const curIdx = (circleClosedLoader && circleClosedLoader.item)
+                    ? circleClosedLoader.item.currentPageIndex
+                    : ((userConfig.widgetLayouts && userConfig.widgetLayouts.circle && userConfig.widgetLayouts.circle.activePageIndex !== undefined)
+                        ? userConfig.widgetLayouts.circle.activePageIndex : 0);
+                if (curIdx >= 0 && curIdx < circlePages.length) {
+                    const items = circlePages[curIdx].items || [];
+                    if (items.length > 0 && items[0] && items[0].widgetId) {
+                        activeWidgetId = items[0].widgetId;
+                    }
+                }
+            } else {
+                const minPages = (userConfig.widgetLayouts && userConfig.widgetLayouts.minimum && userConfig.widgetLayouts.minimum.pages) || [];
+                const curIdx = (closedWidgetLoader && closedWidgetLoader.item)
+                    ? closedWidgetLoader.item.currentPageIndex
+                    : ((userConfig.widgetLayouts && userConfig.widgetLayouts.minimum && userConfig.widgetLayouts.minimum.activePageIndex !== undefined)
+                        ? userConfig.widgetLayouts.minimum.activePageIndex : 0);
+                if (curIdx >= 0 && curIdx < minPages.length) {
+                    const items = minPages[curIdx].items || [];
+                    for (let i = 0; i < items.length; ++i) {
+                        if (items[i] && items[i].widgetId) {
+                            activeWidgetId = items[i].widgetId;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            const expPages = (userConfig && userConfig.widgetLayouts && userConfig.widgetLayouts.expanded && userConfig.widgetLayouts.expanded.pages) || [];
+            if (activeWidgetId !== "") {
+                for (let pIdx = 0; pIdx < expPages.length; ++pIdx) {
+                    const items = expPages[pIdx].items || [];
+                    for (let i = 0; i < items.length; ++i) {
+                        if (items[i] && items[i].widgetId === activeWidgetId) {
+                            return pIdx;
+                        }
+                    }
+                }
+            }
+
+            if (userConfig && userConfig.playerRememberLastPane) {
+                const maxPage = Math.max(0, expPages.length - 1);
+                return Math.max(0, Math.min(maxPage, islandContainer.rememberedPlayerPage));
+            }
+
+            return 0;
+        }
+
+        function showExpandedPlayer(autoOpened, explicitTargetPage) {
             cancelSideSwipeSettle();
             abortSideTransientMode();
             clearTransientCapsule();
+            if (explicitTargetPage !== undefined && explicitTargetPage >= 0) {
+                targetExpandedPage = explicitTargetPage;
+            } else {
+                targetExpandedPage = resolveExpandedTargetPage();
+            }
             islandState = "expanded";
             mainCapsule.displayedWidth = mainCapsule.baseTargetWidth;
-            expandedByPlayerAutoOpen = autoOpened;
+            expandedByPlayerAutoOpen = !!autoOpened;
             if (autoOpened) restartAutoHideTimer();
             else stopAutoHideTimer();
+            if (expandedPlayerLoader.item && expandedPlayerLoader.item.showPage) {
+                expandedPlayerLoader.item.showPage(targetExpandedPage, true);
+            }
         }
 
         function showBluetoothExpanded(device) {
@@ -1920,11 +1984,11 @@ PanelWindow {
             hoveredSlotIndex = -1;
 
             if (sizeType === "full") {
+                targetExpandedPage = 0;
                 islandState = "expanded";
-                rememberedPlayerPage = 0;
                 mainCapsule.displayedWidth = mainCapsule.baseTargetWidth;
                 if (expandedPlayerLoader.item && expandedPlayerLoader.item.showPage)
-                    expandedPlayerLoader.item.showPage(0);
+                    expandedPlayerLoader.item.showPage(0, true);
             } else if (sizeType === "minimum") {
                 if (userConfig.notchMode === "circle") {
                     userConfig.setNotchMode(preStagingNotchMode === "pill" ? "pill" : "notch");
@@ -2002,10 +2066,11 @@ PanelWindow {
 
             if (sizeType === "full") {
                 // Show expanded notch on the page the user was on when opening library
+                targetExpandedPage = preDragExpandedPage;
                 islandState = "expanded";
                 mainCapsule.displayedWidth = mainCapsule.baseTargetWidth;
                 if (expandedPlayerLoader.item && expandedPlayerLoader.item.showPage) {
-                    expandedPlayerLoader.item.showPage(preDragExpandedPage);
+                    expandedPlayerLoader.item.showPage(preDragExpandedPage, true);
                 }
             } else if (sizeType === "minimum") {
                 // Show closed/pill notch
@@ -3102,24 +3167,18 @@ PanelWindow {
                             && item && item.openTimerPage) {
                         item.openTimerPage();
                         islandContainer.openTimerPageWhenExpanded = false;
-                    } else if (userConfig.playerRememberLastPane && islandContainer.rememberedPlayerPage > 0 && item && item.showPage && item.currentPage !== islandContainer.rememberedPlayerPage) {
-                        item.showPage(islandContainer.rememberedPlayerPage);
+                    } else if (item && item.showPage) {
+                        item.showPage(islandContainer.targetExpandedPage, true);
                     }
                     root.focusExpandedPlayer();
                 }
 
                 sourceComponent: Component {
                     ExpandedPlayerLayer {
-                        initialPage: {
-                            const maxPage = (userConfig && userConfig.widgetLayouts && userConfig.widgetLayouts.expanded && userConfig.widgetLayouts.expanded.pages)
-                                ? Math.max(0, userConfig.widgetLayouts.expanded.pages.length - 1) : 0;
-                            const rem = (userConfig.playerRememberLastPane && !islandContainer.openTimerPageWhenExpanded)
-                                ? islandContainer.rememberedPlayerPage : 0;
-                            return Math.max(0, Math.min(maxPage, rem));
-                        }
+                        initialPage: islandContainer.targetExpandedPage
                         onPageChanged: function(page) {
-                            islandContainer.rememberedPlayerPage = page;
                             if (userConfig && userConfig.playerRememberLastPane) {
+                                islandContainer.rememberedPlayerPage = page;
                                 userConfig.setActivePage("expanded", page);
                             }
                         }
@@ -3383,16 +3442,10 @@ PanelWindow {
                         currentPage: expandedPlayerLoader.item ? expandedPlayerLoader.item.currentPage : 0
                         onCloseRequested: islandContainer.smartRestoreState()
                         onShelfRequested: {
-                            islandContainer.showExpandedPlayer();
-                            if (expandedPlayerLoader.item && expandedPlayerLoader.item.showPage) {
-                                expandedPlayerLoader.item.showPage(islandContainer.preFileShelfPage);
-                            }
+                            islandContainer.showExpandedPlayer(false, islandContainer.preFileShelfPage);
                         }
                         onPageSelected: (idx) => {
-                            if (expandedPlayerLoader.item) {
-                                expandedPlayerLoader.item.showPage(idx);
-                            }
-                            islandContainer.showExpandedPlayer();
+                            islandContainer.showExpandedPlayer(false, idx);
                         }
                         onCameraToggleRequested: {
                             if (expandedPlayerLoader.item) {

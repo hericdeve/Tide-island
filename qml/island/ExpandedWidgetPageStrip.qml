@@ -33,6 +33,13 @@ Item {
         settleAnimation.restart();
     }
 
+    function setPageDirect(target) {
+        settleAnimation.stop();
+        const clamped = Math.max(0, Math.min(pageCount - 1, target));
+        currentPage = clamped;
+        pageProgress = clamped;
+    }
+
     NumberAnimation {
         id: settleAnimation
         target: root
@@ -41,6 +48,16 @@ Item {
         easing.type: Easing.OutCubic
         onFinished: {
             root.currentPage = Math.round(root.pageProgress);
+        }
+    }
+
+    onPagesChanged: {
+        if (!settleAnimation.running) {
+            const clamped = Math.max(0, Math.min(pageCount - 1, initialPage));
+            if (currentPage !== clamped) {
+                currentPage = clamped;
+                pageProgress = clamped;
+            }
         }
     }
 

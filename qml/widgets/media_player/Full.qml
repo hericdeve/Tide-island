@@ -25,7 +25,7 @@ Item {
     readonly property string textFontFamily: widgetContext ? widgetContext.textFontFamily : userConfig.textFontFamily
     readonly property real uiScale: widgetContext ? widgetContext.uiScale : 1.0
 
-    readonly property bool compactMode: width < 260 || slotSpan === 1
+    readonly property bool compactMode: width < 260 || (slotSpan === 1 && width < 340)
 
     function togglePlayback() {
         if (!activePlayer || !activePlayer.canControl) return;

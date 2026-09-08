@@ -46,7 +46,7 @@ class UserConfigBackend final : public QObject {
     Q_PROPERTY(QVariantList dynamicIslandLeftSwipeItems READ dynamicIslandLeftSwipeItems NOTIFY dynamicIslandLeftSwipeItemsChanged FINAL)
     Q_PROPERTY(QVariantList excludedPlayers READ excludedPlayers NOTIFY excludedPlayersChanged FINAL)
     Q_PROPERTY(bool disableAutoExpandOnTrackChange READ disableAutoExpandOnTrackChange NOTIFY disableAutoExpandOnTrackChangeChanged FINAL)
-    Q_PROPERTY(bool playerRememberLastPane READ playerRememberLastPane NOTIFY playerRememberLastPaneChanged FINAL)
+    Q_PROPERTY(bool playerRememberLastPane READ playerRememberLastPane WRITE setPlayerRememberLastPane NOTIFY playerRememberLastPaneChanged FINAL)
     Q_PROPERTY(int hoverExpandAction READ hoverExpandAction NOTIFY hoverExpandActionChanged FINAL)
     Q_PROPERTY(bool islandAutoHideEnabled READ islandAutoHideEnabled NOTIFY islandAutoHideEnabledChanged FINAL)
     Q_PROPERTY(int islandAutoHideDelayMs READ islandAutoHideDelayMs NOTIFY islandAutoHideDelayMsChanged FINAL)
@@ -117,6 +117,7 @@ public:
     const QVariantList &excludedPlayers() const;
     bool disableAutoExpandOnTrackChange() const;
     bool playerRememberLastPane() const;
+    Q_INVOKABLE void setPlayerRememberLastPane(bool remember);
     int hoverExpandAction() const;
     bool islandShowWorkspaceOnAutoHide() const;
     bool islandAutoHideEnabled() const;

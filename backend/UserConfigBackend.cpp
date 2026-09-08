@@ -290,6 +290,38 @@ bool UserConfigBackend::playerRememberLastPane() const
     return m_playerRememberLastPane;
 }
 
+void UserConfigBackend::setPlayerRememberLastPane(bool remember)
+{
+    if (m_playerRememberLastPane == remember)
+        return;
+
+    m_playerRememberLastPane = remember;
+    emit playerRememberLastPaneChanged();
+
+    QJsonObject configObject;
+    QFile configFile(m_userConfigPath);
+    if (configFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        const QByteArray bytes = configFile.readAll();
+        configFile.close();
+        if (!bytes.trimmed().isEmpty()) {
+            const QByteArray stripped = stripJsonComments(bytes);
+            QJsonDocument doc = QJsonDocument::fromJson(stripped);
+            if (doc.isObject()) {
+                configObject = doc.object();
+            }
+        }
+    }
+
+    configObject[QStringLiteral("playerRememberLastPane")] = m_playerRememberLastPane;
+
+    QFileInfo(m_userConfigPath).dir().mkpath(QStringLiteral("."));
+    QSaveFile saveFile(m_userConfigPath);
+    if (saveFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        saveFile.write(QJsonDocument(configObject).toJson(QJsonDocument::Indented));
+        saveFile.commit();
+    }
+}
+
 int UserConfigBackend::hoverExpandAction() const
 {
     return m_hoverExpandAction;
@@ -775,7 +807,25 @@ void UserConfigBackend::setPageSlots(const QString &mode, int pageIndex, int slo
         return;
 
     QJsonObject page = pages[pageIndex].toObject();
-    page[QStringLiteral("slots")] = qMax(1, qMin(6, slotCount));
+    const int clampedSlots = qMax(1, qMin(6, slotCount));
+    page[QStringLiteral("slots")] = clampedSlots;
+
+    QJsonArray items = page.value(QStringLiteral("items")).toArray();
+    for (int i = items.size() - 1; i >= 0; --i) {
+        QJsonObject item = items[i].toObject();
+        const int sIdx = item.value(QStringLiteral("slotIndex")).toInt();
+        if (sIdx >= clampedSlots) {
+            items.removeAt(i);
+        } else {
+            const int sSpan = item.value(QStringLiteral("slotSpan")).toInt(1);
+            const int maxSpan = clampedSlots - sIdx;
+            if (sSpan > maxSpan) {
+                item[QStringLiteral("slotSpan")] = qMax(1, maxSpan);
+                items[i] = item;
+            }
+        }
+    }
+    page[QStringLiteral("items")] = items;
     pages[pageIndex] = page;
 
     modeObj[QStringLiteral("pages")] = pages;
@@ -792,7 +842,29 @@ void UserConfigBackend::setSlotWidget(const QString &mode, int pageIndex, int sl
     if (pageIndex < 0 || pageIndex >= pages.size())
         return;
 
+    const QString cleanWidgetId = widgetId.trimmed();
+
+    // Deduplicate: remove any prior instances of this widget across all pages in this mode
+    if (!cleanWidgetId.isEmpty()) {
+        for (int p = 0; p < pages.size(); ++p) {
+            QJsonObject pageObj = pages[p].toObject();
+            QJsonArray pageItems = pageObj.value(QStringLiteral("items")).toArray();
+            bool modified = false;
+            for (int i = pageItems.size() - 1; i >= 0; --i) {
+                if (pageItems[i].toObject().value(QStringLiteral("widgetId")).toString().trimmed() == cleanWidgetId) {
+                    pageItems.removeAt(i);
+                    modified = true;
+                }
+            }
+            if (modified) {
+                pageObj[QStringLiteral("items")] = pageItems;
+                pages[p] = pageObj;
+            }
+        }
+    }
+
     QJsonObject page = pages[pageIndex].toObject();
+    const int pageSlots = page.value(QStringLiteral("slots")).toInt(3);
     QJsonArray items = page.value(QStringLiteral("items")).toArray();
 
     for (int i = items.size() - 1; i >= 0; --i) {
@@ -802,11 +874,12 @@ void UserConfigBackend::setSlotWidget(const QString &mode, int pageIndex, int sl
         }
     }
 
-    if (!widgetId.trimmed().isEmpty()) {
+    if (!cleanWidgetId.isEmpty()) {
+        const int maxAllowedSpan = qMax(1, pageSlots - slotIndex);
         QJsonObject newItem;
         newItem[QStringLiteral("slotIndex")] = slotIndex;
-        newItem[QStringLiteral("widgetId")] = widgetId.trimmed();
-        newItem[QStringLiteral("slotSpan")] = qMax(1, slotSpan);
+        newItem[QStringLiteral("widgetId")] = cleanWidgetId;
+        newItem[QStringLiteral("slotSpan")] = qMax(1, qMin(slotSpan, maxAllowedSpan));
         items.append(newItem);
     }
 
@@ -1035,6 +1108,38 @@ void UserConfigBackend::loadConfig()
                     modeObj = defaults.value(mode).toObject();
                     layouts[mode] = modeObj;
                     changed = true;
+                } else {
+                    // Sanitize any duplicate widgets across pages within this mode
+                    QJsonArray pages = modeObj.value(QStringLiteral("pages")).toArray();
+                    QSet<QString> seenWidgets;
+                    bool deduplicated = false;
+                    for (int p = 0; p < pages.size(); ++p) {
+                        QJsonObject pageObj = pages[p].toObject();
+                        QJsonArray pageItems = pageObj.value(QStringLiteral("items")).toArray();
+                        bool pageModified = false;
+                        for (int i = pageItems.size() - 1; i >= 0; --i) {
+                            const QString wId = pageItems[i].toObject().value(QStringLiteral("widgetId")).toString().trimmed();
+                            if (wId.isEmpty()) {
+                                pageItems.removeAt(i);
+                                pageModified = true;
+                            } else if (seenWidgets.contains(wId)) {
+                                pageItems.removeAt(i);
+                                pageModified = true;
+                                deduplicated = true;
+                            } else {
+                                seenWidgets.insert(wId);
+                            }
+                        }
+                        if (pageModified) {
+                            pageObj[QStringLiteral("items")] = pageItems;
+                            pages[p] = pageObj;
+                        }
+                    }
+                    if (deduplicated) {
+                        modeObj[QStringLiteral("pages")] = pages;
+                        layouts[mode] = modeObj;
+                        changed = true;
+                    }
                 }
             }
         }

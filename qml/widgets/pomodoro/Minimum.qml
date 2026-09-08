@@ -28,28 +28,6 @@ Item {
 
     anchors.fill: parent
 
-    MouseArea {
-        anchors.fill: parent
-        hoverEnabled: true
-        cursorShape: Qt.PointingHandCursor
-        acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
-        onClicked: (mouse) => {
-            if (mouse.button === Qt.RightButton || mouse.button === Qt.MiddleButton) {
-                if (root.connected) {
-                    PomotroidBackend.openMainWindow();
-                } else {
-                    PomotroidBackend.launchPomotroid();
-                }
-            } else {
-                if (root.connected) {
-                    PomotroidBackend.toggleTimer();
-                } else {
-                    PomotroidBackend.launchPomotroid();
-                }
-            }
-        }
-    }
-
     Row {
         anchors.centerIn: parent
         spacing: 6

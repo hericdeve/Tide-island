@@ -54,6 +54,27 @@ Item {
         return currentWidget.supportedSizes.indexOf(req) !== -1;
     }
 
+    function isWidgetAddedInMode(widgetId, mode) {
+        if (!widgetId || !mode || !userConfig || !userConfig.widgetLayouts) return false;
+        const modeObj = userConfig.widgetLayouts[mode];
+        if (!modeObj || !modeObj.pages) return false;
+        const pagesArr = modeObj.pages;
+        for (let p = 0; p < pagesArr.length; ++p) {
+            const items = pagesArr[p].items || [];
+            for (let i = 0; i < items.length; ++i) {
+                if (items[i] && items[i].widgetId === widgetId) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    readonly property bool isCurrentAddedInTargetMode: currentWidget
+        ? isWidgetAddedInMode(currentWidget.id, targetMode) : false
+
+    readonly property bool canAddInTargetMode: currentSupportsTargetMode && !isCurrentAddedInTargetMode
+
     readonly property bool currentSupportsFull: currentWidget && currentWidget.supportedSizes
         && currentWidget.supportedSizes.indexOf("full") !== -1
         && !!currentWidget.fullComponent && currentWidget.fullComponent !== ""
@@ -556,29 +577,29 @@ Item {
                         width: 34
                         height: 34
                         radius: 17
-                        color: root.currentSupportsTargetMode
+                        color: root.canAddInTargetMode
                             ? (addMouse.pressed ? "#3dffffff" : (addMouse.containsMouse ? "#29ffffff" : "#1affffff"))
                             : "#0affffff"
                         border.width: 1
-                        border.color: root.currentSupportsTargetMode ? (addMouse.containsMouse ? "#40ffffff" : "#1fffffff") : "#0fffffff"
-                        opacity: root.currentSupportsTargetMode ? 1.0 : 0.35
+                        border.color: root.canAddInTargetMode ? (addMouse.containsMouse ? "#40ffffff" : "#1fffffff") : "#0fffffff"
+                        opacity: root.canAddInTargetMode ? 1.0 : 0.35
 
                         Text {
                             anchors.centerIn: parent
-                            text: "󰐕"
+                            text: root.isCurrentAddedInTargetMode ? "󰄬" : "󰐕"
                             font.family: root.iconFontFamily
                             font.pixelSize: 16
                             font.weight: Font.Bold
-                            color: root.currentSupportsTargetMode ? "white" : "#555"
+                            color: root.canAddInTargetMode ? "white" : (root.isCurrentAddedInTargetMode ? "#77777c" : "#555")
                         }
 
                         MouseArea {
                             id: addMouse
                             anchors.fill: parent
                             hoverEnabled: true
-                            cursorShape: root.currentSupportsTargetMode ? Qt.PointingHandCursor : Qt.ArrowCursor
+                            cursorShape: root.canAddInTargetMode ? Qt.PointingHandCursor : (root.isCurrentAddedInTargetMode ? Qt.ForbiddenCursor : Qt.ArrowCursor)
                             onClicked: {
-                                if (root.currentSupportsTargetMode && root.currentWidget && userConfig) {
+                                if (root.canAddInTargetMode && root.currentWidget && userConfig) {
                                     userConfig.setSlotWidget(
                                         root.targetMode,
                                         root.targetPageIndex,
@@ -696,6 +717,10 @@ Item {
                         height: previewDelegate.modelData.itemHeight
                         z: cardMouse.dragging ? 100 : 1
 
+                        readonly property string cardMode: (previewDelegate.modelData.type === "full") ? "expanded"
+                                                        : (previewDelegate.modelData.type === "minimum") ? "minimum" : "circle"
+                        readonly property bool isAlreadyAdded: root.isWidgetAddedInMode(root.currentWidget ? root.currentWidget.id : "", cardMode)
+
                         Rectangle {
                             id: cardRect
                             anchors.horizontalCenter: parent.horizontalCenter
@@ -705,10 +730,13 @@ Item {
                             radius: previewDelegate.modelData.cardRadius
                             color: "#08080a"
                             border.width: 1
-                            border.color: cardMouse.containsMouse ? "#40ffffff" : "#14ffffff"
+                            border.color: previewDelegate.isAlreadyAdded ? "#10ffffff" : (cardMouse.containsMouse ? "#40ffffff" : "#14ffffff")
+                            opacity: previewDelegate.isAlreadyAdded ? 0.38 : 1.0
                             scale: cardMouse.dragging ? 1.04 : 1.0
                             clip: true
                             z: cardMouse.dragging ? 100 : 1
+
+                            Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutQuad } }
 
                             property real dragOffsetX: 0
                             property real dragOffsetY: 0
@@ -729,6 +757,7 @@ Item {
                             Loader {
                                 anchors.fill: parent
                                 anchors.margins: previewDelegate.modelData.type === "full" ? 4 : 0
+                                enabled: false
                                 source: previewDelegate.modelData.source
 
                                 onLoaded: {
@@ -752,7 +781,7 @@ Item {
                                 id: cardMouse
                                 anchors.fill: parent
                                 hoverEnabled: true
-                                cursorShape: dragging ? Qt.ClosedHandCursor : Qt.PointingHandCursor
+                                cursorShape: previewDelegate.isAlreadyAdded ? Qt.ForbiddenCursor : (dragging ? Qt.ClosedHandCursor : Qt.PointingHandCursor)
                                 preventStealing: dragging
                                 propagateComposedEvents: true
 
@@ -766,7 +795,7 @@ Item {
                                 property bool wasDragging: false
 
                                 onPressed: (mouse) => {
-                                    if (mouse.button !== Qt.LeftButton) return;
+                                    if (previewDelegate.isAlreadyAdded || mouse.button !== Qt.LeftButton) return;
                                     returnAnimation.stop();
                                     cardRect.dragOffsetX = 0;
                                     cardRect.dragOffsetY = 0;
@@ -867,6 +896,7 @@ Item {
                                 }
 
                                 onClicked: (mouse) => {
+                                    if (previewDelegate.isAlreadyAdded) return;
                                     if (!wasDragging && !dragging && mouse.button === Qt.LeftButton && root.currentWidget && userConfig) {
                                         const targetModeForType = (previewDelegate.modelData.type === "full") ? "expanded"
                                                                : (previewDelegate.modelData.type === "minimum") ? "minimum" : "circle";
@@ -882,6 +912,110 @@ Item {
                                         root.widgetSelected(root.currentWidget.id);
                                         root.closeRequested();
                                     }
+                                }
+                            }
+
+                            // "Added" badge for full (expanded) view
+                            Rectangle {
+                                id: fullAddedBadge
+                                visible: previewDelegate.isAlreadyAdded && previewDelegate.modelData.type === "full"
+                                anchors.top: parent.top
+                                anchors.topMargin: 8
+                                anchors.right: parent.right
+                                anchors.rightMargin: 8
+                                height: 20
+                                radius: 10
+                                color: "#e618181a"
+                                border.width: 1
+                                border.color: "#2effffff"
+                                z: 50
+
+                                Row {
+                                    anchors.centerIn: parent
+                                    anchors.leftMargin: 7
+                                    anchors.rightMargin: 8
+                                    spacing: 4
+
+                                    Text {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: "󰄬"
+                                        font.family: root.iconFontFamily
+                                        font.pixelSize: 11
+                                        font.weight: Font.Bold
+                                        color: "#99999e"
+                                    }
+
+                                    Text {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: "Added"
+                                        font.family: root.textFontFamily
+                                        font.pixelSize: 10
+                                        font.weight: Font.DemiBold
+                                        color: "#99999e"
+                                    }
+                                }
+                            }
+
+                            // "Added" badge for minimum (closed pill) view
+                            Rectangle {
+                                id: minAddedBadge
+                                visible: previewDelegate.isAlreadyAdded && previewDelegate.modelData.type === "minimum"
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.right: parent.right
+                                anchors.rightMargin: 10
+                                height: 20
+                                radius: 10
+                                color: "#e618181a"
+                                border.width: 1
+                                border.color: "#2effffff"
+                                z: 50
+
+                                Row {
+                                    anchors.centerIn: parent
+                                    anchors.leftMargin: 7
+                                    anchors.rightMargin: 8
+                                    spacing: 4
+
+                                    Text {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: "󰄬"
+                                        font.family: root.iconFontFamily
+                                        font.pixelSize: 11
+                                        font.weight: Font.Bold
+                                        color: "#99999e"
+                                    }
+
+                                    Text {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: "Added"
+                                        font.family: root.textFontFamily
+                                        font.pixelSize: 10
+                                        font.weight: Font.DemiBold
+                                        color: "#99999e"
+                                    }
+                                }
+                            }
+
+                            // "Added" badge for circle view
+                            Rectangle {
+                                id: circleAddedBadge
+                                visible: previewDelegate.isAlreadyAdded && previewDelegate.modelData.type === "circle"
+                                anchors.centerIn: parent
+                                width: 28
+                                height: 28
+                                radius: 14
+                                color: "#e618181a"
+                                border.width: 1
+                                border.color: "#2effffff"
+                                z: 50
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "󰄬"
+                                    font.family: root.iconFontFamily
+                                    font.pixelSize: 14
+                                    font.weight: Font.Bold
+                                    color: "#99999e"
                                 }
                             }
                         }

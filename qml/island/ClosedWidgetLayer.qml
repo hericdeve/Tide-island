@@ -25,7 +25,10 @@ Item {
     property string heroFontFamily: "Sans Serif"
 
     // Current page tracking & animation
-    property int currentPage: 0
+    property int currentPage: {
+        const minL = (userConfig && userConfig.widgetLayouts && userConfig.widgetLayouts.minimum) ? userConfig.widgetLayouts.minimum : null;
+        return (minL && minL.activePageIndex !== undefined) ? minL.activePageIndex : 0;
+    }
     property alias currentPageIndex: root.currentPage
     property real pageProgress: 0
     property bool isDropTargetActive: false
@@ -90,6 +93,9 @@ Item {
         onFinished: {
             root.currentPage = Math.round(root.pageProgress);
             root.pageChanged(root.currentPage);
+            if (userConfig) {
+                userConfig.setActivePage("minimum", root.currentPage);
+            }
         }
     }
 
@@ -573,6 +579,7 @@ Item {
 
                                 Loader {
                                     anchors.fill: parent
+                                    enabled: false
                                     active: parent.parent.hasWidget
                                     source: active ? WidgetRegistry.getComponentUrl(parent.parent.widgetId, "minimum") : ""
 
