@@ -1,8 +1,8 @@
 {
   "id": "pomodoro",
-  "name": "Pomodoro Timer",
-  "description": "Focus timer with progress ring and quick duration presets",
+  "name": "Pomotroid",
+  "description": "Pomotroid desktop integration with timer controls, sequence progress, and session tags",
   "icon": "󰄉",
-  "supportedSizes": ["minimum", "circle"],
-  "defaultSlotSpan": 1
+  "supportedSizes": ["full", "minimum", "circle"],
+  "defaultSlotSpan": 2
 }

@@ -42,12 +42,12 @@ QtObject {
         },
         {
             id: "pomodoro",
-            name: "Pomodoro Timer",
-            description: "Focus timer with progress ring and quick duration presets",
+            name: "Pomotroid",
+            description: "Pomotroid desktop integration with timer controls, sequence progress, and session tags",
             icon: "󰄉",
-            supportedSizes: ["minimum", "circle"],
-            defaultSlotSpan: 1,
-            fullComponent: "",
+            supportedSizes: ["full", "minimum", "circle"],
+            defaultSlotSpan: 2,
+            fullComponent: Qt.resolvedUrl("pomodoro/Full.qml"),
             minimumComponent: Qt.resolvedUrl("pomodoro/Minimum.qml"),
             circleComponent: Qt.resolvedUrl("pomodoro/Circle.qml")
         },

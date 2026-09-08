@@ -153,6 +153,27 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/claude_code_backend_tests.cpp")
     add_test(NAME claude_code_backend COMMAND claude_code_backend_tests)
 endif()
 
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/pomotroid_backend_tests.cpp")
+    add_executable(pomotroid_backend_tests
+        tests/pomotroid_backend_tests.cpp
+        backend/PomotroidBackend.h
+        backend/PomotroidBackend.cpp
+    )
+
+    target_include_directories(pomotroid_backend_tests PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/backend
+    )
+
+    target_link_libraries(pomotroid_backend_tests PRIVATE
+        Qt6::Core
+        Qt6::Qml
+        Qt6::DBus
+        Qt6::Test
+    )
+
+    add_test(NAME pomotroid_backend COMMAND pomotroid_backend_tests)
+endif()
+
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/compositor_backend_tests.cpp")
     add_executable(compositor_backend_tests
         tests/compositor_backend_tests.cpp
@@ -239,6 +260,8 @@ qt_add_qml_module(IslandBackend
         backend/CalendarBackend.cpp
         backend/ClaudeCodeBackend.h
         backend/ClaudeCodeBackend.cpp
+        backend/PomotroidBackend.h
+        backend/PomotroidBackend.cpp
 )
 
 # The QML plugin is installed below lib/qt6/qml/IslandBackend while its backing
