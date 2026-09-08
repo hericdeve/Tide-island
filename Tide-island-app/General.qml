@@ -179,34 +179,9 @@ PagePanel {
             }
 
             Text {
-                id: customPageTitle
-                text: "Custom Page"
-                anchors.top: apperance.bottom
-                anchors.topMargin: 34
-                anchors.left: parent.left
-                anchors.leftMargin: 32
-                anchors.right: parent.right
-                anchors.rightMargin: 40
-                font.family: Theme.titleFontFamily
-                font.pixelSize: 23
-                color: Theme.textColor
-            }
-
-            CustomPage {
-                id: customPagePanel
-                anchors.top: customPageTitle.bottom
-                anchors.topMargin: 15
-                anchors.left: parent.left
-                anchors.leftMargin: 30
-                anchors.right: parent.right
-                anchors.rightMargin: 40
-                height: implicitHeight
-            }
-
-            Text {
                 id: tlpTitle
                 text: "TLP"
-                anchors.top: customPagePanel.bottom
+                anchors.top: apperance.bottom
                 anchors.topMargin: 34
                 anchors.left: parent.left
                 anchors.leftMargin: 32
