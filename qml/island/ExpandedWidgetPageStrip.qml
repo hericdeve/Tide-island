@@ -5,8 +5,9 @@ Item {
     id: root
 
     property var pages: []
-    property int currentPage: 0
-    property real pageProgress: 0
+    property int initialPage: 0
+    property int currentPage: initialPage
+    property real pageProgress: initialPage
     property bool isEditMode: false
     property bool cameraMirrorActive: false
     property var widgetContext: null
@@ -40,13 +41,21 @@ Item {
         easing.type: Easing.OutCubic
         onFinished: {
             root.currentPage = Math.round(root.pageProgress);
-            root.pageChanged(root.currentPage);
         }
     }
 
     onCurrentPageChanged: {
         if (!settleAnimation.running) {
             pageProgress = currentPage;
+        }
+        root.pageChanged(currentPage);
+    }
+
+    onInitialPageChanged: {
+        if (!settleAnimation.running) {
+            const clamped = Math.max(0, Math.min(pageCount - 1, initialPage));
+            currentPage = clamped;
+            pageProgress = clamped;
         }
     }
 

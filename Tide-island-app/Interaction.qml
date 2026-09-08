@@ -14,8 +14,9 @@ PagePanel {
     ]
     readonly property var hoverActionOptions: [
         { "label": "Disabled", "value": 0 },
-        { "label": "Music Player", "value": 1 },
-        { "label": "Control Center", "value": 2 }
+        { "label": "Expanded Notch", "value": 1 },
+        { "label": "Control Center", "value": 2 },
+        { "label": "Widget Library", "value": 3 }
     ]
     readonly property var playerPaneRestoreOptions: [
         { "label": "Home", "value": 0 },
@@ -33,9 +34,9 @@ PagePanel {
 
     function normalizedHoverAction(value) {
         const parsedValue = Number(value)
-        if (parsedValue === 0 || parsedValue === 1 || parsedValue === 2)
+        if (parsedValue === 0 || parsedValue === 1 || parsedValue === 2 || parsedValue === 3)
             return parsedValue
-        return 1
+        return 0
     }
 
     function normalizedAutoHideDelay(value) {
@@ -107,11 +108,16 @@ PagePanel {
 
     function hoverActionValue() {
         revision
-        return normalizedHoverAction(ConfigStore.value("hoverExpandAction", 1))
+        if (islandAutoHideEnabled())
+            return 0
+        return normalizedHoverAction(ConfigStore.value("hoverExpandAction", 0))
     }
 
     function setHoverAction(value) {
         ConfigStore.setValue("hoverExpandAction", value)
+        if (value !== 0) {
+            ConfigStore.setValue("islandAutoHideEnabled", false)
+        }
         ConfigStore.save()
         revision += 1
     }
@@ -123,6 +129,9 @@ PagePanel {
 
     function setIslandAutoHideEnabled(enabled) {
         ConfigStore.setValue("islandAutoHideEnabled", enabled)
+        if (enabled) {
+            ConfigStore.setValue("hoverExpandAction", 0)
+        }
         ConfigStore.save()
         revision += 1
     }
@@ -263,8 +272,8 @@ PagePanel {
                     spacing: 15
 
                     ActionButtonRow {
-                        title: "Music Player"
-                        description: "Mouse button that toggles the player"
+                        title: "Expanded Notch"
+                        description: "Mouse button that toggles the expanded notch"
                         actionName: root.playerAction
                         fallbackButton: 1
                         width: parent.width
@@ -273,8 +282,8 @@ PagePanel {
                     SplitLine { width: parent.width }
 
                     ActionButtonRow {
-                        title: "Control Center"
-                        description: "Mouse button that toggles the control center"
+                        title: "Widget Library"
+                        description: "Mouse button that opens the widget library"
                         actionName: root.controlAction
                         fallbackButton: 3
                         width: parent.width
@@ -348,7 +357,7 @@ PagePanel {
             Text {
                 id: playerTitle
 
-                text: "Player"
+                text: "Expanded Notch"
                 anchors.top: hoverPanel.bottom
                 anchors.topMargin: 34
                 anchors.left: parent.left
@@ -471,7 +480,7 @@ PagePanel {
         }
 
         Text {
-            text: "Choose what opens when the island is hovered"
+            text: "Choose what opens when hovered (disables Auto-Hide)"
             anchors.left: rowTitle.left
             anchors.top: rowTitle.bottom
             anchors.topMargin: 5
@@ -504,7 +513,7 @@ PagePanel {
         Text {
             id: rowTitle
 
-            text: "Auto Expand Player"
+            text: "Auto Expand on Track Change"
             anchors.left: parent.left
             anchors.top: parent.top
             color: Theme.textColor
@@ -513,7 +522,7 @@ PagePanel {
         }
 
         Text {
-            text: "Open the music player when the current track changes"
+            text: "Open the island when the current media track changes"
             anchors.left: rowTitle.left
             anchors.top: rowTitle.bottom
             anchors.topMargin: 5
@@ -545,7 +554,7 @@ PagePanel {
         Text {
             id: rowTitle
 
-            text: "Expanded Pane"
+            text: "Remember Last Page"
             anchors.left: parent.left
             anchors.top: parent.top
             color: Theme.textColor
@@ -554,7 +563,7 @@ PagePanel {
         }
 
         Text {
-            text: "Return to Home or remember the last opened pane"
+            text: "Return to Home or remember the last opened widget page"
             anchors.left: rowTitle.left
             anchors.top: rowTitle.bottom
             anchors.topMargin: 5
@@ -596,7 +605,7 @@ PagePanel {
         }
 
         Text {
-            text: "Hide the island until the pointer reaches the top edge"
+            text: "Hide the island until pointer reaches edge (disables Hover Expand)"
             anchors.left: rowTitle.left
             anchors.top: rowTitle.bottom
             anchors.topMargin: 5

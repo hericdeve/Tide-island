@@ -208,6 +208,7 @@ Item {
                 id: expandedPageStrip
                 width: parent.width
                 height: Math.max(0, parent.height - statusBar.height - parent.spacing)
+                initialPage: root.initialPage
                 pages: (userConfig && userConfig.widgetLayouts && userConfig.widgetLayouts.expanded) ? userConfig.widgetLayouts.expanded.pages : []
                 isEditMode: root.isEditMode
                 cameraMirrorActive: root.cameraMirrorActive

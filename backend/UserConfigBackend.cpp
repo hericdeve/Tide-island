@@ -1,6 +1,7 @@
 #include "UserConfigBackend.h"
 
 #include <QDateTime>
+#include <QDir>
 #include <QFile>
 #include <QFileInfo>
 #include <QJsonArray>
@@ -344,6 +345,7 @@ void UserConfigBackend::setNotchMode(const QString &mode)
     configObject[QStringLiteral("notchMode")] = m_notchMode;
     configObject[QStringLiteral("boringNotchEnabled")] = (m_notchMode == QLatin1String("notch"));
 
+    QFileInfo(m_userConfigPath).dir().mkpath(QStringLiteral("."));
     QSaveFile saveFile(m_userConfigPath);
     if (saveFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
         saveFile.write(QJsonDocument(configObject).toJson(QJsonDocument::Indented));
@@ -389,6 +391,7 @@ void UserConfigBackend::setNotchPosition(const QString &position)
 
     configObject[QStringLiteral("notchPosition")] = m_notchPosition;
 
+    QFileInfo(m_userConfigPath).dir().mkpath(QStringLiteral("."));
     QSaveFile saveFile(m_userConfigPath);
     if (saveFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
         saveFile.write(QJsonDocument(configObject).toJson(QJsonDocument::Indented));
@@ -425,6 +428,7 @@ void UserConfigBackend::setNotchBorderEnabled(bool enabled)
 
     configObject[QStringLiteral("notchBorderEnabled")] = m_notchBorderEnabled;
 
+    QFileInfo(m_userConfigPath).dir().mkpath(QStringLiteral("."));
     QSaveFile saveFile(m_userConfigPath);
     if (saveFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
         saveFile.write(QJsonDocument(configObject).toJson(QJsonDocument::Indented));
@@ -462,6 +466,7 @@ void UserConfigBackend::setNotchBorderWidth(int width)
 
     configObject[QStringLiteral("notchBorderWidth")] = m_notchBorderWidth;
 
+    QFileInfo(m_userConfigPath).dir().mkpath(QStringLiteral("."));
     QSaveFile saveFile(m_userConfigPath);
     if (saveFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
         saveFile.write(QJsonDocument(configObject).toJson(QJsonDocument::Indented));
@@ -685,6 +690,10 @@ void UserConfigBackend::saveWidgetLayouts(const QJsonObject &layouts)
     m_widgetLayouts = layouts;
     emit widgetLayoutsChanged();
 
+    const QFileInfo configInfo(m_userConfigPath);
+    if (!configInfo.dir().exists())
+        configInfo.dir().mkpath(QStringLiteral("."));
+
     QJsonObject configObject;
     QFile configFile(m_userConfigPath);
     if (configFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
@@ -811,6 +820,23 @@ void UserConfigBackend::setSlotWidget(const QString &mode, int pageIndex, int sl
 void UserConfigBackend::removeSlotWidget(const QString &mode, int pageIndex, int slotIndex)
 {
     setSlotWidget(mode, pageIndex, slotIndex, QString(), 1);
+}
+
+void UserConfigBackend::setActivePage(const QString &mode, int pageIndex)
+{
+    QJsonObject layouts = m_widgetLayouts;
+    QJsonObject modeObj = layouts.value(mode).toObject();
+    const QJsonArray pages = modeObj.value(QStringLiteral("pages")).toArray();
+
+    if (pageIndex < 0 || pageIndex >= pages.size())
+        return;
+
+    if (modeObj.value(QStringLiteral("activePageIndex")).toInt(0) == pageIndex)
+        return;
+
+    modeObj[QStringLiteral("activePageIndex")] = pageIndex;
+    layouts[mode] = modeObj;
+    saveWidgetLayouts(layouts);
 }
 
 void UserConfigBackend::resetWidgetLayouts()

@@ -167,6 +167,7 @@ public:
     Q_INVOKABLE void setPageSlots(const QString &mode, int pageIndex, int slotCount);
     Q_INVOKABLE void setSlotWidget(const QString &mode, int pageIndex, int slotIndex, const QString &widgetId, int slotSpan = 1);
     Q_INVOKABLE void removeSlotWidget(const QString &mode, int pageIndex, int slotIndex);
+    Q_INVOKABLE void setActivePage(const QString &mode, int pageIndex);
     Q_INVOKABLE void resetWidgetLayouts();
 
 signals:

@@ -263,10 +263,10 @@ PanelWindow {
     ])
     readonly property int configuredHoverExpandAction: {
         const action = Number(userConfig.hoverExpandAction);
-        return isNaN(action) ? 0 : Math.max(0, Math.min(2, Math.round(action)));
+        return isNaN(action) ? 0 : Math.max(0, Math.min(3, Math.round(action)));
     }
     readonly property real baseExclusiveZone: userConfig.islandExclusiveZone
-    readonly property bool hoverExpandEnabled: configuredHoverExpandAction > 0
+    readonly property bool hoverExpandEnabled: configuredHoverExpandAction > 0 && !autoHideEnabled
     readonly property bool islandPointerInside: {
         if (capsuleHoverHandler.hovered)
             return true;
@@ -769,6 +769,16 @@ PanelWindow {
         else
             showAutoHiddenIsland("state");
     }
+    onHoverExpandEnabledChanged: {
+        if (!hoverExpandEnabled) {
+            hoverExpandDelayTimer.stop();
+            hoverCollapseDelayTimer.stop();
+            if (islandContainer.hoverExpandedActive) {
+                islandContainer.hoverExpandedActive = false;
+                islandContainer.smartRestoreState();
+            }
+        }
+    }
     onOverviewVisualReadyChanged: {
         if (overviewVisualReady) beginOverviewOpening();
     }
@@ -996,7 +1006,10 @@ PanelWindow {
         property bool hoverExpandedActive: false
         property bool expandedPlayerKeyboardFocusRequested: false
         property bool openTimerPageWhenExpanded: false
-        property int rememberedPlayerPage: 0
+        property int rememberedPlayerPage: {
+            const exp = (userConfig && userConfig.widgetLayouts && userConfig.widgetLayouts.expanded) ? userConfig.widgetLayouts.expanded : null;
+            return (exp && exp.activePageIndex !== undefined) ? exp.activePageIndex : 0;
+        }
         property int timerSelectedHours: 0
         property int timerSelectedMinutes: 5
         property int timerTotalSeconds: 300
@@ -2244,7 +2257,12 @@ PanelWindow {
                 if (!root.hoverExpandEnabled) return;
 
                 const current = islandContainer.islandState;
-                const target = root.configuredHoverExpandAction === 2 ? "control_center" : "expanded";
+                let target = "expanded";
+                if (root.configuredHoverExpandAction === 2)
+                    target = "control_center";
+                else if (root.configuredHoverExpandAction === 3)
+                    target = "widget_library";
+
                 if (current === target) return;
                 if (current !== "normal" && current !== "custom" && current !== "lyrics")
                     return;
@@ -2252,6 +2270,8 @@ PanelWindow {
                 islandContainer.hoverExpandedActive = true;
                 if (root.configuredHoverExpandAction === 2)
                     islandContainer.showControlCenter();
+                else if (root.configuredHoverExpandAction === 3)
+                    islandContainer.showWidgetLibrary();
                 else
                     islandContainer.showExpandedPlayer(false);
             }
@@ -2264,6 +2284,7 @@ PanelWindow {
                 if (root.islandPointerInside) return;
                 if (root.anyConnectivityDetailMounted) return;
                 if (controlCenterLoader.item && controlCenterLoader.item.activeInteraction) return;
+                if (widgetLibraryLoader.item && widgetLibraryLoader.item.activeInteraction) return;
                 if (!islandContainer.hoverExpandedActive) return;
                 islandContainer.hoverExpandedActive = false;
                 islandContainer.smartRestoreState();
@@ -3078,7 +3099,7 @@ PanelWindow {
                             && item && item.openTimerPage) {
                         item.openTimerPage();
                         islandContainer.openTimerPageWhenExpanded = false;
-                    } else if (userConfig.playerRememberLastPane && islandContainer.rememberedPlayerPage > 0 && item && item.showPage) {
+                    } else if (userConfig.playerRememberLastPane && islandContainer.rememberedPlayerPage > 0 && item && item.showPage && item.currentPage !== islandContainer.rememberedPlayerPage) {
                         item.showPage(islandContainer.rememberedPlayerPage);
                     }
                     root.focusExpandedPlayer();
@@ -3086,10 +3107,18 @@ PanelWindow {
 
                 sourceComponent: Component {
                     ExpandedPlayerLayer {
-                        initialPage: (userConfig.playerRememberLastPane && !islandContainer.openTimerPageWhenExpanded)
-                            ? islandContainer.rememberedPlayerPage : 0
+                        initialPage: {
+                            const maxPage = (userConfig && userConfig.widgetLayouts && userConfig.widgetLayouts.expanded && userConfig.widgetLayouts.expanded.pages)
+                                ? Math.max(0, userConfig.widgetLayouts.expanded.pages.length - 1) : 0;
+                            const rem = (userConfig.playerRememberLastPane && !islandContainer.openTimerPageWhenExpanded)
+                                ? islandContainer.rememberedPlayerPage : 0;
+                            return Math.max(0, Math.min(maxPage, rem));
+                        }
                         onPageChanged: function(page) {
                             islandContainer.rememberedPlayerPage = page;
+                            if (userConfig && userConfig.playerRememberLastPane) {
+                                userConfig.setActivePage("expanded", page);
+                            }
                         }
                         hoveredSlotIndex: islandContainer.hoveredSlotIndex
                         isDraggingWidget: islandContainer.isDraggingWidgetFromLibrary && islandContainer.draggedWidgetData !== null && islandContainer.draggedWidgetData.sizeType === "full"

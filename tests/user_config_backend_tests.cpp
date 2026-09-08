@@ -18,6 +18,7 @@ private slots:
     void notchPositionCaseAndTrimHandling();
     void notchBorderEnabledDefaultsAndToggles();
     void notchBorderWidthDefaultsAndBounds();
+    void setActivePagePersistence();
 };
 
 void UserConfigBackendTests::initTestCase()
@@ -121,6 +122,42 @@ void UserConfigBackendTests::notchBorderWidthDefaultsAndBounds()
     config.setNotchBorderWidth(20);
     QCOMPARE(config.notchBorderWidth(), 10);
     QCOMPARE(spy.count(), 3);
+}
+
+void UserConfigBackendTests::setActivePagePersistence()
+{
+    UserConfigBackend config;
+    config.resetWidgetLayouts();
+
+    // Default expanded activePageIndex is 0
+    QJsonObject expanded = config.widgetLayouts().value(QStringLiteral("expanded")).toObject();
+    QCOMPARE(expanded.value(QStringLiteral("activePageIndex")).toInt(-1), 0);
+
+    // Add a second page to expanded
+    config.addPage(QStringLiteral("expanded"), QStringLiteral("Page 2"), 3);
+
+    // Set active page to index 1
+    QSignalSpy spy(&config, &UserConfigBackend::widgetLayoutsChanged);
+    config.setActivePage(QStringLiteral("expanded"), 1);
+    QCOMPARE(spy.count(), 1);
+
+    expanded = config.widgetLayouts().value(QStringLiteral("expanded")).toObject();
+    QCOMPARE(expanded.value(QStringLiteral("activePageIndex")).toInt(-1), 1);
+
+    // Out of bounds index should be rejected without changes
+    config.setActivePage(QStringLiteral("expanded"), 99);
+    QCOMPARE(spy.count(), 1);
+    config.setActivePage(QStringLiteral("expanded"), -1);
+    QCOMPARE(spy.count(), 1);
+
+    // Setting same index should be no-op
+    config.setActivePage(QStringLiteral("expanded"), 1);
+    QCOMPARE(spy.count(), 1);
+
+    // Verify persistence across reload
+    UserConfigBackend configReloaded;
+    expanded = configReloaded.widgetLayouts().value(QStringLiteral("expanded")).toObject();
+    QCOMPARE(expanded.value(QStringLiteral("activePageIndex")).toInt(-1), 1);
 }
 
 QTEST_MAIN(UserConfigBackendTests)
