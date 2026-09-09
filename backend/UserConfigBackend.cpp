@@ -118,15 +118,24 @@ void writeConfigJsonField(const QString &configPath, const QString &key, const Q
 {
     QJsonObject configObject;
     QFile configFile(configPath);
-    if (configFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        const QByteArray bytes = configFile.readAll();
-        configFile.close();
-        if (!bytes.trimmed().isEmpty()) {
-            const QByteArray stripped = stripJsonComments(bytes);
-            QJsonDocument doc = QJsonDocument::fromJson(stripped);
-            if (doc.isObject()) {
-                configObject = doc.object();
+    if (configFile.exists()) {
+        if (configFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            const QByteArray bytes = configFile.readAll();
+            configFile.close();
+            if (!bytes.trimmed().isEmpty()) {
+                const QByteArray stripped = stripJsonComments(bytes);
+                QJsonParseError parseError;
+                QJsonDocument doc = QJsonDocument::fromJson(stripped, &parseError);
+                if (doc.isObject() && parseError.error == QJsonParseError::NoError) {
+                    configObject = doc.object();
+                } else {
+                    qWarning() << "[UserConfigBackend] Aborting writeConfigJsonField for key" << key << "- existing config is malformed";
+                    return;
+                }
             }
+        } else {
+            qWarning() << "[UserConfigBackend] Could not open config for reading in writeConfigJsonField for key" << key;
+            return;
         }
     }
 
@@ -939,15 +948,24 @@ void UserConfigBackend::saveWidgetLayouts(const QJsonObject &layouts)
 
     QJsonObject configObject;
     QFile configFile(m_userConfigPath);
-    if (configFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        const QByteArray bytes = configFile.readAll();
-        configFile.close();
-        if (!bytes.trimmed().isEmpty()) {
-            const QByteArray stripped = stripJsonComments(bytes);
-            QJsonDocument doc = QJsonDocument::fromJson(stripped);
-            if (doc.isObject()) {
-                configObject = doc.object();
+    if (configFile.exists()) {
+        if (configFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            const QByteArray bytes = configFile.readAll();
+            configFile.close();
+            if (!bytes.trimmed().isEmpty()) {
+                const QByteArray stripped = stripJsonComments(bytes);
+                QJsonParseError parseError;
+                QJsonDocument doc = QJsonDocument::fromJson(stripped, &parseError);
+                if (doc.isObject() && parseError.error == QJsonParseError::NoError) {
+                    configObject = doc.object();
+                } else {
+                    qWarning() << "[UserConfigBackend] Aborting saveWidgetLayouts: userconfig.json is malformed on disk, refusing to clobber existing config:" << parseError.errorString();
+                    return;
+                }
             }
+        } else {
+            qWarning() << "[UserConfigBackend] Could not read userconfig.json before saving widget layouts";
+            return;
         }
     }
 
@@ -1211,11 +1229,18 @@ void UserConfigBackend::loadConfig()
                 } else {
                     configObject = document.object();
                 }
+            } else {
+                nextConfigError = QStringLiteral("Config file %1 is empty").arg(m_userConfigPath);
             }
         }
     }
 
     updateField(this, m_configError, nextConfigError, &UserConfigBackend::configErrorChanged);
+
+    if (!nextConfigError.isEmpty()) {
+        qWarning() << "[UserConfigBackend] Retaining in-memory configuration; disk error:" << nextConfigError;
+        return;
+    }
 
     updateField(this, m_wallpaperPath, jsonString(configObject, QLatin1String("wallpaperPath"), m_defaultWallpaperPath), &UserConfigBackend::wallpaperPathChanged);
     updateField(this, m_wallpaperLibraryPath, jsonString(configObject, QLatin1String("wallpaperLibraryPath"), QString()), &UserConfigBackend::wallpaperLibraryPathChanged);
@@ -1367,7 +1392,7 @@ void UserConfigBackend::loadConfig()
         if (changed) {
             saveWidgetLayouts(layouts);
         }
-    } else {
+    } else if (!configFile.exists() || m_widgetLayouts.isEmpty()) {
         updateField(this, m_widgetLayouts, defaultWidgetLayouts(), &UserConfigBackend::widgetLayoutsChanged);
     }
 

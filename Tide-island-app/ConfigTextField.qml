@@ -9,6 +9,8 @@ Rectangle {
     property alias placeholderText: field.placeholderText
     property alias inputMethodHints: field.inputMethodHints
     property alias validator: field.validator
+    property alias echoMode: field.echoMode
+    property alias rightPadding: field.rightPadding
     property alias field: field
     property int textPixelSize: 15
 

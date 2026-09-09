@@ -1,4 +1,5 @@
 #include "backend.hpp"
+#include "CredentialStorage.h"
 
 #include <QClipboard>
 #include <QDir>
@@ -565,10 +566,33 @@ bool Backend::save(const QVariantMap &userConfig){
         return false;
     }
 
+    // Preserve existing keys on disk (such as widgetLayouts configured on the live notch,
+    // or calendarEvents/googleAuth synced by the daemon) that might have been updated since the settings app opened
+    QJsonObject mergedObject;
+    QFile existingFile(m_userConfigPath);
+    if (existingFile.exists()) {
+        if (existingFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            const QByteArray bytes = existingFile.readAll();
+            existingFile.close();
+            if (!bytes.trimmed().isEmpty()) {
+                QJsonParseError parseError;
+                const QJsonDocument diskDoc = QJsonDocument::fromJson(bytes, &parseError);
+                if (diskDoc.isObject() && parseError.error == QJsonParseError::NoError) {
+                    mergedObject = diskDoc.object();
+                }
+            }
+        }
+    }
+
     const QJsonDocument document = QJsonDocument::fromVariant(userConfig);
     if (!document.isObject()) {
         setErrorString(QStringLiteral("User config must be a JSON object."));
         return false;
+    }
+
+    const QJsonObject incoming = document.object();
+    for (auto it = incoming.begin(); it != incoming.end(); ++it) {
+        mergedObject[it.key()] = it.value();
     }
 
     QSaveFile file(m_userConfigPath);
@@ -577,7 +601,7 @@ bool Backend::save(const QVariantMap &userConfig){
         return false;
     }
 
-    file.write(document.toJson(QJsonDocument::Indented));
+    file.write(QJsonDocument(mergedObject).toJson(QJsonDocument::Indented));
     if (!file.commit()) {
         setErrorString(QStringLiteral("Could not save %1: %2").arg(m_userConfigPath, file.errorString()));
         return false;
@@ -585,7 +609,7 @@ bool Backend::save(const QVariantMap &userConfig){
 
     QFile::setPermissions(m_userConfigPath, QFileDevice::ReadOwner | QFileDevice::WriteOwner);
 
-    setUserConfig(userConfig);
+    setUserConfig(mergedObject.toVariantMap());
     setErrorString(QString());
     return true;
 }
@@ -1251,3 +1275,149 @@ QVariantMap Backend::toVariantMap() const{
 void Backend::setUserConfig(const QVariantMap &userConfig){
     m_userConfig = toUserConfigMap(userConfig);
 }
+
+void Backend::startGoogleCalendarAuth() {
+    // Launch Quickshell IPC to initiate Google Calendar login flow in island daemon if running
+    QProcess::startDetached(
+        QString::fromLatin1(quickshellPath),
+        {
+            QStringLiteral("ipc"),
+            QStringLiteral("--any-display"),
+            QStringLiteral("-p"),
+            QString::fromLatin1(tideQmlPath),
+            QStringLiteral("call"),
+            QStringLiteral("tide"),
+            QStringLiteral("startGoogleCalendarAuth"),
+        });
+}
+
+void Backend::signOutGoogle() {
+    CredentialStorage::instance().deleteSecret(CredentialStorage::KEY_GOOGLE_REFRESH_TOKEN);
+
+    QVariantMap config = toVariantMap();
+    QVariantMap googleAuth = config.value(QStringLiteral("googleAuth")).toMap();
+    googleAuth[QStringLiteral("signedIn")] = false;
+    googleAuth[QStringLiteral("isSignedIn")] = false;
+    googleAuth[QStringLiteral("email")] = QString();
+    googleAuth[QStringLiteral("accessToken")] = QString();
+    googleAuth.remove(QStringLiteral("refreshToken"));
+    googleAuth.remove(QStringLiteral("clientSecret"));
+    config[QStringLiteral("googleAuth")] = googleAuth;
+    config[QStringLiteral("googleCalendars")] = QVariantList();
+    config[QStringLiteral("calendarEvents")] = QVariantList();
+    save(config);
+
+    // Notify daemon to clear its memory state as well
+    QProcess::startDetached(
+        QString::fromLatin1(quickshellPath),
+        {
+            QStringLiteral("ipc"),
+            QStringLiteral("--any-display"),
+            QStringLiteral("-p"),
+            QString::fromLatin1(tideQmlPath),
+            QStringLiteral("call"),
+            QStringLiteral("tide"),
+            QStringLiteral("startGoogleCalendarAuth"),
+        });
+}
+
+bool Backend::isGoogleSignedIn() const {
+    if (CredentialStorage::instance().hasSecret(CredentialStorage::KEY_GOOGLE_REFRESH_TOKEN)) {
+        return true;
+    }
+    const QVariantMap config = toVariantMap();
+    const QVariantMap googleAuth = config.value(QStringLiteral("googleAuth")).toMap();
+    return googleAuth.value(QStringLiteral("signedIn")).toBool()
+        || googleAuth.value(QStringLiteral("isSignedIn")).toBool();
+}
+
+QString Backend::googleAccountEmail() const {
+    const QVariantMap config = toVariantMap();
+    const QVariantMap googleAuth = config.value(QStringLiteral("googleAuth")).toMap();
+    return googleAuth.value(QStringLiteral("email")).toString();
+}
+
+QString Backend::googleAuthError() const {
+    const QVariantMap config = toVariantMap();
+    const QVariantMap googleAuth = config.value(QStringLiteral("googleAuth")).toMap();
+    return googleAuth.value(QStringLiteral("lastError")).toString();
+}
+
+void Backend::reloadUserConfig() {
+    load();
+}
+
+bool Backend::saveGoogleCredentials(const QString &clientId, const QString &clientSecret) {
+    const QString trimmedId = clientId.trimmed();
+    const QString trimmedSecret = clientSecret.trimmed();
+
+    bool idStored = true;
+    if (!trimmedId.isEmpty()) {
+        idStored = CredentialStorage::instance().storeSecret(
+            CredentialStorage::KEY_GOOGLE_CLIENT_ID,
+            trimmedId,
+            QStringLiteral("Google Calendar Client ID")
+        );
+    } else {
+        CredentialStorage::instance().deleteSecret(CredentialStorage::KEY_GOOGLE_CLIENT_ID);
+    }
+
+    bool secretStored = true;
+    if (!trimmedSecret.isEmpty()) {
+        secretStored = CredentialStorage::instance().storeSecret(
+            CredentialStorage::KEY_GOOGLE_CLIENT_SECRET,
+            trimmedSecret,
+            QStringLiteral("Google Calendar Client Secret")
+        );
+    } else {
+        CredentialStorage::instance().deleteSecret(CredentialStorage::KEY_GOOGLE_CLIENT_SECRET);
+    }
+
+    // Update userConfig to notify components of custom credential status without writing secrets
+    QVariantMap config = toVariantMap();
+    QVariantMap googleAuth = config.value(QStringLiteral("googleAuth")).toMap();
+    googleAuth[QStringLiteral("hasCustomCredentials")] = (!trimmedId.isEmpty() || !trimmedSecret.isEmpty());
+    // Ensure plaintext credentials or tokens are never leaked to userconfig.json
+    googleAuth.remove(QStringLiteral("clientSecret"));
+    googleAuth.remove(QStringLiteral("refreshToken"));
+    config[QStringLiteral("googleAuth")] = googleAuth;
+    save(config);
+
+    emit googleCredentialsChanged();
+    return idStored && secretStored;
+}
+
+bool Backend::clearGoogleCredentials() {
+    CredentialStorage::instance().deleteSecret(CredentialStorage::KEY_GOOGLE_CLIENT_ID);
+    CredentialStorage::instance().deleteSecret(CredentialStorage::KEY_GOOGLE_CLIENT_SECRET);
+
+    QVariantMap config = toVariantMap();
+    QVariantMap googleAuth = config.value(QStringLiteral("googleAuth")).toMap();
+    googleAuth[QStringLiteral("hasCustomCredentials")] = false;
+    googleAuth.remove(QStringLiteral("clientId"));
+    googleAuth.remove(QStringLiteral("clientSecret"));
+    googleAuth.remove(QStringLiteral("refreshToken"));
+    config[QStringLiteral("googleAuth")] = googleAuth;
+    save(config);
+
+    emit googleCredentialsChanged();
+    return true;
+}
+
+QString Backend::googleClientId() const {
+    return CredentialStorage::instance().getSecret(CredentialStorage::KEY_GOOGLE_CLIENT_ID);
+}
+
+QString Backend::googleClientSecret() const {
+    return CredentialStorage::instance().getSecret(CredentialStorage::KEY_GOOGLE_CLIENT_SECRET);
+}
+
+bool Backend::hasCustomGoogleCredentials() const {
+    return CredentialStorage::instance().hasSecret(CredentialStorage::KEY_GOOGLE_CLIENT_ID)
+        || CredentialStorage::instance().hasSecret(CredentialStorage::KEY_GOOGLE_CLIENT_SECRET);
+}
+
+QString Backend::googleCredentialStorageStatus() const {
+    return CredentialStorage::instance().activeBackendName();
+}
+

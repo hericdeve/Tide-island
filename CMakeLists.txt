@@ -11,6 +11,9 @@ set(CMAKE_AUTOUIC ON)
 option(TIDE_ISLAND_WITH_NIRI "Build niri compositor integration" ON)
 
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Network DBus Test Concurrent)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(LIBSECRET REQUIRED IMPORTED_TARGET libsecret-1)
+find_package(OpenSSL REQUIRED)
 find_library(UDEV_LIB NAMES udev REQUIRED)
 
 add_executable(lyricsmpris
@@ -229,6 +232,34 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/lyricsmpris_runtime_tests.cpp")
     set_tests_properties(lyricsmpris_runtime PROPERTIES TIMEOUT 20)
 endif()
 
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/google_auth_service_tests.cpp")
+    add_executable(google_auth_service_tests
+        tests/google_auth_service_tests.cpp
+        backend/GoogleAuthService.h
+        backend/GoogleAuthService.cpp
+        backend/CredentialStorage.h
+        backend/CredentialStorage.cpp
+    )
+
+    target_link_libraries(google_auth_service_tests PRIVATE
+        Qt6::Core
+        Qt6::Gui
+        Qt6::Network
+        Qt6::Test
+        PkgConfig::LIBSECRET
+        OpenSSL::Crypto
+    )
+
+    target_include_directories(google_auth_service_tests PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/backend
+    )
+
+    add_test(NAME google_auth_service COMMAND google_auth_service_tests)
+    set_tests_properties(google_auth_service PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+    )
+endif()
+
 add_subdirectory(Tide-island-app)
 
 # Main Backend Module (Combining all C++ components)
@@ -258,6 +289,10 @@ qt_add_qml_module(IslandBackend
         backend/WifiNetworkModel.cpp
         backend/CalendarBackend.h
         backend/CalendarBackend.cpp
+        backend/GoogleAuthService.h
+        backend/GoogleAuthService.cpp
+        backend/CredentialStorage.h
+        backend/CredentialStorage.cpp
         backend/ClaudeCodeBackend.h
         backend/ClaudeCodeBackend.cpp
         backend/PomotroidBackend.h
@@ -287,6 +322,8 @@ target_link_libraries(IslandBackend PRIVATE
     Qt6::DBus
     Qt6::Concurrent
     ${UDEV_LIB}
+    PkgConfig::LIBSECRET
+    OpenSSL::Crypto
 )
 
 # Installation Rules

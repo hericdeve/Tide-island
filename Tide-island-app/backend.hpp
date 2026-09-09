@@ -46,10 +46,23 @@ public:
     Q_INVOKABLE QVariantList applicationLauncherFavoriteEntries() const;
     Q_INVOKABLE bool saveApplicationLauncherFavorites(const QVariantList &favoriteIds);
     Q_INVOKABLE bool toggleApplicationLauncher();
+    Q_INVOKABLE void startGoogleCalendarAuth();
+    Q_INVOKABLE void signOutGoogle();
+    Q_INVOKABLE bool isGoogleSignedIn() const;
+    Q_INVOKABLE QString googleAccountEmail() const;
+    Q_INVOKABLE QString googleAuthError() const;
+    Q_INVOKABLE void reloadUserConfig();
+    Q_INVOKABLE bool saveGoogleCredentials(const QString &clientId, const QString &clientSecret);
+    Q_INVOKABLE bool clearGoogleCredentials();
+    Q_INVOKABLE QString googleClientId() const;
+    Q_INVOKABLE QString googleClientSecret() const;
+    Q_INVOKABLE bool hasCustomGoogleCredentials() const;
+    Q_INVOKABLE QString googleCredentialStorageStatus() const;
 
 signals:
     void errorStringChanged();
     void colorSchemeChanged();
+    void googleCredentialsChanged();
 
 private:
     QString hyprlandConfigPath() const;

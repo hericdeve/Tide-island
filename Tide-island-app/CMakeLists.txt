@@ -23,7 +23,13 @@ qt_add_executable(tide-island-config-app
     main.cpp
     backend.hpp
     backend.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../backend/CredentialStorage.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../backend/CredentialStorage.cpp
     resources.qrc
+)
+
+target_include_directories(tide-island-config-app PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../backend
 )
 
 target_link_libraries(tide-island-config-app PRIVATE
@@ -32,6 +38,8 @@ target_link_libraries(tide-island-config-app PRIVATE
     Qt6::Quick
     Qt6::QuickControls2
     Qt6::QuickDialogs2
+    PkgConfig::LIBSECRET
+    OpenSSL::Crypto
 )
 
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/shortcut_config_tests.cpp")
@@ -39,15 +47,20 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/shortcut_config_tests.cpp")
         tests/shortcut_config_tests.cpp
         backend.hpp
         backend.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../backend/CredentialStorage.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/../backend/CredentialStorage.cpp
     )
 
     target_include_directories(tide_island_shortcut_config_tests PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR}/../backend
     )
 
     target_link_libraries(tide_island_shortcut_config_tests PRIVATE
         Qt6::Gui
         Qt6::Test
+        PkgConfig::LIBSECRET
+        OpenSSL::Crypto
     )
 
     add_test(NAME tide_island_shortcut_config COMMAND tide_island_shortcut_config_tests)

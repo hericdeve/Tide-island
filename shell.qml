@@ -266,6 +266,12 @@ Scope {
         function openSettings() {
             SystemServices.openConfigApp();
         }
+
+        function startGoogleCalendarAuth() {
+            if (CalendarBackend) {
+                CalendarBackend.startGoogleAuth();
+            }
+        }
     }
 
     IpcHandler {
