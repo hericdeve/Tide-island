@@ -75,6 +75,7 @@ class UserConfigBackend final : public QObject {
     Q_PROPERTY(int islandHeight READ islandHeight NOTIFY islandHeightChanged FINAL)
     Q_PROPERTY(int islandExclusiveZone READ islandExclusiveZone NOTIFY islandExclusiveZoneChanged FINAL)
     Q_PROPERTY(int islandTopMargin READ islandTopMargin NOTIFY islandTopMarginChanged FINAL)
+    Q_PROPERTY(int islandSideMargin READ islandSideMargin NOTIFY islandSideMarginChanged FINAL)
     Q_PROPERTY(int islandPositionX READ islandPositionX NOTIFY islandPositionXChanged FINAL)
     Q_PROPERTY(int islandBackgroundOpacity READ islandBackgroundOpacity NOTIFY islandBackgroundOpacityChanged FINAL)
     Q_PROPERTY(int bodyFontSize READ bodyFontSize NOTIFY bodyFontSizeChanged FINAL)
@@ -181,6 +182,7 @@ public:
     int islandHeight() const;
     int islandExclusiveZone() const;
     int islandTopMargin() const;
+    int islandSideMargin() const;
     int islandPositionX() const;
     int islandBackgroundOpacity() const;
     int bodyFontSize() const;
@@ -271,6 +273,7 @@ signals:
     void islandHeightChanged();
     void islandExclusiveZoneChanged();
     void islandTopMarginChanged();
+    void islandSideMarginChanged();
     void islandPositionXChanged();
     void islandBackgroundOpacityChanged();
     void bodyFontSizeChanged();
@@ -354,6 +357,7 @@ private:
     int m_islandHeight = 38;
     int m_islandExclusiveZone = 45;
     int m_islandTopMargin = 4;
+    int m_islandSideMargin = 16;
     int m_islandPositionX = 50;
     int m_bodyFontSize = 16;
     int m_titleFontSize = 20;

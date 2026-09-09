@@ -116,13 +116,26 @@ PagePanel {
                     SplitLine { width: parent.width }
 
                     ConfigRow {
-                        title: "Screen Edge Offset"
-                        description: "Distance in pixels between the island and screen edge (default 4)"
+                        title: "Top / Bottom Edge Margin"
+                        description: "Distance in pixels between the island and top/bottom screen edge (default 4, set to 0 for flush edge)"
                         keyName: "islandTopMargin"
                         fallbackText: "4"
                         numeric: true
                         minimumValue: 0
-                        maximumValue: 200
+                        maximumValue: 500
+                        width: parent.width
+                    }
+
+                    SplitLine { width: parent.width }
+
+                    ConfigRow {
+                        title: "Side Edge Margin"
+                        description: "Distance in pixels from the left/right screen edge when corner-aligned (default 16)"
+                        keyName: "islandSideMargin"
+                        fallbackText: "16"
+                        numeric: true
+                        minimumValue: 0
+                        maximumValue: 500
                         width: parent.width
                     }
 

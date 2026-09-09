@@ -29,6 +29,7 @@ private slots:
     void dynamicResizeEnabledDefaultsAndPersists();
     void dynamicResizeMaxPctDefaultsAndClamping();
     void circleDynamicOpacityDefaultsAndClamping();
+    void islandMarginsDefaultsAndClamping();
 };
 
 void UserConfigBackendTests::initTestCase()
@@ -471,6 +472,29 @@ void UserConfigBackendTests::circleDynamicOpacityDefaultsAndClamping()
     // Cleanup
     reloaded.setCircleDynamicOpacityEnabled(false);
     reloaded.setCircleDynamicOpacityInactive(40);
+}
+
+void UserConfigBackendTests::islandMarginsDefaultsAndClamping()
+{
+    UserConfigBackend config;
+    QCOMPARE(config.islandTopMargin(), 4);
+    QCOMPARE(config.islandSideMargin(), 16);
+
+    const QString configPath = config.userConfigPath();
+    QFile file(configPath);
+    QVERIFY(file.open(QIODevice::ReadWrite));
+    QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+    QJsonObject obj = doc.isObject() ? doc.object() : QJsonObject();
+    obj[QStringLiteral("islandTopMargin")] = 0;
+    obj[QStringLiteral("islandSideMargin")] = 24;
+    file.seek(0);
+    file.resize(0);
+    file.write(QJsonDocument(obj).toJson());
+    file.close();
+
+    config.reload();
+    QCOMPARE(config.islandTopMargin(), 0);
+    QCOMPARE(config.islandSideMargin(), 24);
 }
 
 QTEST_MAIN(UserConfigBackendTests)

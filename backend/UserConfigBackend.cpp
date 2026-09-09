@@ -821,6 +821,11 @@ int UserConfigBackend::islandTopMargin() const
     return m_islandTopMargin;
 }
 
+int UserConfigBackend::islandSideMargin() const
+{
+    return m_islandSideMargin;
+}
+
 int UserConfigBackend::islandPositionX() const
 {
     return m_islandPositionX;
@@ -1333,6 +1338,7 @@ void UserConfigBackend::loadConfig()
     updateField(this, m_islandHeight, jsonInt(configObject, QLatin1String("islandHeight"), 38), &UserConfigBackend::islandHeightChanged);
     updateField(this, m_islandExclusiveZone, jsonBoundedInt(configObject, QLatin1String("islandExclusiveZone"), 45, 0, 1000), &UserConfigBackend::islandExclusiveZoneChanged);
     updateField(this, m_islandTopMargin, jsonBoundedInt(configObject, QLatin1String("islandTopMargin"), 4, 0, 1000), &UserConfigBackend::islandTopMarginChanged);
+    updateField(this, m_islandSideMargin, jsonBoundedInt(configObject, QLatin1String("islandSideMargin"), 16, 0, 1000), &UserConfigBackend::islandSideMarginChanged);
     updateField(this, m_islandPositionX, jsonInt(configObject, QLatin1String("islandPositionX"), 50), &UserConfigBackend::islandPositionXChanged);
     updateField(this, m_bodyFontSize, jsonInt(configObject, QLatin1String("bodyFontSize"), 16), &UserConfigBackend::bodyFontSizeChanged);
     updateField(this, m_titleFontSize, jsonInt(configObject, QLatin1String("titleFontSize"), 20), &UserConfigBackend::titleFontSizeChanged);

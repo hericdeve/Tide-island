@@ -64,7 +64,7 @@ PanelWindow {
     readonly property bool isBottom: notchPosition === "bottom-center" || notchPosition === "bottom-left" || notchPosition === "bottom-right"
     readonly property bool isLeftAligned: notchPosition === "top-left" || notchPosition === "bottom-left"
     readonly property bool isRightAligned: notchPosition === "top-right" || notchPosition === "bottom-right"
-    readonly property real capsuleSideMargin: 16
+    readonly property real capsuleSideMargin: (userConfig && userConfig.islandSideMargin !== undefined) ? Math.max(0, userConfig.islandSideMargin) : 16
 
     Loader {
         id: hyprlandIntegrationLoader
@@ -174,8 +174,8 @@ PanelWindow {
             height: powerConnectivityDetailShell.visible ? Math.ceil(powerConnectivityDetailShell.height) : 0
         }
     }
-    readonly property real capsuleTopMargin: (userConfig.notchMode === "notch") ? 0 : Math.max(4, userConfig.islandTopMargin)
-    readonly property real capsuleBottomMargin: (userConfig.notchMode === "notch") ? 0 : Math.max(4, userConfig.islandTopMargin)
+    readonly property real capsuleTopMargin: (userConfig.notchMode === "notch") ? 0 : Math.max(0, userConfig.islandTopMargin)
+    readonly property real capsuleBottomMargin: (userConfig.notchMode === "notch") ? 0 : Math.max(0, userConfig.islandTopMargin)
     readonly property real capsuleVerticalMargin: root.isBottom ? root.capsuleBottomMargin : root.capsuleTopMargin
     readonly property real capsuleWindowHeight: Math.ceil(
         root.capsuleVerticalMargin + Math.max(userConfig ? userConfig.notchOpenHeight : 190, mainCapsule.targetHeight) + 12
