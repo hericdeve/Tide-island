@@ -214,7 +214,7 @@ Item {
 
             // --- LEFT COLUMN: Timer & Controls ---
             Item {
-                width: 220
+                width: Math.max(220, parent.width * 0.62)
                 height: parent.height
 
                 Column {
@@ -604,7 +604,7 @@ Item {
 
             // --- RIGHT COLUMN: Session Tags & Autocompletion ---
             Item {
-                width: parent.width - 220 - 1 - 20
+                width: parent.width - Math.max(220, parent.width * 0.62) - 1 - 20
                 height: parent.height
 
                 Column {
