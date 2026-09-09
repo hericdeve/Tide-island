@@ -43,8 +43,9 @@ FocusScope {
     readonly property real cardWidth: shelfContentArea.height < 200 ? Math.max(80, Math.round(shelfContentArea.height - 16)) : 176
     readonly property real cardHeight: cardWidth
     readonly property real overflowCellWidth: cardWidth + 20
+    readonly property bool isCurrentPage: !showStatusBar ? (currentPage === 0) : true
 
-    focus: showCondition && !dropPreviewOnly
+    focus: showCondition && !dropPreviewOnly && isCurrentPage
     activeFocusOnTab: true
     anchors.fill: parent
     opacity: showCondition ? 1 : 0
@@ -62,12 +63,17 @@ FocusScope {
 
         FileShelf.refresh();
         normalizeSelection();
-        if (!dropPreviewOnly)
+        if (!dropPreviewOnly && isCurrentPage)
+            grabKeyboardFocus();
+    }
+
+    onCurrentPageChanged: {
+        if (showCondition && !dropPreviewOnly && isCurrentPage)
             grabKeyboardFocus();
     }
 
     onDropPreviewOnlyChanged: {
-        if (showCondition && !dropPreviewOnly)
+        if (showCondition && !dropPreviewOnly && isCurrentPage)
             grabKeyboardFocus();
     }
 

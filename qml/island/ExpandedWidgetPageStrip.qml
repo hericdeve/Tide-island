@@ -14,23 +14,47 @@ Item {
     property int hoveredSlotIndex: -1
     property bool isDraggingWidget: false
 
+    // Shelf integration properties
+    property bool showCondition: false
+    property string iconFontFamily: ""
+    property string textFontFamily: ""
+    property int batteryCapacity: -1
+    property bool isCharging: false
+
     signal pageChanged(int newPage)
-    signal previousPageRequested()
+    signal closeRequested()
+    signal cameraToggleRequested()
+    signal editModeToggleRequested()
     signal removeSlotWidgetRequested(int pageIndex, int slotIndex)
     signal addWidgetRequested(int pageIndex, int slotIndex)
     signal spanChangeRequested(int pageIndex, int slotIndex, int newSpan)
     signal setSlotsRequested(int pageIndex, int newSlotCount)
     signal deletePageRequested(int pageIndex)
 
-    readonly property int pageCount: pages ? Math.max(1, pages.length) : 1
+    readonly property int widgetPageCount: pages ? Math.max(1, pages.length) : 1
+    // Page 0 is the File Shelf, Pages 1..widgetPageCount are widget pages
+    readonly property int pageCount: 1 + widgetPageCount
     readonly property real clampedPageProgress: Math.max(0, Math.min(pageCount - 1, pageProgress))
     readonly property real pageSlideDistance: Math.max(1, width + 24)
+
+    readonly property bool isReorderingShelf: fileShelfItem && fileShelfItem.reorderActive
 
     property real requestedContentWidth: 0
     property real requestedContentHeight: 0
 
+    function grabKeyboardFocus() {
+        if (currentPage === 0 && fileShelfItem) {
+            fileShelfItem.grabKeyboardFocus();
+        }
+    }
+
     function updateActivePageRequestedSizes() {
-        const curWrapper = pagesRepeater.itemAt(root.currentPage);
+        if (root.currentPage === 0) {
+            root.requestedContentWidth = 0;
+            root.requestedContentHeight = 0;
+            return;
+        }
+        const curWrapper = pagesRepeater.itemAt(root.currentPage - 1);
         root.requestedContentWidth = (curWrapper && curWrapper.gridItem)
             ? Number(curWrapper.gridItem.requestedContentWidth) : 0;
         root.requestedContentHeight = (curWrapper && curWrapper.gridItem)
@@ -98,7 +122,7 @@ Item {
     DragHandler {
         id: swipeDragHandler
         target: null
-        enabled: !root.isDraggingWidget
+        enabled: !root.isDraggingWidget && !root.isReorderingShelf
         acceptedButtons: Qt.LeftButton
         xAxis.enabled: true
         yAxis.enabled: false
@@ -115,12 +139,6 @@ Item {
             } else {
                 const elapsedMs = Math.max(16, Date.now() - swipeStartTime);
                 const velocityX = activeTranslation.x / elapsedMs;
-
-                if (root.currentPage === 0 && (velocityX > 0.35 || activeTranslation.x > 60)) {
-                    root.settlePage(0);
-                    root.previousPageRequested();
-                    return;
-                }
 
                 let target = Math.round(root.pageProgress);
                 if (velocityX > 0.35) {
@@ -150,18 +168,20 @@ Item {
     MultiPointTouchArea {
         id: twoFingerTouchStrip
         anchors.fill: parent
-        enabled: !root.isDraggingWidget
+        enabled: !root.isDraggingWidget && !root.isReorderingShelf
         mouseEnabled: false
         minimumTouchPoints: 2
         maximumTouchPoints: 2
 
         property real startTouchX: 0
         property real startPageProgress: 0
+        property double touchStartTime: 0
 
         onPressed: (touchPoints) => {
             settleAnimation.stop();
             startTouchX = (touchPoints[0].x + touchPoints[1].x) / 2;
             startPageProgress = root.pageProgress;
+            touchStartTime = Date.now();
         }
 
         onUpdated: (touchPoints) => {
@@ -179,22 +199,62 @@ Item {
         onReleased: (touchPoints) => {
             const currentTouchX = (touchPoints[0].x + touchPoints[1].x) / 2;
             const deltaX = currentTouchX - startTouchX;
-            if (root.currentPage === 0 && deltaX > 60) {
-                root.settlePage(0);
-                root.previousPageRequested();
-                return;
+            const elapsedMs = Math.max(16, Date.now() - touchStartTime);
+            const velocityX = deltaX / elapsedMs;
+
+            let target = Math.round(root.pageProgress);
+            if (velocityX > 0.35 || deltaX > 50) {
+                target = Math.floor(root.pageProgress);
+            } else if (velocityX < -0.35 || deltaX < -50) {
+                target = Math.ceil(root.pageProgress);
             }
-            root.settlePage(Math.round(root.pageProgress));
+            root.settlePage(target);
         }
     }
 
+    // Page 0: File Shelf Panel
+    Item {
+        id: shelfWrapper
+        readonly property int pIdx: 0
+        readonly property real pageOffset: (0 - root.clampedPageProgress) * root.pageSlideDistance
+
+        width: root.width
+        height: root.height
+        x: pageOffset
+        opacity: Math.max(0, 1 - Math.abs(0 - root.clampedPageProgress))
+        visible: opacity > 0.001
+        enabled: root.currentPage === 0
+
+        FileShelfLayer {
+            id: fileShelfItem
+            anchors.fill: parent
+            showStatusBar: false
+            iconFontFamily: root.iconFontFamily
+            textFontFamily: root.textFontFamily
+            showCondition: root.showCondition
+            dropPreviewOnly: false
+            batteryCapacity: root.batteryCapacity
+            isCharging: root.isCharging
+            cameraMirrorActive: root.cameraMirrorActive
+            isEditMode: root.isEditMode
+            currentPage: root.currentPage
+
+            onCloseRequested: root.closeRequested()
+            onPageSelected: (idx) => root.settlePage(idx)
+            onCameraToggleRequested: root.cameraToggleRequested()
+            onEditModeToggleRequested: root.editModeToggleRequested()
+        }
+    }
+
+    // Pages 1+: Multi-Page Slot Grid Viewport
     Repeater {
         id: pagesRepeater
-        model: root.pageCount
+        model: root.widgetPageCount
 
         Item {
             id: pageWrapper
-            readonly property int pIdx: index
+            readonly property int widgetIndex: index
+            readonly property int pIdx: index + 1
             readonly property real pageOffset: (pIdx - root.clampedPageProgress) * root.pageSlideDistance
             readonly property var gridItem: slotGrid
 
@@ -208,8 +268,8 @@ Item {
             WidgetSlotGrid {
                 id: slotGrid
                 anchors.fill: parent
-                pageIndex: pageWrapper.pIdx
-                pageData: (root.pages && root.pages[pageWrapper.pIdx]) ? root.pages[pageWrapper.pIdx] : null
+                pageIndex: pageWrapper.widgetIndex
+                pageData: (root.pages && root.pages[pageWrapper.widgetIndex]) ? root.pages[pageWrapper.widgetIndex] : null
                 isEditMode: root.isEditMode
                 cameraMirrorActive: root.cameraMirrorActive && (pageWrapper.pIdx === root.currentPage)
                 widgetContext: root.widgetContext

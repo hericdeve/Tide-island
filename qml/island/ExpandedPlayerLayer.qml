@@ -33,7 +33,7 @@ Item {
     // Page 0 is always the file shelf; widget pages start at index 1
     readonly property bool onShelfPage: currentPage === 0
     readonly property int currentPage: internalCurrentPage
-    property int internalCurrentPage: 0
+    property int internalCurrentPage: initialPage
 
     readonly property real requestedContentWidth: {
         if (onShelfPage) return 0;
@@ -49,21 +49,26 @@ Item {
         return stripReqH > 0 ? (stripReqH + (statusBar ? statusBar.height : 28) + 28) : 0;
     }
 
+    function grabKeyboardFocus() {
+        if (expandedPageStrip) {
+            expandedPageStrip.grabKeyboardFocus();
+        }
+    }
+
     function showPage(pageIdx, immediate) {
-        // pageIdx 0 = shelf, 1+ = widget pages (shifted by 1)
-        const totalPages = 1 + (expandedPageStrip ? expandedPageStrip.pageCount : 0);
+        if (!expandedPageStrip) return;
+        const totalPages = expandedPageStrip.pageCount;
         const clamped = Math.max(0, Math.min(totalPages - 1, pageIdx));
         internalCurrentPage = clamped;
-        if (clamped > 0 && expandedPageStrip) {
-            if (immediate) {
-                expandedPageStrip.setPageDirect(clamped - 1);
-            } else {
-                expandedPageStrip.settlePage(clamped - 1);
-            }
+        if (immediate) {
+            expandedPageStrip.setPageDirect(clamped);
+        } else {
+            expandedPageStrip.settlePage(clamped);
         }
     }
 
     property int initialPage: 0
+    onInitialPageChanged: showPage(initialPage, true)
     property bool showCondition: false
     property string currentArtUrl: ""
     property string currentTrack: ""
@@ -160,7 +165,7 @@ Item {
             property bool gestureLocked: false
 
             onWheel: function(event) {
-                const totalPages = 1 + (expandedPageStrip ? expandedPageStrip.pageCount : 0);
+                const totalPages = expandedPageStrip ? expandedPageStrip.pageCount : 0;
                 if (totalPages <= 1) return;
                 if (event.phase === Qt.ScrollMomentum) {
                     event.accepted = true;
@@ -245,52 +250,16 @@ Item {
                 onCloseRequested: root.closeRequested()
             }
 
-            // 2. Viewport showing File Shelf on page 0, Widget Strip on pages 1+
+            // 2. Unified Viewport: Page 0 is File Shelf, Pages 1+ are Widget Pages
             Item {
                 width: parent.width
                 height: Math.max(0, parent.height - statusBar.height - parent.spacing)
                 clip: true
 
-                // Page 0: File Shelf Panel
-                FileShelfLayer {
-                    id: fileShelfPageItem
-                    width: parent.width
-                    height: parent.height
-                    x: root.internalCurrentPage === 0 ? 0 : -parent.width
-                    visible: opacity > 0.001
-                    opacity: root.internalCurrentPage === 0 ? 1 : 0
-                    showStatusBar: false
-                    iconFontFamily: root.iconFontFamily
-                    textFontFamily: root.textFontFamily
-                    showCondition: root.showCondition && root.internalCurrentPage === 0
-                    dropPreviewOnly: false
-                    batteryCapacity: root.batteryCapacity
-                    isCharging: root.isCharging
-                    cameraMirrorActive: root.cameraMirrorActive
-                    isEditMode: root.isEditMode
-                    currentPage: root.internalCurrentPage
-                    onCloseRequested: root.closeRequested()
-                    onPageSelected: (idx) => root.showPage(idx, false)
-                    onCameraToggleRequested: root.cameraMirrorActive = !root.cameraMirrorActive
-                    onEditModeToggleRequested: root.isEditMode = !root.isEditMode
-
-                    Behavior on x {
-                        NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
-                    }
-                    Behavior on opacity {
-                        NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
-                    }
-                }
-
-                // Pages 1+: Multi-Page Slot Grid Viewport
                 ExpandedWidgetPageStrip {
                     id: expandedPageStrip
-                    width: parent.width
-                    height: parent.height
-                    x: root.internalCurrentPage === 0 ? parent.width : 0
-                    visible: opacity > 0.001
-                    opacity: root.internalCurrentPage > 0 ? 1 : 0
-                    initialPage: Math.max(0, root.initialPage - 1)
+                    anchors.fill: parent
+                    initialPage: root.initialPage
                     pages: (userConfig && userConfig.widgetLayouts && userConfig.widgetLayouts.expanded) ? userConfig.widgetLayouts.expanded.pages : []
                     isEditMode: root.isEditMode
                     cameraMirrorActive: root.cameraMirrorActive
@@ -298,13 +267,19 @@ Item {
                     hoveredSlotIndex: root.hoveredSlotIndex
                     isDraggingWidget: root.isDraggingWidget
 
-                    onPreviousPageRequested: root.showPage(0, false)
+                    iconFontFamily: root.iconFontFamily
+                    textFontFamily: root.textFontFamily
+                    showCondition: root.showCondition
+                    batteryCapacity: root.batteryCapacity
+                    isCharging: root.isCharging
+
                     onPageChanged: (newPage) => {
-                        if (root.internalCurrentPage > 0) {
-                            root.internalCurrentPage = newPage + 1;
-                            root.pageChanged(newPage + 1);
-                        }
+                        root.internalCurrentPage = newPage;
+                        root.pageChanged(newPage);
                     }
+                    onCloseRequested: root.closeRequested()
+                    onCameraToggleRequested: root.cameraMirrorActive = !root.cameraMirrorActive
+                    onEditModeToggleRequested: root.isEditMode = !root.isEditMode
                     onAddWidgetRequested: (pIdx, sIdx) => root.widgetLibraryRequested("expanded", pIdx, sIdx)
                     onRemoveSlotWidgetRequested: (pIdx, sIdx) => {
                         if (userConfig)
@@ -330,13 +305,6 @@ Item {
                     onDeletePageRequested: (pIdx) => {
                         if (userConfig)
                             userConfig.removePage("expanded", pIdx);
-                    }
-
-                    Behavior on x {
-                        NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
-                    }
-                    Behavior on opacity {
-                        NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
                     }
                 }
             }

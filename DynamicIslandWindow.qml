@@ -133,6 +133,14 @@ PanelWindow {
             height: Math.ceil(mainCapsule.height)
         }
 
+        Region {
+            intersection: Intersection.Combine
+            x: Math.floor(fileShelfBubble.x)
+            y: Math.floor(fileShelfBubble.y)
+            width: fileShelfBubble.visible ? Math.ceil(fileShelfBubble.width) : 0
+            height: fileShelfBubble.visible ? Math.ceil(fileShelfBubble.height) : 0
+        }
+
         // Add existing detail shells
         Region {
             intersection: Intersection.Combine
@@ -1027,7 +1035,9 @@ PanelWindow {
         readonly property bool timerBubbleWanted: (timerActive && timerRemainingSeconds > 0 || timerCompletionAnimating)
             && !root.overviewVisible
             && (islandState === "normal" || islandState === "lyrics" || islandState === "custom")
-        readonly property bool fileShelfBubbleWanted: false
+        readonly property bool fileShelfBubbleWanted: FileShelf.count > 0
+            && !root.overviewVisible
+            && (islandState === "normal" || islandState === "lyrics" || islandState === "custom")
         readonly property bool fileShelfCanAutoOpen: !root.overviewVisible
             && (islandState === "normal" || islandState === "lyrics" || islandState === "custom")
         readonly property bool blocksTransientSplit: islandState === "expanded"
@@ -3815,7 +3825,7 @@ PanelWindow {
             }
             y: mainCapsule.y + mainCapsule.height / 2 - height / 2
             z: 6
-            visible: false
+            visible: islandContainer.fileShelfBubbleWanted
             opacity: root.autoHideProgress
             scale: 0.96 + root.autoHideProgress * 0.04
             transformOrigin: Item.Center
@@ -3888,7 +3898,9 @@ PanelWindow {
                     return mainCapsule.x - width - 8;
                 }
                 if (root.isLeftAligned) {
-                    return mainCapsule.x + mainCapsule.width + 8;
+                    return fileShelfBubble.visible
+                        ? (mainCapsule.x + mainCapsule.width + fileShelfBubble.width + 16)
+                        : (mainCapsule.x + mainCapsule.width + 8);
                 }
                 return mainCapsule.x + mainCapsule.width + 8;
             }
