@@ -405,6 +405,16 @@ void GoogleAuthService::refreshAccessToken(const std::function<void(bool success
         return;
     }
 
+    if (callback) {
+        m_pendingRefreshCallbacks.append(callback);
+    }
+
+    if (m_refreshInProgress) {
+        return; // Single in-flight refresh request serves all concurrent callers
+    }
+
+    m_refreshInProgress = true;
+
     QNetworkRequest request(QUrl(QStringLiteral("https://oauth2.googleapis.com/token")));
     request.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("application/x-www-form-urlencoded"));
 
@@ -417,11 +427,18 @@ void GoogleAuthService::refreshAccessToken(const std::function<void(bool success
     params.addQueryItem(QStringLiteral("grant_type"), QStringLiteral("refresh_token"));
 
     QNetworkReply *reply = m_nam.post(request, params.query(QUrl::FullyEncoded).toUtf8());
-    connect(reply, &QNetworkReply::finished, this, [this, reply, callback]() {
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         reply->deleteLater();
+        m_refreshInProgress = false;
+
+        const auto callbacks = m_pendingRefreshCallbacks;
+        m_pendingRefreshCallbacks.clear();
+
         if (reply->error() != QNetworkReply::NoError) {
             m_lastError = QStringLiteral("Token refresh failed: ") + reply->errorString();
-            if (callback) callback(false);
+            for (const auto &cb : callbacks) {
+                if (cb) cb(false);
+            }
             return;
         }
 
@@ -431,7 +448,9 @@ void GoogleAuthService::refreshAccessToken(const std::function<void(bool success
         const int expiresIn = obj.value(QStringLiteral("expires_in")).toInt(3600);
         m_tokenExpiry = QDateTime::currentDateTimeUtc().addSecs(expiresIn - 60);
 
-        if (callback) callback(true);
+        for (const auto &cb : callbacks) {
+            if (cb) cb(true);
+        }
     });
 }
 
@@ -530,7 +549,13 @@ void GoogleAuthService::fetchEventsForCalendars(const std::function<void(const Q
         return;
     }
 
-    refreshAccessToken([this, callback](bool success) {
+    const quint64 syncGen = ++m_eventSyncGeneration;
+
+    refreshAccessToken([this, callback, syncGen](bool success) {
+        if (syncGen != m_eventSyncGeneration) {
+            return; // Discard superseded sync cycle
+        }
+
         if (!success) {
             if (callback) callback({});
             return;
@@ -567,12 +592,20 @@ void GoogleAuthService::fetchEventsForCalendars(const std::function<void(const Q
 
             QNetworkReply *reply = m_nam.get(req);
             const QString currentCalId = cal.id;
-            connect(reply, &QNetworkReply::finished, this, [this, reply, currentCalId, accumulatedEvents, remaining, callback]() {
+            connect(reply, &QNetworkReply::finished, this, [this, reply, currentCalId, accumulatedEvents, remaining, callback, syncGen]() {
                 reply->deleteLater();
+                if (syncGen != m_eventSyncGeneration) {
+                    return; // Discard superseded reply
+                }
+
                 if (reply->error() == QNetworkReply::NoError) {
                     QList<GoogleEventEntry> calEvents;
                     parseEventsJson(currentCalId, reply->readAll(), calEvents);
                     accumulatedEvents->append(calEvents);
+                } else {
+                    const QString err = QStringLiteral("Failed to fetch events for calendar %1: %2").arg(currentCalId, reply->errorString());
+                    qWarning() << "GoogleAuthService:" << err;
+                    emit syncErrorOccurred(err);
                 }
 
                 *remaining -= 1;
@@ -604,14 +637,16 @@ void GoogleAuthService::parseEventsJson(const QString &calendarId, const QByteAr
         const QJsonObject endObj = item.value(QStringLiteral("end")).toObject();
 
         if (startObj.contains(QStringLiteral("dateTime"))) {
-            ev.start = QDateTime::fromString(startObj.value(QStringLiteral("dateTime")).toString(), Qt::ISODate);
-            ev.end = QDateTime::fromString(endObj.value(QStringLiteral("dateTime")).toString(), Qt::ISODate);
+            const QDateTime parsedStart = QDateTime::fromString(startObj.value(QStringLiteral("dateTime")).toString(), Qt::ISODate);
+            const QDateTime parsedEnd = QDateTime::fromString(endObj.value(QStringLiteral("dateTime")).toString(), Qt::ISODate);
+            ev.start = parsedStart.isValid() ? parsedStart.toLocalTime() : QDateTime();
+            ev.end = parsedEnd.isValid() ? parsedEnd.toLocalTime() : (ev.start.isValid() ? ev.start.addSecs(3600) : QDateTime());
             ev.allDay = false;
         } else if (startObj.contains(QStringLiteral("date"))) {
             const QDate startDate = QDate::fromString(startObj.value(QStringLiteral("date")).toString(), Qt::ISODate);
             const QDate endDate = QDate::fromString(endObj.value(QStringLiteral("date")).toString(), Qt::ISODate);
             ev.start = startDate.startOfDay();
-            ev.end = endDate.isValid() ? endDate.startOfDay() : startDate.endOfDay();
+            ev.end = endDate.isValid() ? endDate.startOfDay() : startDate.addDays(1).startOfDay();
             ev.allDay = true;
         }
 

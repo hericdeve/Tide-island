@@ -19,6 +19,7 @@ private slots:
     void testCalendarSelectionToggle();
     void testCalendarColorUpdate();
     void testCustomCredentials();
+    void testGoogleEventsTimezoneParsing();
     void testCredentialStorageEncryptedFallback();
     void testCredentialStorageKeyring();
 
@@ -160,6 +161,48 @@ void GoogleAuthServiceTests::testCustomCredentials() {
     QCOMPARE(service.hasCustomCredentials(), false);
     QCOMPARE(service.clientId(), originalClientId);
     QCOMPARE(service.clientSecret(), QString());
+}
+
+void GoogleAuthServiceTests::testGoogleEventsTimezoneParsing() {
+    GoogleAuthService service;
+
+    const QByteArray mockJson = R"({
+        "items": [
+            {
+                "id": "ev_timed_1",
+                "summary": "Engineering Standup",
+                "location": "Room 404",
+                "start": { "dateTime": "2026-09-09T18:00:00Z" },
+                "end": { "dateTime": "2026-09-09T19:00:00Z" }
+            },
+            {
+                "id": "ev_allday_1",
+                "summary": "National Holiday",
+                "start": { "date": "2026-09-09" },
+                "end": { "date": "2026-09-10" }
+            }
+        ]
+    })";
+
+    QList<GoogleAuthService::GoogleEventEntry> outEvents;
+    service.parseEventsJson(QStringLiteral("cal_test_1"), mockJson, outEvents);
+
+    QCOMPARE(outEvents.size(), 2);
+
+    // Timed event verification
+    const auto &timed = outEvents.at(0);
+    QCOMPARE(timed.id, QStringLiteral("ev_timed_1"));
+    QCOMPARE(timed.allDay, false);
+    const QDateTime expectedStart = QDateTime::fromString(QStringLiteral("2026-09-09T18:00:00Z"), Qt::ISODate).toLocalTime();
+    QCOMPARE(timed.start, expectedStart);
+    QCOMPARE(timed.start.timeZone(), QTimeZone::systemTimeZone());
+
+    // All-day event verification
+    const auto &allday = outEvents.at(1);
+    QCOMPARE(allday.id, QStringLiteral("ev_allday_1"));
+    QCOMPARE(allday.allDay, true);
+    QCOMPARE(allday.start.date(), QDate(2026, 9, 9));
+    QCOMPARE(allday.end.date(), QDate(2026, 9, 10));
 }
 
 void GoogleAuthServiceTests::testCredentialStorageEncryptedFallback() {

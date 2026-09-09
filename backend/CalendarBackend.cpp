@@ -399,10 +399,12 @@ QDateTime CalendarBackend::parseIcsDateTime(const QString &value, bool &allDay) 
             dt.setTimeZone(QTimeZone::utc());
             return dt.toLocalTime();
         }
+        dt.setTimeZone(QTimeZone::systemTimeZone());
         return dt;
     }
 
-    return QDateTime::fromString(value, Qt::ISODate);
+    const QDateTime isoDt = QDateTime::fromString(value, Qt::ISODate);
+    return isoDt.isValid() ? isoDt.toLocalTime() : QDateTime();
 }
 
 void CalendarBackend::parseIcsData(const QString &calendarId, const QByteArray &data) {
@@ -486,11 +488,14 @@ void CalendarBackend::parseIcsData(const QString &calendarId, const QByteArray &
 bool CalendarBackend::eventMatchesDate(const CalendarEvent &event, const QDate &date) const {
     if (!event.start.isValid() || !date.isValid()) return false;
 
-    const QDate startDate = event.start.date();
-    const QDate endDate = event.end.isValid() ? event.end.date() : startDate;
+    const QDate startDate = event.start.toLocalTime().date();
+    const QDate endDate = event.end.isValid() ? event.end.toLocalTime().date() : startDate;
 
     if (event.rrule.isEmpty()) {
         if (event.allDay) {
+            if (startDate == endDate) {
+                return date == startDate;
+            }
             return date >= startDate && date < endDate;
         }
         return date >= startDate && date <= endDate;
@@ -646,6 +651,60 @@ bool CalendarBackend::hasEventsForDate(const QDate &date) const {
 QVariantMap CalendarBackend::nextEvent(const QDate &date) const {
     const QVariantList list = eventsForDate(date);
     if (list.isEmpty()) return QVariantMap();
+
+    const QDateTime now = QDateTime::currentDateTime();
+    const bool isToday = (date == now.date());
+
+    if (isToday) {
+        // Priority 1: Next upcoming timed event today (starts in the future)
+        QVariantMap nextUpcoming;
+        QDateTime nextUpcomingTime;
+
+        // Priority 2: Currently ongoing timed event (started in past, ends in future)
+        QVariantMap ongoing;
+
+        // Priority 3: First all-day event
+        QVariantMap firstAllDay;
+
+        for (const auto &item : list) {
+            const QVariantMap map = item.toMap();
+            const bool allDay = map.value(QStringLiteral("allDay")).toBool();
+            const QDateTime start = map.value(QStringLiteral("startTime")).toDateTime();
+            const QDateTime end = map.value(QStringLiteral("endTime")).toDateTime();
+
+            if (allDay) {
+                if (firstAllDay.isEmpty()) {
+                    firstAllDay = map;
+                }
+                continue;
+            }
+
+            if (start > now) {
+                if (!nextUpcomingTime.isValid() || start < nextUpcomingTime) {
+                    nextUpcoming = map;
+                    nextUpcomingTime = start;
+                }
+            } else if (end > now) {
+                if (ongoing.isEmpty()) {
+                    ongoing = map;
+                }
+            }
+        }
+
+        if (!nextUpcoming.isEmpty()) return nextUpcoming;
+        if (!ongoing.isEmpty()) return ongoing;
+        if (!firstAllDay.isEmpty()) return firstAllDay;
+    } else if (date > now.date()) {
+        // Future date: prioritize earliest timed event, then all-day
+        for (const auto &item : list) {
+            const QVariantMap map = item.toMap();
+            if (!map.value(QStringLiteral("allDay")).toBool()) {
+                return map;
+            }
+        }
+        return list.first().toMap();
+    }
+
     return list.first().toMap();
 }
 
@@ -694,8 +753,15 @@ void CalendarBackend::loadConfig() {
     const QJsonArray googleCalsArray = root.value(QStringLiteral("googleCalendars")).toArray();
     m_googleAuth.loadState(googleAuthObj, googleCalsArray);
 
+    // Collect IDs of Google calendars for accurate bucket sorting
+    QSet<QString> googleCalIds;
+    for (const auto &gcal : m_googleAuth.calendars()) {
+        googleCalIds.insert(gcal.id);
+    }
+
     const QJsonArray eventsArray = root.value(QStringLiteral("calendarEvents")).toArray();
     m_events.clear();
+    m_googleEvents.clear();
     for (const QJsonValue &val : eventsArray) {
         const QJsonObject obj = val.toObject();
         CalendarEvent ev;
@@ -704,11 +770,19 @@ void CalendarBackend::loadConfig() {
         ev.title = obj.value(QStringLiteral("title")).toString();
         ev.location = obj.value(QStringLiteral("location")).toString();
         ev.allDay = obj.value(QStringLiteral("allDay")).toBool();
-        ev.start = QDateTime::fromString(obj.value(QStringLiteral("start")).toString(), Qt::ISODate);
-        ev.end = QDateTime::fromString(obj.value(QStringLiteral("end")).toString(), Qt::ISODate);
+        const QDateTime s = QDateTime::fromString(obj.value(QStringLiteral("start")).toString(), Qt::ISODate);
+        const QDateTime e = QDateTime::fromString(obj.value(QStringLiteral("end")).toString(), Qt::ISODate);
+        ev.start = s.isValid() ? s.toLocalTime() : QDateTime();
+        ev.end = e.isValid() ? e.toLocalTime() : (ev.start.isValid() ? ev.start.addSecs(3600) : QDateTime());
         ev.rrule = obj.value(QStringLiteral("rrule")).toString();
         if (!ev.id.isEmpty() && !ev.title.isEmpty() && ev.start.isValid()) {
-            m_events.append(ev);
+            const bool isGoogle = obj.value(QStringLiteral("isGoogle")).toBool(false)
+                || googleCalIds.contains(ev.calendarId);
+            if (isGoogle) {
+                m_googleEvents.append(ev);
+            } else {
+                m_events.append(ev);
+            }
         }
     }
 
@@ -761,9 +835,9 @@ void CalendarBackend::saveConfig() {
     root[QStringLiteral("googleAuth")] = googleAuthObj;
     root[QStringLiteral("googleCalendars")] = googleCalsArray;
 
-    // Cache events
+    // Cache events (both generic iCal and Google Calendar events)
     QJsonArray eventsArray;
-    for (const auto &ev : m_events) {
+    auto appendEventToJson = [&eventsArray](const CalendarEvent &ev, bool isGoogle) {
         QJsonObject obj;
         obj[QStringLiteral("id")] = ev.id;
         obj[QStringLiteral("calendarId")] = ev.calendarId;
@@ -773,7 +847,15 @@ void CalendarBackend::saveConfig() {
         obj[QStringLiteral("start")] = ev.start.toString(Qt::ISODate);
         obj[QStringLiteral("end")] = ev.end.toString(Qt::ISODate);
         obj[QStringLiteral("rrule")] = ev.rrule;
+        obj[QStringLiteral("isGoogle")] = isGoogle;
         eventsArray.append(obj);
+    };
+
+    for (const auto &ev : m_events) {
+        appendEventToJson(ev, false);
+    }
+    for (const auto &ev : m_googleEvents) {
+        appendEventToJson(ev, true);
     }
     root[QStringLiteral("calendarEvents")] = eventsArray;
 

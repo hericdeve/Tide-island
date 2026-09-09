@@ -52,6 +52,8 @@ public:
     QList<GoogleCalendarEntry> calendars() const { return m_calendars; }
     QVariantList calendarsAsVariantList() const;
 
+    friend class GoogleAuthServiceTests;
+
     void setCalendarEnabled(const QString &calendarId, bool enabled);
     void setCalendarColor(const QString &calendarId, const QString &color);
 
@@ -100,6 +102,10 @@ private:
     QString m_lastError;
 
     std::function<void(bool success, const QString &err)> m_authCompletionCallback;
+
+    quint64 m_eventSyncGeneration = 0;
+    bool m_refreshInProgress = false;
+    QList<std::function<void(bool success)>> m_pendingRefreshCallbacks;
 
     QList<GoogleCalendarEntry> m_calendars;
 };
