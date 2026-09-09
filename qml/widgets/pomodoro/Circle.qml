@@ -10,6 +10,8 @@ Item {
 
     readonly property string iconFontFamily: widgetContext ? widgetContext.iconFontFamily : "Sans Serif"
     readonly property string textFontFamily: widgetContext ? widgetContext.textFontFamily : "Sans Serif"
+    readonly property int bodyFontSize: widgetContext ? widgetContext.bodyFontSize : 16
+    readonly property int iconFontSize: widgetContext ? widgetContext.iconFontSize : 18
 
     readonly property bool connected: PomotroidBackend.connected
     readonly property bool isRunning: PomotroidBackend.running
@@ -91,7 +93,7 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             text: root.timeDisplay
             font.family: root.textFontFamily
-            font.pixelSize: Math.max(12, Math.min(18, Math.round(13 + (root.diameter - 44) * 0.18)))
+            font.pixelSize: Math.max(12, Math.min(18, Math.round(13 + (root.diameter - 44) * 0.18))) * root.titleFontSize / 20.0
             font.weight: Font.Bold
             font.letterSpacing: -0.3
             color: "white"
@@ -101,7 +103,7 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             text: root.connected ? (root.roundNumber + "/" + root.roundsTotal) : "Offline"
             font.family: root.textFontFamily
-            font.pixelSize: Math.max(8, Math.min(12, Math.round(9 + (root.diameter - 44) * 0.08)))
+            font.pixelSize: Math.max(8, Math.min(12, Math.round(9 + (root.diameter - 44) * 0.08))) * root.bodyFontSize / 16.0
             font.weight: Font.DemiBold
             color: root.connected ? "#a1a1aa" : "#71717a"
         }

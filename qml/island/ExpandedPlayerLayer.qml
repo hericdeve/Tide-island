@@ -90,6 +90,9 @@ Item {
         iconFontFamily: root.iconFontFamily,
         textFontFamily: root.textFontFamily,
         heroFontFamily: root.userConfig ? root.userConfig.heroFontFamily : "Sans Serif",
+        bodyFontSize: root.userConfig ? root.userConfig.bodyFontSize : 16,
+        titleFontSize: root.userConfig ? root.userConfig.titleFontSize : 20,
+        iconFontSize: root.userConfig ? root.userConfig.iconFontSize : 18,
         uiScale: root.uiScale,
         isEditMode: root.isEditMode
     })

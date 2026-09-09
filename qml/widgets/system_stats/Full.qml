@@ -10,6 +10,8 @@ Item {
 
     readonly property string iconFontFamily: widgetContext ? widgetContext.iconFontFamily : "Sans Serif"
     readonly property string textFontFamily: widgetContext ? widgetContext.textFontFamily : "Sans Serif"
+    readonly property int bodyFontSize: widgetContext ? widgetContext.bodyFontSize : 16
+    readonly property int iconFontSize: widgetContext ? widgetContext.iconFontSize : 18
 
     readonly property real cpuUsage: widgetContext ? widgetContext.currentCpuUsage : 15
     readonly property real ramUsage: widgetContext ? widgetContext.currentRamUsage : 45
@@ -36,7 +38,7 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     text: "󰻠"
                     font.family: root.iconFontFamily
-                    font.pixelSize: 14
+                    font.pixelSize: Math.round(14 * root.iconFontSize / 18.0)
                     color: "#ff2d55"
                     width: 18
                 }
@@ -60,7 +62,7 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     text: Math.round(root.cpuUsage) + "%"
                     font.family: root.textFontFamily
-                    font.pixelSize: 11
+                    font.pixelSize: Math.round(11 * root.bodyFontSize / 16.0)
                     font.weight: Font.DemiBold
                     color: "white"
                     width: 36
@@ -82,7 +84,7 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     text: "󰍛"
                     font.family: root.iconFontFamily
-                    font.pixelSize: 14
+                    font.pixelSize: Math.round(14 * root.iconFontSize / 18.0)
                     color: "#007aff"
                     width: 18
                 }
@@ -106,7 +108,7 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     text: Math.round(root.ramUsage) + "%"
                     font.family: root.textFontFamily
-                    font.pixelSize: 11
+                    font.pixelSize: Math.round(11 * root.bodyFontSize / 16.0)
                     font.weight: Font.DemiBold
                     color: "white"
                     width: 36
@@ -128,7 +130,7 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     text: root.isCharging ? "󰂄" : "󰁹"
                     font.family: root.iconFontFamily
-                    font.pixelSize: 14
+                    font.pixelSize: Math.round(14 * root.iconFontSize / 18.0)
                     color: "#30d158"
                     width: 18
                 }
@@ -152,7 +154,7 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     text: (root.batteryPct >= 0 ? root.batteryPct : 100) + "%"
                     font.family: root.textFontFamily
-                    font.pixelSize: 11
+                    font.pixelSize: Math.round(11 * root.bodyFontSize / 16.0)
                     font.weight: Font.DemiBold
                     color: "white"
                     width: 36

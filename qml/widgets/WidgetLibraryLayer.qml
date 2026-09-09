@@ -226,6 +226,9 @@ Item {
         iconFontFamily: root.iconFontFamily,
         textFontFamily: root.textFontFamily,
         heroFontFamily: root.textFontFamily,
+        bodyFontSize: root.userConfig ? root.userConfig.bodyFontSize : 16,
+        titleFontSize: root.userConfig ? root.userConfig.titleFontSize : 20,
+        iconFontSize: root.userConfig ? root.userConfig.iconFontSize : 18,
         uiScale: 1.0,
         isEditMode: false,
         faceScale: 0.72,
@@ -774,6 +777,7 @@ Item {
                                         item.isEditMode = false;
                                     }
                                 }
+
                             }
 
                             // Interactive Drag & Direct Click Handler

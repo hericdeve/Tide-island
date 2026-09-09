@@ -10,6 +10,8 @@ Item {
 
     readonly property string iconFontFamily: widgetContext ? widgetContext.iconFontFamily : "Sans Serif"
     readonly property string textFontFamily: widgetContext ? widgetContext.textFontFamily : "Sans Serif"
+    readonly property int bodyFontSize: widgetContext ? widgetContext.bodyFontSize : 16
+    readonly property int iconFontSize: widgetContext ? widgetContext.iconFontSize : 18
 
     readonly property bool connected: PomotroidBackend.connected
     readonly property bool isRunning: PomotroidBackend.running
@@ -36,7 +38,7 @@ Item {
         Text {
             text: root.connected ? root.timeDisplay : "Pomotroid"
             font.family: root.textFontFamily
-            font.pixelSize: 14
+            font.pixelSize: Math.round(14 * root.titleFontSize / 20.0)
             font.weight: Font.Bold
             font.letterSpacing: -0.2
             color: root.connected ? "white" : "#a1a1aa"
@@ -57,7 +59,7 @@ Item {
                 anchors.centerIn: parent
                 text: root.subject ? root.subject : (root.roundNumber + "/" + root.roundsTotal)
                 font.family: root.textFontFamily
-                font.pixelSize: 11
+                font.pixelSize: Math.round(11 * root.bodyFontSize / 16.0)
                 font.weight: Font.DemiBold
                 color: "#d4d4d8"
                 elide: Text.ElideRight

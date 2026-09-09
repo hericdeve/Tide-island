@@ -9,6 +9,8 @@ Item {
     property bool isEditMode: false
 
     readonly property string textFontFamily: widgetContext ? widgetContext.textFontFamily : "Sans Serif"
+    readonly property int bodyFontSize: widgetContext ? widgetContext.bodyFontSize : 16
+    readonly property int titleFontSize: widgetContext ? widgetContext.titleFontSize : 20
     property string currentTime: widgetContext ? widgetContext.currentTime : "00:00"
     property string currentDateLabel: widgetContext ? widgetContext.currentDateLabel : ""
 
@@ -47,7 +49,7 @@ Item {
             text: root.currentTime
             color: "white"
             font.family: root.textFontFamily
-            font.pixelSize: Math.max(9, Math.min(14, Math.round(10 + (root.diameter - 44) * 0.08)))
+            font.pixelSize: Math.max(9, Math.min(14, Math.round(10 + (root.diameter - 44) * 0.08))) * root.titleFontSize / 20.0
             font.weight: Font.Bold
             font.letterSpacing: -0.2
         }
@@ -57,7 +59,7 @@ Item {
             text: root.currentDateLabel !== "" ? root.currentDateLabel : Qt.formatDate(new Date(), "ddd, d")
             color: "#8e8e93"
             font.family: root.textFontFamily
-            font.pixelSize: Math.max(7, Math.min(10, Math.round(7.5 + (root.diameter - 44) * 0.05)))
+            font.pixelSize: Math.max(7, Math.min(10, Math.round(7.5 + (root.diameter - 44) * 0.05))) * root.bodyFontSize / 16.0
             font.weight: Font.Medium
             elide: Text.ElideRight
             maximumLineCount: 1

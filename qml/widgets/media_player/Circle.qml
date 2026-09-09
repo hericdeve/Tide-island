@@ -15,6 +15,7 @@ Item {
     readonly property real trackProgress: widgetContext ? widgetContext.trackProgress : 0
     readonly property bool isPlaying: widgetContext ? widgetContext.isPlaying : (activePlayer && activePlayer.playbackState === MprisPlaybackState.Playing)
     readonly property string iconFontFamily: widgetContext ? widgetContext.iconFontFamily : "Sans Serif"
+    readonly property int iconFontSize: widgetContext ? widgetContext.iconFontSize : 18
 
     anchors.fill: parent
 

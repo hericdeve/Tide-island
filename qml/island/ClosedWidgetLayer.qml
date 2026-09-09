@@ -142,6 +142,9 @@ Item {
         iconFontFamily: root.iconFontFamily,
         textFontFamily: root.textFontFamily,
         heroFontFamily: root.heroFontFamily,
+        bodyFontSize: root.userConfig ? root.userConfig.bodyFontSize : 16,
+        titleFontSize: root.userConfig ? root.userConfig.titleFontSize : 20,
+        iconFontSize: root.userConfig ? root.userConfig.iconFontSize : 18,
         uiScale: 1.0,
         isEditMode: root.isEditMode
     })

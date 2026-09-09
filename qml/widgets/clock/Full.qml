@@ -11,6 +11,9 @@ Item {
     readonly property string heroFontFamily: widgetContext ? widgetContext.heroFontFamily : "Sans Serif"
     readonly property string textFontFamily: widgetContext ? widgetContext.textFontFamily : "Sans Serif"
     readonly property string iconFontFamily: widgetContext ? widgetContext.iconFontFamily : "Sans Serif"
+    readonly property int bodyFontSize: widgetContext ? widgetContext.bodyFontSize : 16
+    readonly property int titleFontSize: widgetContext ? widgetContext.titleFontSize : 20
+    readonly property int iconFontSize: widgetContext ? widgetContext.iconFontSize : 18
 
     property string currentTime: "00:00"
     property string currentSeconds: "00"
@@ -42,7 +45,7 @@ Item {
             Text {
                 text: root.currentTime
                 font.family: root.heroFontFamily
-                font.pixelSize: 32
+                font.pixelSize: Math.round(32 * root.titleFontSize / 20.0)
                 font.weight: Font.Bold
                 font.letterSpacing: -0.5
                 color: "white"
@@ -51,7 +54,7 @@ Item {
             Text {
                 text: root.currentSeconds
                 font.family: root.heroFontFamily
-                font.pixelSize: 14
+                font.pixelSize: Math.round(14 * root.bodyFontSize / 16.0)
                 font.weight: Font.DemiBold
                 color: "#8e8e93"
                 anchors.bottom: parent.bottom
@@ -63,7 +66,7 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             text: root.currentDate
             font.family: root.textFontFamily
-            font.pixelSize: 12
+            font.pixelSize: Math.round(12 * root.bodyFontSize / 16.0)
             font.weight: Font.Medium
             color: "#8e8e93"
         }

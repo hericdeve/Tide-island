@@ -10,6 +10,8 @@ Item {
 
     readonly property string iconFontFamily: widgetContext ? widgetContext.iconFontFamily : "Sans Serif"
     readonly property string textFontFamily: widgetContext ? widgetContext.textFontFamily : "Sans Serif"
+    readonly property int bodyFontSize: widgetContext ? widgetContext.bodyFontSize : 16
+    readonly property int titleFontSize: widgetContext ? widgetContext.titleFontSize : 20
 
     readonly property real cpuUsage: widgetContext ? widgetContext.currentCpuUsage : 15
     readonly property real ramUsage: widgetContext ? widgetContext.currentRamUsage : 45
@@ -96,7 +98,7 @@ Item {
             text: "󰂄"
             color: "#30d158"
             font.family: root.iconFontFamily
-            font.pixelSize: Math.max(9, Math.min(14, Math.round(10 + (parent.width - 44) * 0.08)))
+            font.pixelSize: Math.max(9, Math.min(14, Math.round(10 + (parent.width - 44) * 0.08))) * root.titleFontSize / 20.0
         }
 
         Text {
@@ -105,7 +107,7 @@ Item {
             text: root.batteryCapacity >= 0 ? root.batteryCapacity + "%" : "--"
             color: "white"
             font.family: root.textFontFamily
-            font.pixelSize: Math.max(7.5, Math.min(11, Math.round(8.5 + (parent.width - 44) * 0.05)))
+            font.pixelSize: Math.max(7.5, Math.min(11, Math.round(8.5 + (parent.width - 44) * 0.05))) * root.bodyFontSize / 16.0
             font.weight: Font.Bold
         }
     }

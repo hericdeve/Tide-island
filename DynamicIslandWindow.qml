@@ -1968,6 +1968,9 @@ PanelWindow {
             iconFontFamily: root.iconFontFamily,
             textFontFamily: root.textFontFamily,
             heroFontFamily: root.heroFontFamily,
+            bodyFontSize: root.bodyFontSize,
+            titleFontSize: root.titleFontSize,
+            iconFontSize: root.iconFontSize,
             faceScale: 0.85,
             circleDiameter: 48,
             uiScale: 1.0,
@@ -4355,6 +4358,7 @@ PanelWindow {
                                     item.isEditMode = false;
                                 }
                             }
+
                         }
                     }
 

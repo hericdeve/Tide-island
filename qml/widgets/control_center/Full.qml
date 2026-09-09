@@ -10,6 +10,8 @@ Item {
 
     readonly property string iconFontFamily: widgetContext ? widgetContext.iconFontFamily : "Sans Serif"
     readonly property string textFontFamily: widgetContext ? widgetContext.textFontFamily : "Sans Serif"
+    readonly property int bodyFontSize: widgetContext ? widgetContext.bodyFontSize : 16
+    readonly property int iconFontSize: widgetContext ? widgetContext.iconFontSize : 18
 
     property real currentVolume: 0.65
     property real currentBrightness: 0.7
@@ -49,7 +51,7 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     text: root.currentVolume === 0 ? "󰖁" : (root.currentVolume < 0.5 ? "󰕿" : "󰕾")
                     font.family: root.iconFontFamily
-                    font.pixelSize: 15
+                    font.pixelSize: Math.round(15 * root.iconFontSize / 18.0)
                     color: "white"
                     width: 20
                 }
@@ -97,7 +99,7 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     text: "󰃟"
                     font.family: root.iconFontFamily
-                    font.pixelSize: 15
+                    font.pixelSize: Math.round(15 * root.iconFontSize / 18.0)
                     color: "white"
                     width: 20
                 }
@@ -150,13 +152,13 @@ Item {
                     Text {
                         text: "󰒓"
                         font.family: root.iconFontFamily
-                        font.pixelSize: 12
+                        font.pixelSize: Math.round(12 * root.iconFontSize / 18.0)
                         color: "white"
                     }
                     Text {
                         text: "Settings"
                         font.family: root.textFontFamily
-                        font.pixelSize: 11
+                        font.pixelSize: Math.round(11 * root.bodyFontSize / 16.0)
                         color: "white"
                     }
                 }
@@ -182,13 +184,13 @@ Item {
                     Text {
                         text: "󰄛"
                         font.family: root.iconFontFamily
-                        font.pixelSize: 12
+                        font.pixelSize: Math.round(12 * root.iconFontSize / 18.0)
                         color: "white"
                     }
                     Text {
                         text: "System"
                         font.family: root.textFontFamily
-                        font.pixelSize: 11
+                        font.pixelSize: Math.round(11 * root.bodyFontSize / 16.0)
                         color: "white"
                     }
                 }

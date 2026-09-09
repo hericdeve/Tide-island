@@ -23,6 +23,9 @@ Item {
     readonly property bool isPlaying: widgetContext ? widgetContext.isPlaying : (activePlayer && activePlayer.playbackState === MprisPlaybackState.Playing)
     readonly property string iconFontFamily: widgetContext ? widgetContext.iconFontFamily : userConfig.iconFontFamily
     readonly property string textFontFamily: widgetContext ? widgetContext.textFontFamily : userConfig.textFontFamily
+    readonly property int bodyFontSize: widgetContext ? widgetContext.bodyFontSize : 16
+    readonly property int titleFontSize: widgetContext ? widgetContext.titleFontSize : 20
+    readonly property int iconFontSize: widgetContext ? widgetContext.iconFontSize : 18
     readonly property real uiScale: widgetContext ? widgetContext.uiScale : 1.0
 
     readonly property bool compactMode: width < 260 || (slotSpan === 1 && width < 340)

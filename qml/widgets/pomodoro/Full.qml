@@ -11,6 +11,8 @@ Item {
 
     readonly property string iconFontFamily: widgetContext ? widgetContext.iconFontFamily : "Sans Serif"
     readonly property string textFontFamily: widgetContext ? widgetContext.textFontFamily : "Sans Serif"
+    readonly property int bodyFontSize: widgetContext ? widgetContext.bodyFontSize : 16
+    readonly property int iconFontSize: widgetContext ? widgetContext.iconFontSize : 18
 
     readonly property bool connected: PomotroidBackend.connected
     readonly property bool isRunning: PomotroidBackend.running
@@ -84,7 +86,7 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: "Pomotroid Offline"
                 font.family: root.textFontFamily
-                font.pixelSize: 13
+                font.pixelSize: Math.round(13 * root.bodyFontSize / 16.0)
                 font.weight: Font.Bold
                 color: "white"
             }
@@ -93,7 +95,7 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: "Launch Pomotroid to start tracking sessions"
                 font.family: root.textFontFamily
-                font.pixelSize: 11
+                font.pixelSize: Math.round(11 * root.bodyFontSize / 16.0)
                 color: "#a1a1aa"
             }
 
@@ -114,7 +116,7 @@ Item {
                     Text {
                         text: "󰐊"
                         font.family: root.iconFontFamily
-                        font.pixelSize: 11
+                        font.pixelSize: Math.round(11 * root.iconFontSize / 18.0)
                         color: "white"
                         anchors.verticalCenter: parent.verticalCenter
                     }
@@ -122,7 +124,7 @@ Item {
                     Text {
                         text: "Launch Pomotroid"
                         font.family: root.textFontFamily
-                        font.pixelSize: 11
+                        font.pixelSize: Math.round(11 * root.bodyFontSize / 16.0)
                         font.weight: Font.DemiBold
                         color: "white"
                         anchors.verticalCenter: parent.verticalCenter
@@ -149,7 +151,7 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: "Pomotroid Offline"
                 font.family: root.textFontFamily
-                font.pixelSize: 11
+                font.pixelSize: Math.round(11 * root.bodyFontSize / 16.0)
                 font.weight: Font.Bold
                 color: "white"
             }
@@ -169,7 +171,7 @@ Item {
                     Text {
                         text: "󰐊"
                         font.family: root.iconFontFamily
-                        font.pixelSize: 10
+                        font.pixelSize: Math.round(10 * root.iconFontSize / 18.0)
                         color: "white"
                         anchors.verticalCenter: parent.verticalCenter
                     }
@@ -177,7 +179,7 @@ Item {
                     Text {
                         text: "Launch"
                         font.family: root.textFontFamily
-                        font.pixelSize: 10
+                        font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
                         font.weight: Font.DemiBold
                         color: "white"
                         anchors.verticalCenter: parent.verticalCenter
@@ -459,7 +461,7 @@ Item {
                                     width: parent.width
                                     text: PomotroidBackend.formatTime(root.remainingSeconds)
                                     font.family: "monospace"
-                                    font.pixelSize: 28
+                                        font.pixelSize: Math.round(28 * root.titleFontSize / 20.0)
                                     font.weight: Font.Bold
                                     horizontalAlignment: Text.AlignHCenter
                                     color: "white"
@@ -469,7 +471,7 @@ Item {
                                     width: parent.width
                                     text: root.isRunning ? "RUNNING" : (root.isPaused ? "PAUSED" : "IDLE")
                                     font.family: root.textFontFamily
-                                    font.pixelSize: 9
+                                    font.pixelSize: Math.round(9 * root.bodyFontSize / 16.0)
                                     font.weight: Font.DemiBold
                                     horizontalAlignment: Text.AlignHCenter
                                     color: root.isRunning ? root.themeColor : "#71717a"

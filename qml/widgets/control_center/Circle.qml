@@ -12,6 +12,8 @@ Item {
 
     readonly property string iconFontFamily: widgetContext ? widgetContext.iconFontFamily : "Sans Serif"
     readonly property string textFontFamily: widgetContext ? widgetContext.textFontFamily : "Sans Serif"
+    readonly property int bodyFontSize: widgetContext ? widgetContext.bodyFontSize : 16
+    readonly property int iconFontSize: widgetContext ? widgetContext.iconFontSize : 18
 
     Component.onCompleted: SystemServices.requestVolume()
 
@@ -78,7 +80,7 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             text: root.currentVolume === 0 ? "󰖁" : "󰕾"
             font.family: root.iconFontFamily
-            font.pixelSize: Math.max(12, Math.min(22, Math.round(14 + (root.diameter - 44) * 0.2)))
+            font.pixelSize: Math.max(12, Math.min(22, Math.round(14 + (root.diameter - 44) * 0.2))) * root.iconFontSize / 18.0
             color: "#0a84ff"
         }
 
@@ -86,7 +88,7 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             text: Math.round(root.currentVolume * 100) + "%"
             font.family: root.textFontFamily
-            font.pixelSize: Math.max(9, Math.min(15, Math.round(10 + (root.diameter - 44) * 0.12)))
+            font.pixelSize: Math.max(9, Math.min(15, Math.round(10 + (root.diameter - 44) * 0.12))) * root.bodyFontSize / 16.0
             font.weight: Font.Bold
             color: "white"
         }
