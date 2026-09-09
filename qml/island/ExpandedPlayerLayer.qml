@@ -193,11 +193,11 @@ Item {
 
         Column {
             anchors.fill: parent
-            anchors.topMargin: 10
-            anchors.bottomMargin: 10
-            anchors.leftMargin: 16
-            anchors.rightMargin: 16
-            spacing: 8
+            anchors.topMargin: 6
+            anchors.bottomMargin: 6
+            anchors.leftMargin: 8
+            anchors.rightMargin: 8
+            spacing: 5
 
             // 1. Persistent Top Status Bar
             NotchStatusBar {

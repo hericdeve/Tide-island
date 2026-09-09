@@ -20,11 +20,15 @@ Item {
 
     readonly property int slotCount: Math.max(1, Math.min(6, (pageData && pageData.slots !== undefined) ? pageData.slots : 1))
     readonly property var items: (pageData && pageData.items) ? pageData.items : []
-    readonly property real spacing: 12
+    readonly property real spacing: 8
     readonly property real slotBaseWidth: Math.max(40, (gridContainer.width - (slotCount - 1) * spacing) / slotCount)
 
-    readonly property real requestedContentWidth: {
+    property real requestedContentWidth: 0
+    property real requestedContentHeight: 0
+
+    function recalculateRequestedSizes() {
         let extraWidth = 0;
+        let maxReqH = 0;
         for (let i = 0; i < slotsRepeater.count; ++i) {
             const wrapper = slotsRepeater.itemAt(i);
             if (wrapper && wrapper.slotItem && wrapper.visible) {
@@ -32,24 +36,18 @@ Item {
                 if (reqW > wrapper.width) {
                     extraWidth += (reqW - wrapper.width);
                 }
-            }
-        }
-        return extraWidth > 0 ? (gridContainer.width + extraWidth) : 0;
-    }
-
-    readonly property real requestedContentHeight: {
-        let maxReqH = 0;
-        for (let i = 0; i < slotsRepeater.count; ++i) {
-            const wrapper = slotsRepeater.itemAt(i);
-            if (wrapper && wrapper.slotItem && wrapper.visible) {
                 const reqH = Number(wrapper.slotItem.requestedContentHeight) || 0;
                 if (reqH > maxReqH) {
                     maxReqH = reqH;
                 }
             }
         }
-        return maxReqH > 0 ? Math.max(gridContainer.height, maxReqH) : 0;
+        root.requestedContentWidth = extraWidth > 0 ? (gridContainer.width + extraWidth) : 0;
+        root.requestedContentHeight = maxReqH > 0 ? Math.max(gridContainer.height, maxReqH) : 0;
     }
+
+    onSlotCountChanged: recalculateRequestedSizes()
+    onPageDataChanged: recalculateRequestedSizes()
 
     readonly property bool showEditHeader: root.isEditMode && root.pageData && !root.pageData.isHome
 
@@ -176,6 +174,15 @@ Item {
                     onAddWidgetRequested: (sIdx) => root.addWidgetRequested(root.pageIndex, sIdx)
                     onRemoveRequested: (sIdx) => root.removeSlotWidgetRequested(root.pageIndex, sIdx)
                     onSpanChangeRequested: (sIdx, nSpan) => root.spanChangeRequested(root.pageIndex, sIdx, nSpan)
+
+                    Connections {
+                        target: slotComponent
+                        function onRequestedContentWidthChanged() { root.recalculateRequestedSizes(); }
+                        function onRequestedContentHeightChanged() { root.recalculateRequestedSizes(); }
+                    }
+
+                    Component.onCompleted: root.recalculateRequestedSizes()
+                    Component.onDestruction: root.recalculateRequestedSizes()
                 }
             }
         }

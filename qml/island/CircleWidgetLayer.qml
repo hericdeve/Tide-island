@@ -49,6 +49,7 @@ Item {
         if (userConfig) {
             userConfig.setActivePage("circle", currentPageIndex);
         }
+        root.updateActivePageRequestedSizes();
     }
 
     onIsEditModeChanged: {
@@ -81,13 +82,15 @@ Item {
     readonly property int totalPageCount: realPageCount + (isEditMode ? 1 : 0)
     readonly property int pageCount: totalPageCount
 
-    readonly property real requestedContentWidth: {
+    property real requestedContentWidth: 0
+    property real requestedContentHeight: 0
+
+    function updateActivePageRequestedSizes() {
         const curPage = circlePageRepeater.itemAt(root.currentPageIndex);
-        return (curPage && curPage.requestedContentWidth !== undefined) ? Number(curPage.requestedContentWidth) : 0;
-    }
-    readonly property real requestedContentHeight: {
-        const curPage = circlePageRepeater.itemAt(root.currentPageIndex);
-        return (curPage && curPage.requestedContentHeight !== undefined) ? Number(curPage.requestedContentHeight) : 0;
+        root.requestedContentWidth = (curPage && curPage.requestedContentWidth !== undefined)
+            ? Number(curPage.requestedContentWidth) : 0;
+        root.requestedContentHeight = (curPage && curPage.requestedContentHeight !== undefined)
+            ? Number(curPage.requestedContentHeight) : 0;
     }
 
     // Shared context passed into each Circle widget
@@ -405,10 +408,34 @@ Item {
             readonly property bool isRemoveWidgetAction: hasWidget
             readonly property bool showTopButton: root.isEditMode && !isOfferPage && (isRemoveWidgetAction || isDeletePageAction)
             readonly property var widgetItem: pageWidgetLoader.item
-            readonly property real requestedContentWidth: (widgetItem && widgetItem.requestedContentWidth !== undefined)
-                ? Number(widgetItem.requestedContentWidth) : 0
-            readonly property real requestedContentHeight: (widgetItem && widgetItem.requestedContentHeight !== undefined)
-                ? Number(widgetItem.requestedContentHeight) : 0
+            property real requestedContentWidth: 0
+            property real requestedContentHeight: 0
+
+            function updatePageRequestedSizes() {
+                pageItem.requestedContentWidth = (widgetItem && widgetItem.requestedContentWidth !== undefined)
+                    ? Number(widgetItem.requestedContentWidth) : 0;
+                pageItem.requestedContentHeight = (widgetItem && widgetItem.requestedContentHeight !== undefined)
+                    ? Number(widgetItem.requestedContentHeight) : 0;
+                if (pageItem.pIdx === root.currentPageIndex) {
+                    root.updateActivePageRequestedSizes();
+                }
+            }
+
+            onRequestedContentWidthChanged: {
+                if (pageItem.pIdx === root.currentPageIndex) {
+                    root.updateActivePageRequestedSizes();
+                }
+            }
+            onRequestedContentHeightChanged: {
+                if (pageItem.pIdx === root.currentPageIndex) {
+                    root.updateActivePageRequestedSizes();
+                }
+            }
+            Component.onCompleted: {
+                if (pageItem.pIdx === root.currentPageIndex) {
+                    root.updateActivePageRequestedSizes();
+                }
+            }
 
             anchors.fill: parent
             opacity: pIdx === root.currentPageIndex ? 1.0 : 0.0
@@ -532,6 +559,7 @@ Item {
                                 item.requestPaint();
                             }
                         }
+                        pageItem.updatePageRequestedSizes();
                     }
                     onStatusChanged: {
                         if (status === Loader.Ready && item) {
@@ -542,6 +570,14 @@ Item {
                                 item.requestPaint();
                             }
                         }
+                        pageItem.updatePageRequestedSizes();
+                    }
+
+                    Connections {
+                        target: pageWidgetLoader.item
+                        ignoreUnknownSignals: true
+                        function onRequestedContentWidthChanged() { pageItem.updatePageRequestedSizes(); }
+                        function onRequestedContentHeightChanged() { pageItem.updatePageRequestedSizes(); }
                     }
                 }
 

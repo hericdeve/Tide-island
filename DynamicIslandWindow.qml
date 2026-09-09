@@ -2828,7 +2828,7 @@ PanelWindow {
 
                 NumberAnimation {
                     duration: mainCapsule.morphDuration
-                    easing.type: Easing.OutQuint
+                    easing.type: Easing.OutCubic
                 }
             }
             Behavior on radius { NumberAnimation { duration: mainCapsule.morphDuration; easing.type: Easing.OutQuint } }

@@ -33,8 +33,8 @@ Item {
 
     Column {
         anchors.fill: parent
-        anchors.margins: 6
-        spacing: 10
+        anchors.margins: 2
+        spacing: 8
 
         // Volume Slider
         Item {

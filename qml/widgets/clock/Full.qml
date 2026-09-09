@@ -33,7 +33,7 @@ Item {
 
     Column {
         anchors.centerIn: parent
-        spacing: 4
+        spacing: 2
 
         Row {
             anchors.horizontalCenter: parent.horizontalCenter

@@ -476,11 +476,11 @@ FocusScope {
 
     Column {
         anchors.fill: parent
-        anchors.topMargin: 15
-        anchors.bottomMargin: 12
+        anchors.topMargin: 38
+        anchors.bottomMargin: 8
         anchors.leftMargin: 22
         anchors.rightMargin: 22
-        spacing: 10
+        spacing: 8
 
         Item {
             width: parent.width

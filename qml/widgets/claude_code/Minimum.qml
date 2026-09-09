@@ -66,8 +66,9 @@ Item {
     }
 
     readonly property real requestedContentWidth: {
+        const baseW = UserConfig ? UserConfig.notchClosedWidth : 185;
         const naturalW = 16 + 7 + minTextMetrics.width + 32;
-        return naturalW > root.width ? naturalW : 0;
+        return naturalW > baseW ? naturalW : 0;
     }
     readonly property real requestedContentHeight: 0
 

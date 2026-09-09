@@ -76,14 +76,14 @@ Item {
     readonly property real clampedPageProgress: Math.max(0, Math.min(pageCount - 1, pageProgress))
     readonly property real pageSlideDistance: Math.max(1, width + 16)
 
-    readonly property real requestedContentWidth: {
+    property real requestedContentWidth: 0
+    property real requestedContentHeight: 0
+
+    function updateActivePageRequestedSizes() {
         const curPageItem = pageStripRepeater.itemAt(root.currentPage);
-        return (curPageItem && curPageItem.requestedContentWidth !== undefined)
+        root.requestedContentWidth = (curPageItem && curPageItem.requestedContentWidth !== undefined)
             ? Number(curPageItem.requestedContentWidth) : 0;
-    }
-    readonly property real requestedContentHeight: {
-        const curPageItem = pageStripRepeater.itemAt(root.currentPage);
-        return (curPageItem && curPageItem.requestedContentHeight !== undefined)
+        root.requestedContentHeight = (curPageItem && curPageItem.requestedContentHeight !== undefined)
             ? Number(curPageItem.requestedContentHeight) : 0;
     }
 
@@ -123,6 +123,7 @@ Item {
         if (!settleAnimation.running) {
             pageProgress = currentPage;
         }
+        root.updateActivePageRequestedSizes();
     }
 
     // Shared context passed down into each Minimum widget
@@ -499,31 +500,45 @@ Item {
                 readonly property bool isCustomPage: pIdx > 0
                 readonly property bool isPageEmpty: (items || []).length === 0
 
-                readonly property real requestedContentWidth: {
+                property real requestedContentWidth: 0
+                property real requestedContentHeight: 0
+
+                function recalculateRequestedSizes() {
                     let extraWidth = 0;
-                    for (let i = 0; i < pageSlotsRepeater.count; ++i) {
-                        const slot = pageSlotsRepeater.itemAt(i);
-                        if (slot && slot.widgetItem && slot.hasWidget) {
-                            const reqW = Number(slot.widgetItem.requestedContentWidth) || 0;
-                            if (reqW > slot.width) {
-                                extraWidth += (reqW - slot.width);
-                            }
-                        }
-                    }
-                    return extraWidth > 0 ? (root.width + extraWidth) : 0;
-                }
-                readonly property real requestedContentHeight: {
                     let maxH = 0;
                     for (let i = 0; i < pageSlotsRepeater.count; ++i) {
                         const slot = pageSlotsRepeater.itemAt(i);
                         if (slot && slot.widgetItem && slot.hasWidget) {
-                            const reqH = Number(slot.widgetItem.requestedContentHeight) || 0;
+                            const reqW = (slot.widgetItem.requestedContentWidth !== undefined)
+                                ? Number(slot.widgetItem.requestedContentWidth) : 0;
+                            if (reqW > slot.width) {
+                                extraWidth += (reqW - slot.width);
+                            }
+                            const reqH = (slot.widgetItem.requestedContentHeight !== undefined)
+                                ? Number(slot.widgetItem.requestedContentHeight) : 0;
                             if (reqH > maxH) {
                                 maxH = reqH;
                             }
                         }
                     }
-                    return maxH > 0 ? Math.max(root.height, maxH) : 0;
+                    pageDelegateItem.requestedContentWidth = extraWidth > 0 ? (root.width + extraWidth) : 0;
+                    pageDelegateItem.requestedContentHeight = maxH > 0 ? Math.max(root.height, maxH) : 0;
+                }
+
+                onRequestedContentWidthChanged: {
+                    if (pageDelegateItem.pIdx === root.currentPage) {
+                        root.updateActivePageRequestedSizes();
+                    }
+                }
+                onRequestedContentHeightChanged: {
+                    if (pageDelegateItem.pIdx === root.currentPage) {
+                        root.updateActivePageRequestedSizes();
+                    }
+                }
+                Component.onCompleted: {
+                    if (pageDelegateItem.pIdx === root.currentPage) {
+                        root.updateActivePageRequestedSizes();
+                    }
                 }
 
                 readonly property real pageOffset: (pIdx - root.clampedPageProgress) * root.pageSlideDistance
@@ -638,6 +653,7 @@ Item {
                                             item.slotSpan = 1;
                                             item.isEditMode = root.isEditMode;
                                         }
+                                        pageDelegateItem.recalculateRequestedSizes();
                                     }
                                     onStatusChanged: {
                                         if (status === Loader.Ready && item) {
@@ -645,6 +661,14 @@ Item {
                                             item.slotSpan = 1;
                                             item.isEditMode = root.isEditMode;
                                         }
+                                        pageDelegateItem.recalculateRequestedSizes();
+                                    }
+
+                                    Connections {
+                                        target: widgetLoader.item
+                                        ignoreUnknownSignals: true
+                                        function onRequestedContentWidthChanged() { pageDelegateItem.recalculateRequestedSizes(); }
+                                        function onRequestedContentHeightChanged() { pageDelegateItem.recalculateRequestedSizes(); }
                                     }
                                 }
 

@@ -56,8 +56,8 @@ Item {
 
     Row {
         anchors.fill: parent
-        anchors.margins: 4
-        spacing: compactMode ? 8 : 14
+        anchors.margins: 2
+        spacing: compactMode ? 6 : 10
 
         // Left: Album Art
         Item {

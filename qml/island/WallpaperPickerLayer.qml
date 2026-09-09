@@ -555,7 +555,7 @@ FocusScope {
         }
     }
 
-    readonly property real topPad: 14
+    readonly property real topPad: 24
     readonly property real botPad: 8
     readonly property real hPad: 12
     readonly property real headerH: 34

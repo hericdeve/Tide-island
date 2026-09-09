@@ -41,9 +41,9 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.verticalCenter: parent.verticalCenter
-        anchors.leftMargin: 4
-        anchors.rightMargin: 4
-        spacing: Math.max(12, Math.round((parent.height - 48 - 24 - 8) / 2))
+        anchors.leftMargin: 2
+        anchors.rightMargin: 2
+        spacing: Math.max(8, Math.round((parent.height - 48 - 24 - 8) / 2))
 
         // Top: Month/Year + Day Strip (Exact Image #5 layout)
         Row {

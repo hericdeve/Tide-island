@@ -15,32 +15,52 @@ Item {
     readonly property string state: ClaudeCodeBackend.sessionState
     readonly property bool isWaitingConsent: state === "waiting_consent" || (ClaudeCodeBackend.pendingConsentId !== "")
 
-    TextMetrics {
-        id: fullTextMetrics
+    // Off-screen measuring items to determine wrapped content height
+    Text {
+        id: bannerTextMeasure
+        visible: false
+        width: Math.max(120, (root.width > 0 ? root.width : 600) - 64)
         font.family: root.textFontFamily
         font.pixelSize: 10
-        text: ClaudeCodeBackend.pendingConsentDetail || ClaudeCodeBackend.toolDetail || ClaudeCodeBackend.lastMessage || ""
+        wrapMode: Text.Wrap
+        text: ClaudeCodeBackend.toolDetail || ClaudeCodeBackend.lastMessage || ""
     }
 
+    Text {
+        id: consentTextMeasure
+        visible: false
+        width: Math.max(120, (root.width > 0 ? root.width : 600) - 40)
+        font.family: "Monospace"
+        font.pixelSize: 10
+        wrapMode: Text.WrapAnywhere
+        text: ClaudeCodeBackend.pendingConsentDetail || ClaudeCodeBackend.toolDetail || ""
+    }
+
+    readonly property real baseSlotHeight: Math.max(120, (UserConfig.notchOpenHeight || 190) - 52)
+
     readonly property real requestedContentWidth: {
-        const textW = fullTextMetrics.width;
-        if (textW <= 0) return 0;
-        const needed = textW + 80;
-        return needed > root.width ? needed : 0;
+        // In full view, only request horizontal expansion if the slot is cramped in a multi-slot page
+        if (root.width > 0 && root.width < 320) {
+            return 360;
+        }
+        return 0;
     }
 
     readonly property real requestedContentHeight: {
-        const text = fullTextMetrics.text;
-        if (!text || text.length === 0) return 0;
-        const availableW = Math.max(120, root.width - 60);
-        const textW = fullTextMetrics.width;
-        const hasNewlines = text.indexOf('\n') !== -1;
-        const lineCount = hasNewlines
-            ? Math.min(4, text.split('\n').length)
-            : (textW > availableW ? Math.min(4, Math.ceil(textW / availableW)) : 1);
+        if (root.isWaitingConsent) {
+            const h = consentTextMeasure.implicitHeight;
+            if (h > 42) {
+                const extraH = Math.min(80, h - 42);
+                return baseSlotHeight + extraH;
+            }
+            return 0;
+        }
 
-        if (lineCount > 1) {
-            return root.height + (lineCount - 1) * 16;
+        const bannerH = bannerTextMeasure.implicitHeight;
+        // Standard resting banner fits up to 2 wrapped lines (~32px)
+        if (bannerH > 32) {
+            const extraH = Math.min(80, bannerH - 28);
+            return baseSlotHeight + extraH;
         }
         return 0;
     }
@@ -73,177 +93,191 @@ Item {
 
     Item {
         anchors.fill: parent
-        anchors.margins: 6
+        anchors.margins: 2
 
         // -------------------------------------------------------------
         // CONSENT OVERLAY (Takes precedence when approval is needed)
         // -------------------------------------------------------------
-            Column {
-                id: consentView
-                anchors.fill: parent
+        Item {
+            id: consentView
+            anchors.fill: parent
+            visible: root.isWaitingConsent
+
+            Row {
+                id: consentHeader
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.right: parent.right
+                height: 22
                 spacing: 6
-                visible: root.isWaitingConsent
 
-                Row {
-                    width: parent.width
-                    spacing: 6
-
-                    Rectangle {
-                        width: 22
-                        height: 22
-                        radius: 11
-                        color: "#33f59e0b"
-                        Text {
-                            anchors.centerIn: parent
-                            text: "󰀦"
-                            font.family: root.iconFontFamily
-                            font.pixelSize: 13
-                            color: "#f59e0b"
-                        }
-                    }
-
-                    Column {
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: parent.width - 28
-                        Text {
-                            text: "Action Permission"
-                            font.family: root.textFontFamily
-                            font.pixelSize: 11
-                            font.weight: Font.DemiBold
-                            color: "white"
-                        }
-                        Text {
-                            text: "Tool: " + (ClaudeCodeBackend.pendingConsentTool || ClaudeCodeBackend.currentTool || "Action")
-                            font.family: root.textFontFamily
-                            font.pixelSize: 10
-                            color: "#d1d5db"
-                            elide: Text.ElideRight
-                            width: parent.width
-                        }
-                    }
-                }
-
-                // Monospace detail box
                 Rectangle {
-                    width: parent.width
-                    height: Math.max(30, parent.height - 68)
-                    radius: 6
-                    color: "#0f0f12"
-                    border.width: 1
-                    border.color: "#26ffffff"
-                    clip: true
-
-                    Flickable {
-                        anchors.fill: parent
-                        anchors.margins: 6
-                        contentWidth: detailText.width
-                        contentHeight: detailText.height
-                        boundsBehavior: Flickable.StopAtBounds
-
-                        Text {
-                            id: detailText
-                            text: ClaudeCodeBackend.pendingConsentDetail || ClaudeCodeBackend.toolDetail || "Execute command"
-                            font.family: "Monospace"
-                            font.pixelSize: 10
-                            color: "#93c5fd"
-                            wrapMode: Text.WrapAnywhere
-                            width: parent.width - 4
-                        }
+                    width: 22
+                    height: 22
+                    radius: 11
+                    color: "#33f59e0b"
+                    Text {
+                        anchors.centerIn: parent
+                        text: "󰀦"
+                        font.family: root.iconFontFamily
+                        font.pixelSize: 13
+                        color: "#f59e0b"
                     }
                 }
 
-                // Button row: Allow / Always / Deny
-                Row {
-                    width: parent.width
-                    height: 24
-                    spacing: 6
-
-                    Rectangle {
-                        width: (parent.width - 12) / 3
-                        height: parent.height
-                        radius: 6
-                        color: allowMouse.pressed ? "#059669" : (allowMouse.containsMouse ? "#10b981" : "#1a10b981")
-                        border.width: 1
-                        border.color: "#34d399"
-
-                        Text {
-                            anchors.centerIn: parent
-                            text: "Allow"
-                            font.family: root.textFontFamily
-                            font.pixelSize: 10
-                            font.weight: Font.DemiBold
-                            color: "white"
-                        }
-                        MouseArea {
-                            id: allowMouse
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            onClicked: ClaudeCodeBackend.allowConsent(false)
-                        }
+                Column {
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: parent.width - 28
+                    Text {
+                        text: "Action Permission"
+                        font.family: root.textFontFamily
+                        font.pixelSize: 11
+                        font.weight: Font.DemiBold
+                        color: "white"
                     }
-
-                    Rectangle {
-                        width: (parent.width - 12) / 3
-                        height: parent.height
-                        radius: 6
-                        color: alwaysMouse.pressed ? "#2563eb" : (alwaysMouse.containsMouse ? "#3b82f6" : "#1a3b82f6")
-                        border.width: 1
-                        border.color: "#60a5fa"
-
-                        Text {
-                            anchors.centerIn: parent
-                            text: "Always"
-                            font.family: root.textFontFamily
-                            font.pixelSize: 10
-                            font.weight: Font.DemiBold
-                            color: "white"
-                        }
-                        MouseArea {
-                            id: alwaysMouse
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            onClicked: ClaudeCodeBackend.allowConsent(true)
-                        }
-                    }
-
-                    Rectangle {
-                        width: (parent.width - 12) / 3
-                        height: parent.height
-                        radius: 6
-                        color: denyMouse.pressed ? "#dc2626" : (denyMouse.containsMouse ? "#ef4444" : "#1aef4444")
-                        border.width: 1
-                        border.color: "#f87171"
-
-                        Text {
-                            anchors.centerIn: parent
-                            text: "Deny"
-                            font.family: root.textFontFamily
-                            font.pixelSize: 10
-                            font.weight: Font.DemiBold
-                            color: "white"
-                        }
-                        MouseArea {
-                            id: denyMouse
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            onClicked: ClaudeCodeBackend.denyConsent()
-                        }
+                    Text {
+                        text: "Tool: " + (ClaudeCodeBackend.pendingConsentTool || ClaudeCodeBackend.currentTool || "Action")
+                        font.family: root.textFontFamily
+                        font.pixelSize: 10
+                        color: "#d1d5db"
+                        elide: Text.ElideRight
+                        width: parent.width
                     }
                 }
             }
 
+            // Button row: Allow / Always / Deny (anchored to bottom)
+            Row {
+                id: consentButtons
+                anchors.bottom: parent.bottom
+                anchors.left: parent.left
+                anchors.right: parent.right
+                height: 24
+                spacing: 6
+
+                Rectangle {
+                    width: (parent.width - 12) / 3
+                    height: parent.height
+                    radius: 6
+                    color: allowMouse.pressed ? "#059669" : (allowMouse.containsMouse ? "#10b981" : "#1a10b981")
+                    border.width: 1
+                    border.color: "#34d399"
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: "Allow"
+                        font.family: root.textFontFamily
+                        font.pixelSize: 10
+                        font.weight: Font.DemiBold
+                        color: "white"
+                    }
+                    MouseArea {
+                        id: allowMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        onClicked: ClaudeCodeBackend.allowConsent(false)
+                    }
+                }
+
+                Rectangle {
+                    width: (parent.width - 12) / 3
+                    height: parent.height
+                    radius: 6
+                    color: alwaysMouse.pressed ? "#2563eb" : (alwaysMouse.containsMouse ? "#3b82f6" : "#1a3b82f6")
+                    border.width: 1
+                    border.color: "#60a5fa"
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: "Always"
+                        font.family: root.textFontFamily
+                        font.pixelSize: 10
+                        font.weight: Font.DemiBold
+                        color: "white"
+                    }
+                    MouseArea {
+                        id: alwaysMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        onClicked: ClaudeCodeBackend.allowConsent(true)
+                    }
+                }
+
+                Rectangle {
+                    width: (parent.width - 12) / 3
+                    height: parent.height
+                    radius: 6
+                    color: denyMouse.pressed ? "#dc2626" : (denyMouse.containsMouse ? "#ef4444" : "#1aef4444")
+                    border.width: 1
+                    border.color: "#f87171"
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: "Deny"
+                        font.family: root.textFontFamily
+                        font.pixelSize: 10
+                        font.weight: Font.DemiBold
+                        color: "white"
+                    }
+                    MouseArea {
+                        id: denyMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        onClicked: ClaudeCodeBackend.denyConsent()
+                    }
+                }
+            }
+
+            // Monospace detail box (anchored in the middle, fills all space)
+            Rectangle {
+                id: consentDetailBox
+                anchors.top: consentHeader.bottom
+                anchors.topMargin: 6
+                anchors.bottom: consentButtons.top
+                anchors.bottomMargin: 6
+                anchors.left: parent.left
+                anchors.right: parent.right
+                radius: 6
+                color: "#0f0f12"
+                border.width: 1
+                border.color: "#26ffffff"
+                clip: true
+
+                Flickable {
+                    id: consentFlickable
+                    anchors.fill: parent
+                    anchors.margins: 6
+                    contentWidth: detailText.width
+                    contentHeight: detailText.height
+                    boundsBehavior: Flickable.StopAtBounds
+
+                    Text {
+                        id: detailText
+                        text: ClaudeCodeBackend.pendingConsentDetail || ClaudeCodeBackend.toolDetail || "Execute command"
+                        font.family: "Monospace"
+                        font.pixelSize: 10
+                        color: "#93c5fd"
+                        wrapMode: Text.WrapAnywhere
+                        width: Math.max(10, consentFlickable.width - 12)
+                    }
+                }
+            }
+        }
+
             // -------------------------------------------------------------
             // STANDARD MONITORING VIEW (Single-slot or Multi-slot)
             // -------------------------------------------------------------
-            Column {
+            Item {
                 id: standardView
                 anchors.fill: parent
-                spacing: 6
                 visible: !root.isWaitingConsent
 
                 // Top row: Avatar/Status + Project/Branch + Action buttons
                 Row {
-                    width: parent.width
+                    id: topRow
+                    anchors.top: parent.top
+                    anchors.left: parent.left
+                    anchors.right: parent.right
                     height: 24
                     spacing: 6
 
@@ -462,8 +496,12 @@ Item {
                 // Middle: Last message or active activity banner
                 Rectangle {
                     id: activityBanner
-                    width: parent.width
-                    height: Math.max(28, Math.min(76, bannerText.implicitHeight + 10))
+                    anchors.top: topRow.bottom
+                    anchors.topMargin: 4
+                    anchors.bottom: contextStats.top
+                    anchors.bottomMargin: 4
+                    anchors.left: parent.left
+                    anchors.right: parent.right
                     radius: 6
                     color: root.state === "error" ? "#221113" : "#111113"
                     border.width: 1
@@ -472,8 +510,8 @@ Item {
 
                     Row {
                         anchors.fill: parent
-                        anchors.margins: 6
-                        spacing: 6
+                        anchors.margins: 4
+                        spacing: 5
 
                         Text {
                             anchors.top: parent.top
@@ -500,7 +538,7 @@ Item {
                             color: root.state === "error" ? "#fca5a5" : "#e4e4e7"
                             wrapMode: Text.Wrap
                             elide: Text.ElideRight
-                            maximumLineCount: root.height > 150 ? 4 : 2
+                            maximumLineCount: activityBanner.height > 60 ? 5 : (activityBanner.height > 40 ? 3 : 2)
                         }
 
                         Item {
@@ -531,7 +569,11 @@ Item {
 
                 // Context bar and Token stats
                 Column {
-                    width: parent.width
+                    id: contextStats
+                    anchors.bottom: promptBar.top
+                    anchors.bottomMargin: 4
+                    anchors.left: parent.left
+                    anchors.right: parent.right
                     spacing: 3
 
                     Row {
@@ -575,7 +617,10 @@ Item {
 
                 // Bottom: Quick Prompt Bar
                 Rectangle {
-                    width: parent.width
+                    id: promptBar
+                    anchors.bottom: parent.bottom
+                    anchors.left: parent.left
+                    anchors.right: parent.right
                     height: 26
                     radius: 13
                     color: "#27272a"

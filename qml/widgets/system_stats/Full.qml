@@ -20,8 +20,8 @@ Item {
 
     Column {
         anchors.fill: parent
-        anchors.margins: 6
-        spacing: 8
+        anchors.margins: 2
+        spacing: 6
 
         // CPU Bar
         Item {

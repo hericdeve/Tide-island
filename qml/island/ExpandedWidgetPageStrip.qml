@@ -25,13 +25,15 @@ Item {
     readonly property real clampedPageProgress: Math.max(0, Math.min(pageCount - 1, pageProgress))
     readonly property real pageSlideDistance: Math.max(1, width + 24)
 
-    readonly property real requestedContentWidth: {
+    property real requestedContentWidth: 0
+    property real requestedContentHeight: 0
+
+    function updateActivePageRequestedSizes() {
         const curWrapper = pagesRepeater.itemAt(root.currentPage);
-        return (curWrapper && curWrapper.gridItem) ? Number(curWrapper.gridItem.requestedContentWidth) : 0;
-    }
-    readonly property real requestedContentHeight: {
-        const curWrapper = pagesRepeater.itemAt(root.currentPage);
-        return (curWrapper && curWrapper.gridItem) ? Number(curWrapper.gridItem.requestedContentHeight) : 0;
+        root.requestedContentWidth = (curWrapper && curWrapper.gridItem)
+            ? Number(curWrapper.gridItem.requestedContentWidth) : 0;
+        root.requestedContentHeight = (curWrapper && curWrapper.gridItem)
+            ? Number(curWrapper.gridItem.requestedContentHeight) : 0;
     }
 
     function settlePage(target) {
@@ -68,6 +70,7 @@ Item {
                 pageProgress = clamped;
             }
         }
+        root.updateActivePageRequestedSizes();
     }
 
     onCurrentPageChanged: {
@@ -75,6 +78,7 @@ Item {
             pageProgress = currentPage;
         }
         root.pageChanged(currentPage);
+        root.updateActivePageRequestedSizes();
     }
 
     onInitialPageChanged: {
@@ -203,6 +207,26 @@ Item {
                 onSpanChangeRequested: (pI, sI, nS) => root.spanChangeRequested(pI, sI, nS)
                 onSetSlotsRequested: (pI, sC) => root.setSlotsRequested(pI, sC)
                 onDeletePageRequested: (pI) => root.deletePageRequested(pI)
+
+                Connections {
+                    target: slotGrid
+                    function onRequestedContentWidthChanged() {
+                        if (pageWrapper.pIdx === root.currentPage) {
+                            root.updateActivePageRequestedSizes();
+                        }
+                    }
+                    function onRequestedContentHeightChanged() {
+                        if (pageWrapper.pIdx === root.currentPage) {
+                            root.updateActivePageRequestedSizes();
+                        }
+                    }
+                }
+
+                Component.onCompleted: {
+                    if (pageWrapper.pIdx === root.currentPage) {
+                        root.updateActivePageRequestedSizes();
+                    }
+                }
             }
         }
     }

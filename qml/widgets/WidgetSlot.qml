@@ -21,10 +21,22 @@ Item {
     readonly property string componentSource: widgetId !== "" ? WidgetRegistry.getComponentUrl(widgetId, size) : ""
     readonly property bool hasWidget: widgetId !== "" && componentSource !== ""
 
-    readonly property real requestedContentWidth: (widgetLoader.item && widgetLoader.item.requestedContentWidth !== undefined)
-        ? Number(widgetLoader.item.requestedContentWidth) : 0
-    readonly property real requestedContentHeight: (widgetLoader.item && widgetLoader.item.requestedContentHeight !== undefined)
-        ? Number(widgetLoader.item.requestedContentHeight) : 0
+    property real requestedContentWidth: 0
+    property real requestedContentHeight: 0
+
+    function updateRequestedSizes() {
+        root.requestedContentWidth = (widgetLoader.item && widgetLoader.item.requestedContentWidth !== undefined)
+            ? Number(widgetLoader.item.requestedContentWidth) : 0;
+        root.requestedContentHeight = (widgetLoader.item && widgetLoader.item.requestedContentHeight !== undefined)
+            ? Number(widgetLoader.item.requestedContentHeight) : 0;
+    }
+
+    Connections {
+        target: widgetLoader.item
+        ignoreUnknownSignals: true
+        function onRequestedContentWidthChanged() { root.updateRequestedSizes(); }
+        function onRequestedContentHeightChanged() { root.updateRequestedSizes(); }
+    }
 
     clip: false
 
@@ -109,6 +121,13 @@ Item {
                         item.slotSpan = root.slotSpan;
                     if (item.isEditMode !== undefined)
                         item.isEditMode = root.isEditMode;
+                }
+                root.updateRequestedSizes();
+            }
+
+            onStatusChanged: {
+                if (status === Loader.Ready || status === Loader.Null) {
+                    root.updateRequestedSizes();
                 }
             }
 

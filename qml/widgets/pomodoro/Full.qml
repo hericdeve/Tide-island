@@ -71,7 +71,7 @@ Item {
     Item {
         id: offlineView
         anchors.fill: parent
-        anchors.margins: 8
+        anchors.margins: 4
         visible: !root.connected
 
         // Wide layout (centered column)
@@ -201,7 +201,7 @@ Item {
     Item {
         id: connectedView
         anchors.fill: parent
-        anchors.margins: 6
+        anchors.margins: 2
         visible: root.connected
 
         // ═══════════════════════════════════════════════════════════
@@ -209,7 +209,7 @@ Item {
         // ═══════════════════════════════════════════════════════════
         Row {
             anchors.fill: parent
-            spacing: 10
+            spacing: 8
             visible: root.isWide
 
             // --- LEFT COLUMN: Timer & Controls ---
