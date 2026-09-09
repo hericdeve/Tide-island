@@ -458,7 +458,7 @@ Item {
                                 Text {
                                     width: parent.width
                                     text: PomotroidBackend.formatTime(root.remainingSeconds)
-                                    font.family: root.textFontFamily
+                                    font.family: "monospace"
                                     font.pixelSize: 28
                                     font.weight: Font.Bold
                                     horizontalAlignment: Text.AlignHCenter
