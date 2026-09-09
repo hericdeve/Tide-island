@@ -133,14 +133,6 @@ PanelWindow {
             height: Math.ceil(mainCapsule.height)
         }
 
-        Region {
-            intersection: Intersection.Combine
-            x: Math.floor(fileShelfBubble.x)
-            y: Math.floor(fileShelfBubble.y)
-            width: fileShelfBubble.visible ? Math.ceil(fileShelfBubble.width) : 0
-            height: fileShelfBubble.visible ? Math.ceil(fileShelfBubble.height) : 0
-        }
-        
         // Add existing detail shells
         Region {
             intersection: Intersection.Combine
@@ -739,10 +731,10 @@ PanelWindow {
     }
 
     function toggleFileShelfWindow() {
-        if (islandContainer.islandState === "file_shelf")
+        if (islandContainer.islandState === "expanded" && expandedPlayerLoader.item && expandedPlayerLoader.item.currentPage === 0)
             islandContainer.smartRestoreState();
         else
-            islandContainer.showFileShelf(true);
+            islandContainer.showExpandedPlayer(false, 0);
     }
 
     onOverviewVisibleChanged: {
@@ -1035,9 +1027,7 @@ PanelWindow {
         readonly property bool timerBubbleWanted: (timerActive && timerRemainingSeconds > 0 || timerCompletionAnimating)
             && !root.overviewVisible
             && (islandState === "normal" || islandState === "lyrics" || islandState === "custom")
-        readonly property bool fileShelfBubbleWanted: FileShelf.count > 0
-            && !root.overviewVisible
-            && (islandState === "normal" || islandState === "lyrics" || islandState === "custom")
+        readonly property bool fileShelfBubbleWanted: false
         readonly property bool fileShelfCanAutoOpen: !root.overviewVisible
             && (islandState === "normal" || islandState === "lyrics" || islandState === "custom")
         readonly property bool blocksTransientSplit: islandState === "expanded"
@@ -1239,8 +1229,7 @@ PanelWindow {
             if ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_V) {
                 const pasted = FileShelf.pasteFromClipboard();
                 if (pasted > 0) {
-                    if (!islandContainer.fileShelfLayerVisible)
-                        islandContainer.showFileShelf(true);
+                    islandContainer.showExpandedPlayer(false, 0);
                     event.accepted = true;
                     return;
                 }
@@ -1837,7 +1826,7 @@ PanelWindow {
 
         function resolveExpandedTargetPage() {
             if (openTimerPageWhenExpanded) {
-                return 0;
+                return 1;
             }
 
             let activeWidgetIds = [];
@@ -1877,7 +1866,7 @@ PanelWindow {
                         const items = expPages[pIdx].items || [];
                         for (let i = 0; i < items.length; ++i) {
                             if (items[i] && items[i].widgetId === wid) {
-                                return pIdx;
+                                return pIdx + 1;
                             }
                         }
                     }
@@ -1885,11 +1874,11 @@ PanelWindow {
             }
 
             if (userConfig && userConfig.playerRememberLastPane) {
-                const maxPage = Math.max(0, expPages.length - 1);
-                return Math.max(0, Math.min(maxPage, islandContainer.rememberedPlayerPage));
+                const maxPage = Math.max(1, expPages.length);
+                return Math.max(1, Math.min(maxPage, islandContainer.rememberedPlayerPage));
             }
 
-            return 0;
+            return 1;
         }
 
         function showExpandedPlayer(autoOpened, explicitTargetPage) {
@@ -2274,30 +2263,11 @@ PanelWindow {
         }
 
         function showFileShelf(manuallyOpened) {
-            const manual = manuallyOpened === true;
-            if (islandState === "file_shelf") {
-                if (manual) {
-                    showExpandedPlayer();
-                    if (expandedPlayerLoader.item && expandedPlayerLoader.item.showPage) {
-                        expandedPlayerLoader.item.showPage(preFileShelfPage);
-                    }
-                }
-                return;
-            }
-
-            preFileShelfPage = (expandedPlayerLoader.item && expandedPlayerLoader.item.currentPage !== undefined)
-                ? expandedPlayerLoader.item.currentPage : rememberedPlayerPage;
-            cancelSideSwipeSettle();
-            abortSideTransientMode();
-            clearTransientCapsule();
-            fileShelfOpenedManually = manual;
-            islandState = "file_shelf";
-            mainCapsule.displayedWidth = mainCapsule.baseTargetWidth;
-            stopAutoHideTimer();
+            showExpandedPlayer(false, 0);
         }
 
         function closeAutoOpenedFileShelf() {
-            if (islandState === "file_shelf" && !fileShelfOpenedManually)
+            if (islandState === "expanded" && expandedPlayerLoader.item && expandedPlayerLoader.item.currentPage === 0 && !fileShelfOpenedManually)
                 smartRestoreState();
         }
 
@@ -2566,7 +2536,7 @@ PanelWindow {
 
                 Timer {
                     id: shrinkSettleTimer
-                    interval: 350
+                    interval: 40
                     repeat: false
                     onTriggered: {
                         dynamicResizeEngine.activeExtraWidth = dynamicResizeEngine.targetExtraWidth;
@@ -2589,11 +2559,8 @@ PanelWindow {
                     const isGrowingW = targetW > activeExtraWidth;
                     const isGrowingH = targetH > activeExtraHeight;
 
-                    if (isGrowingW || isGrowingH) {
-                        shrinkSettleTimer.stop();
-                        if (isGrowingW) activeExtraWidth = targetW;
-                        if (isGrowingH) activeExtraHeight = targetH;
-                    }
+                    if (isGrowingW) activeExtraWidth = targetW;
+                    if (isGrowingH) activeExtraHeight = targetH;
 
                     const isShrinkingW = targetW < activeExtraWidth;
                     const isShrinkingH = targetH < activeExtraHeight;
@@ -2602,7 +2569,7 @@ PanelWindow {
                         if (!shrinkSettleTimer.running) {
                             shrinkSettleTimer.restart();
                         }
-                    } else if (!isGrowingW && !isGrowingH) {
+                    } else {
                         shrinkSettleTimer.stop();
                     }
                 }
@@ -3755,10 +3722,10 @@ PanelWindow {
                 id: islandFileDropArea
                 z: 10000
                 anchors.fill: parent
-                anchors.bottomMargin: !islandContainer.fileShelfLayerVisible ? -32 : 0
-                anchors.leftMargin: !islandContainer.fileShelfLayerVisible ? -32 : 0
-                anchors.rightMargin: !islandContainer.fileShelfLayerVisible ? -32 : 0
-                enabled: islandContainer.fileShelfLayerVisible
+                anchors.bottomMargin: !(islandContainer.expandedLayerVisible && expandedPlayerLoader.item && expandedPlayerLoader.item.currentPage === 0) ? -32 : 0
+                anchors.leftMargin: !(islandContainer.expandedLayerVisible && expandedPlayerLoader.item && expandedPlayerLoader.item.currentPage === 0) ? -32 : 0
+                anchors.rightMargin: !(islandContainer.expandedLayerVisible && expandedPlayerLoader.item && expandedPlayerLoader.item.currentPage === 0) ? -32 : 0
+                enabled: (islandContainer.expandedLayerVisible && expandedPlayerLoader.item && expandedPlayerLoader.item.currentPage === 0)
                     || islandContainer.fileShelfCanAutoOpen
 
                 onEntered: drag => {
@@ -3768,8 +3735,8 @@ PanelWindow {
                     }
 
                     drag.accept(Qt.CopyAction);
-                    if (!islandContainer.fileShelfLayerVisible)
-                        islandContainer.showFileShelf(false);
+                    if (!islandContainer.expandedLayerVisible || (expandedPlayerLoader.item && expandedPlayerLoader.item.currentPage !== 0))
+                        islandContainer.showExpandedPlayer(false, 0);
                     root.showAutoHiddenIsland("state");
                 }
 
@@ -3848,7 +3815,7 @@ PanelWindow {
             }
             y: mainCapsule.y + mainCapsule.height / 2 - height / 2
             z: 6
-            visible: islandContainer.fileShelfBubbleWanted
+            visible: false
             opacity: root.autoHideProgress
             scale: 0.96 + root.autoHideProgress * 0.04
             transformOrigin: Item.Center
@@ -3921,9 +3888,7 @@ PanelWindow {
                     return mainCapsule.x - width - 8;
                 }
                 if (root.isLeftAligned) {
-                    return fileShelfBubble.visible
-                        ? (mainCapsule.x + mainCapsule.width + fileShelfBubble.width + 16)
-                        : (mainCapsule.x + mainCapsule.width + 8);
+                    return mainCapsule.x + mainCapsule.width + 8;
                 }
                 return mainCapsule.x + mainCapsule.width + 8;
             }

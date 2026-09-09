@@ -2,6 +2,7 @@ import QtQuick
 import IslandBackend
 import Quickshell.Services.Mpris
 import "../widgets"
+import "../island"
 
 Item {
     id: root
@@ -29,26 +30,35 @@ Item {
     property int hoveredSlotIndex: -1
     property bool isDraggingWidget: false
 
-    readonly property int currentPage: expandedPageStrip ? expandedPageStrip.currentPage : 0
+    // Page 0 is always the file shelf; widget pages start at index 1
+    readonly property bool onShelfPage: currentPage === 0
+    readonly property int currentPage: internalCurrentPage
+    property int internalCurrentPage: 0
 
     readonly property real requestedContentWidth: {
+        if (onShelfPage) return 0;
         if (!expandedPageStrip) return 0;
         const stripReqW = expandedPageStrip.requestedContentWidth;
         return stripReqW > 0 ? (stripReqW + 32) : 0;
     }
 
     readonly property real requestedContentHeight: {
+        if (onShelfPage) return 0;
         if (!expandedPageStrip) return 0;
         const stripReqH = expandedPageStrip.requestedContentHeight;
         return stripReqH > 0 ? (stripReqH + (statusBar ? statusBar.height : 28) + 28) : 0;
     }
 
     function showPage(pageIdx, immediate) {
-        if (expandedPageStrip) {
+        // pageIdx 0 = shelf, 1+ = widget pages (shifted by 1)
+        const totalPages = 1 + (expandedPageStrip ? expandedPageStrip.pageCount : 0);
+        const clamped = Math.max(0, Math.min(totalPages - 1, pageIdx));
+        internalCurrentPage = clamped;
+        if (clamped > 0 && expandedPageStrip) {
             if (immediate) {
-                expandedPageStrip.setPageDirect(pageIdx);
+                expandedPageStrip.setPageDirect(clamped - 1);
             } else {
-                expandedPageStrip.settlePage(pageIdx);
+                expandedPageStrip.settlePage(clamped - 1);
             }
         }
     }
@@ -150,7 +160,8 @@ Item {
             property bool gestureLocked: false
 
             onWheel: function(event) {
-                if (!expandedPageStrip || expandedPageStrip.pageCount <= 1) return;
+                const totalPages = 1 + (expandedPageStrip ? expandedPageStrip.pageCount : 0);
+                if (totalPages <= 1) return;
                 if (event.phase === Qt.ScrollMomentum) {
                     event.accepted = true;
                     return;
@@ -182,12 +193,12 @@ Item {
                 horizontalWheelHandler.accumulated += dx;
 
                 if (horizontalWheelHandler.accumulated < -12) {
-                    expandedPageStrip.settlePage(expandedPageStrip.currentPage + 1);
+                    root.showPage(root.internalCurrentPage + 1, false);
                     horizontalWheelHandler.accumulated = 0;
                     horizontalWheelHandler.gestureLocked = true;
                     event.accepted = true;
                 } else if (horizontalWheelHandler.accumulated > 12) {
-                    expandedPageStrip.settlePage(expandedPageStrip.currentPage - 1);
+                    root.showPage(root.internalCurrentPage - 1, false);
                     horizontalWheelHandler.accumulated = 0;
                     horizontalWheelHandler.gestureLocked = true;
                     event.accepted = true;
@@ -208,7 +219,7 @@ Item {
                 id: statusBar
                 width: parent.width
                 pages: (userConfig && userConfig.widgetLayouts && userConfig.widgetLayouts.expanded) ? userConfig.widgetLayouts.expanded.pages : []
-                currentPage: expandedPageStrip.currentPage
+                currentPage: root.internalCurrentPage
                 isEditMode: root.isEditMode
                 cameraMirrorActive: root.cameraMirrorActive
                 dynamicResizeToastActive: root.dynamicResizeToastOpen
@@ -217,16 +228,16 @@ Item {
                 iconFontFamily: root.iconFontFamily
                 textFontFamily: root.textFontFamily
 
-                onPageSelected: (idx) => expandedPageStrip.settlePage(idx)
+                onPageSelected: (idx) => root.showPage(idx, false)
                 onAddPageRequested: {
                     if (userConfig)
                         userConfig.addPage("expanded", "", 3);
                 }
                 onSetSlotsRequested: (pIdx, sCount) => {
-                    if (userConfig)
-                        userConfig.setPageSlots("expanded", pIdx, sCount);
+                    if (userConfig && pIdx > 0)
+                        userConfig.setPageSlots("expanded", pIdx - 1, sCount);
                 }
-                onShelfRequested: root.shelfRequested()
+                onShelfRequested: root.showPage(0, false)
                 onCameraToggleRequested: root.cameraMirrorActive = !root.cameraMirrorActive
                 onEditModeToggleRequested: root.isEditMode = !root.isEditMode
                 onDynamicResizeToggleRequested: root.dynamicResizeToastOpen = !root.dynamicResizeToastOpen
@@ -234,45 +245,99 @@ Item {
                 onCloseRequested: root.closeRequested()
             }
 
-            // 2. Multi-Page Slot Grid Viewport
-            ExpandedWidgetPageStrip {
-                id: expandedPageStrip
+            // 2. Viewport showing File Shelf on page 0, Widget Strip on pages 1+
+            Item {
                 width: parent.width
                 height: Math.max(0, parent.height - statusBar.height - parent.spacing)
-                initialPage: root.initialPage
-                pages: (userConfig && userConfig.widgetLayouts && userConfig.widgetLayouts.expanded) ? userConfig.widgetLayouts.expanded.pages : []
-                isEditMode: root.isEditMode
-                cameraMirrorActive: root.cameraMirrorActive
-                widgetContext: root.sharedWidgetContext
-                hoveredSlotIndex: root.hoveredSlotIndex
-                isDraggingWidget: root.isDraggingWidget
+                clip: true
 
-                onPageChanged: (newPage) => root.pageChanged(newPage)
-                onAddWidgetRequested: (pIdx, sIdx) => root.widgetLibraryRequested("expanded", pIdx, sIdx)
-                onRemoveSlotWidgetRequested: (pIdx, sIdx) => {
-                    if (userConfig)
-                        userConfig.removeSlotWidget("expanded", pIdx, sIdx);
+                // Page 0: File Shelf Panel
+                FileShelfLayer {
+                    id: fileShelfPageItem
+                    width: parent.width
+                    height: parent.height
+                    x: root.internalCurrentPage === 0 ? 0 : -parent.width
+                    visible: opacity > 0.001
+                    opacity: root.internalCurrentPage === 0 ? 1 : 0
+                    showStatusBar: false
+                    iconFontFamily: root.iconFontFamily
+                    textFontFamily: root.textFontFamily
+                    showCondition: root.showCondition && root.internalCurrentPage === 0
+                    dropPreviewOnly: false
+                    batteryCapacity: root.batteryCapacity
+                    isCharging: root.isCharging
+                    cameraMirrorActive: root.cameraMirrorActive
+                    isEditMode: root.isEditMode
+                    currentPage: root.internalCurrentPage
+                    onCloseRequested: root.closeRequested()
+                    onPageSelected: (idx) => root.showPage(idx, false)
+                    onCameraToggleRequested: root.cameraMirrorActive = !root.cameraMirrorActive
+                    onEditModeToggleRequested: root.isEditMode = !root.isEditMode
+
+                    Behavior on x {
+                        NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
+                    }
+                    Behavior on opacity {
+                        NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+                    }
                 }
-                onSpanChangeRequested: (pIdx, sIdx, nSpan) => {
-                    if (!userConfig || !userConfig.widgetLayouts || !userConfig.widgetLayouts.expanded) return;
-                    const pagesArr = userConfig.widgetLayouts.expanded.pages;
-                    const p = pagesArr[pIdx];
-                    if (p && p.items) {
-                        for (let i = 0; i < p.items.length; ++i) {
-                            if (p.items[i].slotIndex === sIdx) {
-                                userConfig.setSlotWidget("expanded", pIdx, sIdx, p.items[i].widgetId, nSpan);
-                                break;
+
+                // Pages 1+: Multi-Page Slot Grid Viewport
+                ExpandedWidgetPageStrip {
+                    id: expandedPageStrip
+                    width: parent.width
+                    height: parent.height
+                    x: root.internalCurrentPage === 0 ? parent.width : 0
+                    visible: opacity > 0.001
+                    opacity: root.internalCurrentPage > 0 ? 1 : 0
+                    initialPage: Math.max(0, root.initialPage - 1)
+                    pages: (userConfig && userConfig.widgetLayouts && userConfig.widgetLayouts.expanded) ? userConfig.widgetLayouts.expanded.pages : []
+                    isEditMode: root.isEditMode
+                    cameraMirrorActive: root.cameraMirrorActive
+                    widgetContext: root.sharedWidgetContext
+                    hoveredSlotIndex: root.hoveredSlotIndex
+                    isDraggingWidget: root.isDraggingWidget
+
+                    onPreviousPageRequested: root.showPage(0, false)
+                    onPageChanged: (newPage) => {
+                        if (root.internalCurrentPage > 0) {
+                            root.internalCurrentPage = newPage + 1;
+                            root.pageChanged(newPage + 1);
+                        }
+                    }
+                    onAddWidgetRequested: (pIdx, sIdx) => root.widgetLibraryRequested("expanded", pIdx, sIdx)
+                    onRemoveSlotWidgetRequested: (pIdx, sIdx) => {
+                        if (userConfig)
+                            userConfig.removeSlotWidget("expanded", pIdx, sIdx);
+                    }
+                    onSpanChangeRequested: (pIdx, sIdx, nSpan) => {
+                        if (!userConfig || !userConfig.widgetLayouts || !userConfig.widgetLayouts.expanded) return;
+                        const pagesArr = userConfig.widgetLayouts.expanded.pages;
+                        const p = pagesArr[pIdx];
+                        if (p && p.items) {
+                            for (let i = 0; i < p.items.length; ++i) {
+                                if (p.items[i].slotIndex === sIdx) {
+                                    userConfig.setSlotWidget("expanded", pIdx, sIdx, p.items[i].widgetId, nSpan);
+                                    break;
+                                }
                             }
                         }
                     }
-                }
-                onSetSlotsRequested: (pIdx, sCount) => {
-                    if (userConfig)
-                        userConfig.setPageSlots("expanded", pIdx, sCount);
-                }
-                onDeletePageRequested: (pIdx) => {
-                    if (userConfig)
-                        userConfig.removePage("expanded", pIdx);
+                    onSetSlotsRequested: (pIdx, sCount) => {
+                        if (userConfig)
+                            userConfig.setPageSlots("expanded", pIdx, sCount);
+                    }
+                    onDeletePageRequested: (pIdx) => {
+                        if (userConfig)
+                            userConfig.removePage("expanded", pIdx);
+                    }
+
+                    Behavior on x {
+                        NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
+                    }
+                    Behavior on opacity {
+                        NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+                    }
                 }
             }
         }

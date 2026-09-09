@@ -8,7 +8,6 @@ Item {
     property var pages: []
     property bool isEditMode: false
     property bool cameraMirrorActive: false
-    property bool fileShelfActive: false
     property bool dynamicResizeToastActive: false
     property int batteryCapacity: -1
     property bool isCharging: false
@@ -17,8 +16,9 @@ Item {
 
     readonly property var userConfig: UserConfig
 
-    readonly property var currentPageData: (root.pages && root.currentPage >= 0 && root.currentPage < root.pages.length) ? root.pages[root.currentPage] : null
+    readonly property var currentPageData: (root.pages && (root.currentPage - 1) >= 0 && (root.currentPage - 1) < root.pages.length) ? root.pages[root.currentPage - 1] : null
     readonly property int currentSlotCount: Math.max(1, Math.min(6, (currentPageData && currentPageData.slots !== undefined) ? currentPageData.slots : 1))
+    readonly property bool fileShelfActive: root.currentPage === 0
 
     signal pageSelected(int pageIndex)
     signal addPageRequested()
@@ -52,12 +52,12 @@ Item {
                 spacing: 5
 
                 Repeater {
-                    model: root.pages ? root.pages.length : 1
+                    model: 1 + (root.pages ? root.pages.length : 1)
 
                     Rectangle {
                         id: pageDot
                         readonly property int dotIndex: index
-                        readonly property bool isActive: !root.fileShelfActive && dotIndex === root.currentPage
+                        readonly property bool isActive: dotIndex === root.currentPage
                         width: isActive ? 14 : 4
                         height: 4
                         radius: 2
@@ -123,10 +123,10 @@ Item {
                     }
                 }
 
-                // Slot Manager Stepper (shown in edit mode beside Add Page button)
+                // Slot Manager Stepper (shown in edit mode beside Add Page button on widget pages)
                 Rectangle {
                     id: slotStepperCapsule
-                    visible: root.isEditMode
+                    visible: root.isEditMode && root.currentPage > 0
                     anchors.verticalCenter: parent.verticalCenter
                     height: 20
                     width: stepperRow.implicitWidth + 8
@@ -202,35 +202,6 @@ Item {
                         }
                     }
                 }
-            }
-        }
-
-        // File Shelf button
-        Rectangle {
-            width: 24
-            height: 24
-            radius: 12
-            color: root.fileShelfActive ? "#38ffffff" : (shelfMouse.pressed ? "#38ffffff" : (shelfMouse.containsMouse ? "#1fffffff" : "transparent"))
-            border.width: 1
-            border.color: root.fileShelfActive ? "#4dffffff" : (shelfMouse.containsMouse ? "#2effffff" : "transparent")
-
-            Behavior on color { ColorAnimation { duration: 120 } }
-            Behavior on border.color { ColorAnimation { duration: 120 } }
-
-            Text {
-                anchors.centerIn: parent
-                text: "󰉋"
-                color: root.fileShelfActive ? "#ffffff" : (shelfMouse.containsMouse ? "#ffffff" : "#8e8e93")
-                font.family: root.iconFontFamily
-                font.pixelSize: 13
-            }
-
-            MouseArea {
-                id: shelfMouse
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: root.shelfRequested()
             }
         }
     }

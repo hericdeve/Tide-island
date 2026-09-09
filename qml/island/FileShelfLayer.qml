@@ -18,6 +18,7 @@ FocusScope {
     readonly property var userConfig: UserConfig
 
     property bool showCondition: false
+    property bool showStatusBar: true
     property bool dropPreviewOnly: false
     property string iconFontFamily: ""
     property string textFontFamily: ""
@@ -329,15 +330,16 @@ FocusScope {
     NotchStatusBar {
         id: statusBar
         z: 10
+        visible: root.showStatusBar
+        height: root.showStatusBar ? 24 : 0
         anchors.top: parent.top
-        anchors.topMargin: 10
+        anchors.topMargin: root.showStatusBar ? 10 : 0
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.leftMargin: 16
         anchors.rightMargin: 16
         pages: (userConfig && userConfig.widgetLayouts && userConfig.widgetLayouts.expanded) ? userConfig.widgetLayouts.expanded.pages : []
         currentPage: root.currentPage
-        fileShelfActive: true
         isEditMode: root.isEditMode
         cameraMirrorActive: root.cameraMirrorActive
         batteryCapacity: root.batteryCapacity
@@ -365,11 +367,11 @@ FocusScope {
 
     Item {
         id: shelfContentArea
-        anchors.top: statusBar.bottom
+        anchors.top: root.showStatusBar ? statusBar.bottom : parent.top
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.topMargin: 6
+        anchors.topMargin: root.showStatusBar ? 6 : 0
         anchors.bottomMargin: 8
 
         Column {

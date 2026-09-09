@@ -15,6 +15,7 @@ Item {
     property bool isDraggingWidget: false
 
     signal pageChanged(int newPage)
+    signal previousPageRequested()
     signal removeSlotWidgetRequested(int pageIndex, int slotIndex)
     signal addWidgetRequested(int pageIndex, int slotIndex)
     signal spanChangeRequested(int pageIndex, int slotIndex, int newSpan)
@@ -97,7 +98,7 @@ Item {
     DragHandler {
         id: swipeDragHandler
         target: null
-        enabled: root.pageCount > 1 && !root.isDraggingWidget
+        enabled: !root.isDraggingWidget
         acceptedButtons: Qt.LeftButton
         xAxis.enabled: true
         yAxis.enabled: false
@@ -114,6 +115,12 @@ Item {
             } else {
                 const elapsedMs = Math.max(16, Date.now() - swipeStartTime);
                 const velocityX = activeTranslation.x / elapsedMs;
+
+                if (root.currentPage === 0 && (velocityX > 0.35 || activeTranslation.x > 60)) {
+                    root.settlePage(0);
+                    root.previousPageRequested();
+                    return;
+                }
 
                 let target = Math.round(root.pageProgress);
                 if (velocityX > 0.35) {
@@ -143,7 +150,7 @@ Item {
     MultiPointTouchArea {
         id: twoFingerTouchStrip
         anchors.fill: parent
-        enabled: root.pageCount > 1 && !root.isDraggingWidget
+        enabled: !root.isDraggingWidget
         mouseEnabled: false
         minimumTouchPoints: 2
         maximumTouchPoints: 2
@@ -170,6 +177,13 @@ Item {
         }
 
         onReleased: (touchPoints) => {
+            const currentTouchX = (touchPoints[0].x + touchPoints[1].x) / 2;
+            const deltaX = currentTouchX - startTouchX;
+            if (root.currentPage === 0 && deltaX > 60) {
+                root.settlePage(0);
+                root.previousPageRequested();
+                return;
+            }
             root.settlePage(Math.round(root.pageProgress));
         }
     }
