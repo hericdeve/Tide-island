@@ -224,7 +224,9 @@ PanelWindow {
         }
     }
 
-    exclusiveZone: Math.ceil(root.baseExclusiveZone * root.exclusiveZoneProgress)
+    exclusiveZone: root.baseExclusiveZone > 0 ? Math.ceil(root.baseExclusiveZone * root.exclusiveZoneProgress) : -1
+    exclusionMode: root.baseExclusiveZone > 0 ? ExclusionMode.Normal : ExclusionMode.Ignore
+    WlrLayershell.namespace: "tide-island"
     WlrLayershell.layer: {
         if (userConfig.islandLayer === "overlay")
             return WlrLayer.Overlay;

@@ -114,7 +114,7 @@ PagePanel {
 
                     ConfigRow {
                         title: "Reserved Screen Space"
-                        description: "Screen margin reserved at the edge to prevent windows overlapping the island (px)"
+                        description: "Screen margin reserved at the edge to prevent windows overlapping the island (px). Set to 0 to overlap an existing bar (e.g. Noctalia/Waybar)."
                         keyName: "islandExclusiveZone"
                         fallbackText: "45"
                         numeric: true
