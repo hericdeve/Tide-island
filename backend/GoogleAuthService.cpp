@@ -459,7 +459,7 @@ void GoogleAuthService::fetchCalendarList(const std::function<void(bool success,
             return;
         }
 
-        QNetworkRequest request(QUrl(QStringLiteral("https://www.googleapis.com/calendar/v3/users/me/calendarList?minAccessRole=reader")));
+        QNetworkRequest request(QUrl(QStringLiteral("https://www.googleapis.com/calendar/v3/users/me/calendarList")));
         request.setRawHeader("Authorization", QStringLiteral("Bearer %1").arg(m_accessToken).toUtf8());
 
         QNetworkReply *reply = m_nam.get(request);

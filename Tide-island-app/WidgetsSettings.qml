@@ -622,19 +622,28 @@ PagePanel {
         implicitHeight: calColumn.implicitHeight + 10
         height: implicitHeight
 
-        property var calendarList: {
-            const raw = ConfigStore.value("calendars", [])
+        readonly property var calendarList: {
+            const map = ConfigStore.map
+            const raw = (map && map.calendars) ? map.calendars : []
             return Array.isArray(raw) ? raw : []
         }
 
-        property var googleAuthData: {
-            const raw = ConfigStore.value("googleAuth", {})
+        readonly property var googleAuthData: {
+            const map = ConfigStore.map
+            const raw = (map && map.googleAuth) ? map.googleAuth : {}
             return (raw && typeof raw === "object") ? raw : {}
         }
 
-        property var googleCalendarsList: {
-            const raw = ConfigStore.value("googleCalendars", [])
-            return Array.isArray(raw) ? raw : []
+        readonly property var googleCalendarsList: {
+            const map = ConfigStore.map
+            const raw = (map && map.googleCalendars) ? map.googleCalendars : []
+            if (Array.isArray(raw)) return raw
+            if (raw && raw.length !== undefined) {
+                const list = []
+                for (let i = 0; i < raw.length; ++i) list.push(raw[i])
+                return list
+            }
+            return []
         }
 
         readonly property bool isGoogleSignedIn: {
@@ -674,10 +683,6 @@ PagePanel {
             running: calRow.authWaitingNotice
             onTriggered: {
                 backend.reloadUserConfig()
-                ConfigStore.map = backend.userConfig
-                calRow.calendarList = ConfigStore.value("calendars", [])
-                calRow.googleAuthData = ConfigStore.value("googleAuth", {})
-                calRow.googleCalendarsList = ConfigStore.value("googleCalendars", [])
                 if (calRow.isGoogleSignedIn || calRow.googleError !== "") {
                     calRow.authWaitingNotice = false
                 }
@@ -691,20 +696,14 @@ PagePanel {
 
         function triggerGoogleSignOut() {
             backend.signOutGoogle()
-            ConfigStore.map = backend.userConfig
-            calRow.googleAuthData = ConfigStore.value("googleAuth", {})
-            calRow.googleCalendarsList = []
         }
 
         function toggleGoogleCalendar(index) {
-            const current = calRow.googleCalendarsList.slice()
+            const current = googleCalendarsList.map(item => Object.assign({}, item))
             if (index >= 0 && index < current.length) {
-                const item = Object.assign({}, current[index])
-                item.enabled = !item.enabled
-                current[index] = item
+                current[index].enabled = !current[index].enabled
                 ConfigStore.setValue("googleCalendars", current)
                 ConfigStore.save()
-                calRow.googleCalendarsList = current
             }
         }
 
@@ -718,7 +717,7 @@ PagePanel {
                 normalizedUrl = "https://" + normalizedUrl.substring(9)
             }
 
-            const current = calendarList.slice()
+            const current = calendarList.map(item => Object.assign({}, item))
             const id = "cal-" + Date.now() + "-" + Math.floor(Math.random() * 1000)
             current.push({
                 "id": id,
@@ -729,28 +728,23 @@ PagePanel {
             })
             ConfigStore.setValue("calendars", current)
             ConfigStore.save()
-            calRow.calendarList = current
         }
 
         function removeCalendar(index) {
-            const current = calendarList.slice()
+            const current = calendarList.map(item => Object.assign({}, item))
             if (index >= 0 && index < current.length) {
                 current.splice(index, 1)
                 ConfigStore.setValue("calendars", current)
                 ConfigStore.save()
-                calRow.calendarList = current
             }
         }
 
         function toggleCalendar(index) {
-            const current = calendarList.slice()
+            const current = calendarList.map(item => Object.assign({}, item))
             if (index >= 0 && index < current.length) {
-                const item = Object.assign({}, current[index])
-                item.enabled = !item.enabled
-                current[index] = item
+                current[index].enabled = !current[index].enabled
                 ConfigStore.setValue("calendars", current)
                 ConfigStore.save()
-                calRow.calendarList = current
             }
         }
 
