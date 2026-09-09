@@ -2517,36 +2517,25 @@ PanelWindow {
                     }
                 }
 
-                readonly property real requestedWidth: {
-                    switch (currentMode) {
-                    case "full":
-                        return (expandedPlayerLoader.item && expandedPlayerLoader.active)
-                            ? (Number(expandedPlayerLoader.item.requestedContentWidth) || 0) : 0;
-                    case "minimum":
-                        return (closedWidgetLoader.item && closedWidgetLoader.active)
-                            ? (Number(closedWidgetLoader.item.requestedContentWidth) || 0) : 0;
-                    case "circle":
-                        return (circleClosedLoader.item && circleClosedLoader.active)
-                            ? (Number(circleClosedLoader.item.requestedContentWidth) || 0) : 0;
-                    default:
-                        return 0;
-                    }
-                }
+                property real requestedWidth: 0
+                property real requestedHeight: 0
 
-                readonly property real requestedHeight: {
-                    switch (currentMode) {
-                    case "full":
-                        return (expandedPlayerLoader.item && expandedPlayerLoader.active)
-                            ? (Number(expandedPlayerLoader.item.requestedContentHeight) || 0) : 0;
-                    case "minimum":
-                        return (closedWidgetLoader.item && closedWidgetLoader.active)
-                            ? (Number(closedWidgetLoader.item.requestedContentHeight) || 0) : 0;
-                    case "circle":
-                        return (circleClosedLoader.item && circleClosedLoader.active)
-                            ? (Number(circleClosedLoader.item.requestedContentHeight) || 0) : 0;
-                    default:
-                        return 0;
+                function updateRequestedSizes() {
+                    let rw = 0;
+                    let rh = 0;
+                    if (currentMode === "full" && expandedPlayerLoader.item && expandedPlayerLoader.active) {
+                        rw = Number(expandedPlayerLoader.item.requestedContentWidth) || 0;
+                        rh = Number(expandedPlayerLoader.item.requestedContentHeight) || 0;
+                    } else if (currentMode === "minimum" && closedWidgetLoader.item && closedWidgetLoader.active) {
+                        rw = Number(closedWidgetLoader.item.requestedContentWidth) || 0;
+                        rh = Number(closedWidgetLoader.item.requestedContentHeight) || 0;
+                    } else if (currentMode === "circle" && circleClosedLoader.item && circleClosedLoader.active) {
+                        rw = Number(circleClosedLoader.item.requestedContentWidth) || 0;
+                        rh = Number(circleClosedLoader.item.requestedContentHeight) || 0;
                     }
+                    requestedWidth = rw;
+                    requestedHeight = rh;
+                    updateActiveDimensions();
                 }
 
                 readonly property real maxWidth: Math.round(baseWidth * (1.0 + maxExpansionPct / 100.0))
@@ -2616,10 +2605,32 @@ PanelWindow {
 
                 onTargetExtraWidthChanged: updateActiveDimensions()
                 onTargetExtraHeightChanged: updateActiveDimensions()
-                onCurrentModeChanged: updateActiveDimensions()
-                onEnabledForCurrentModeChanged: updateActiveDimensions()
-                onBaseWidthChanged: updateActiveDimensions()
-                onBaseHeightChanged: updateActiveDimensions()
+                onCurrentModeChanged: updateRequestedSizes()
+                onEnabledForCurrentModeChanged: updateRequestedSizes()
+                onBaseWidthChanged: updateRequestedSizes()
+                onBaseHeightChanged: updateRequestedSizes()
+                onMaxExpansionPctChanged: updateRequestedSizes()
+            }
+
+            Connections {
+                target: closedWidgetLoader.item
+                ignoreUnknownSignals: true
+                function onRequestedContentWidthChanged() { dynamicResizeEngine.updateRequestedSizes(); }
+                function onRequestedContentHeightChanged() { dynamicResizeEngine.updateRequestedSizes(); }
+            }
+
+            Connections {
+                target: circleClosedLoader.item
+                ignoreUnknownSignals: true
+                function onRequestedContentWidthChanged() { dynamicResizeEngine.updateRequestedSizes(); }
+                function onRequestedContentHeightChanged() { dynamicResizeEngine.updateRequestedSizes(); }
+            }
+
+            Connections {
+                target: expandedPlayerLoader.item
+                ignoreUnknownSignals: true
+                function onRequestedContentWidthChanged() { dynamicResizeEngine.updateRequestedSizes(); }
+                function onRequestedContentHeightChanged() { dynamicResizeEngine.updateRequestedSizes(); }
             }
             readonly property bool notificationHistorySurface: islandContainer.islandState === "notification_center"
             readonly property bool borderEnabled: userConfig.notchBorderEnabled === true
@@ -3258,6 +3269,7 @@ PanelWindow {
                 visible: active
                 z: 2
 
+                onActiveChanged: dynamicResizeEngine.updateRequestedSizes()
                 onLoaded: {
                     if (item) {
                         if (islandContainer.widgetStagingActive && islandContainer.stagedSizeType === "minimum") {
@@ -3270,6 +3282,7 @@ PanelWindow {
                                 item.currentPageIndex = targetP;
                         }
                     }
+                    dynamicResizeEngine.updateRequestedSizes();
                 }
 
                 sourceComponent: Component {
@@ -3316,6 +3329,7 @@ PanelWindow {
                 asynchronous: false
                 visible: active
 
+                onActiveChanged: dynamicResizeEngine.updateRequestedSizes()
                 onLoaded: {
                     if (item) {
                         if (islandContainer.widgetStagingActive && islandContainer.stagedSizeType === "circle") {
@@ -3328,6 +3342,7 @@ PanelWindow {
                                 item.currentPageIndex = targetP;
                         }
                     }
+                    dynamicResizeEngine.updateRequestedSizes();
                 }
 
                 sourceComponent: Component {
@@ -3426,6 +3441,7 @@ PanelWindow {
                 active: islandContainer.expandedLayerVisible
                 asynchronous: false
                 visible: active
+                onActiveChanged: dynamicResizeEngine.updateRequestedSizes()
                 onLoaded: {
                     if (islandContainer.openTimerPageWhenExpanded
                             && item && item.openTimerPage) {
@@ -3439,6 +3455,7 @@ PanelWindow {
                             item.isEditMode = true;
                     }
                     root.focusExpandedPlayer();
+                    dynamicResizeEngine.updateRequestedSizes();
                 }
 
                 sourceComponent: Component {

@@ -42,7 +42,7 @@ Item {
         }
     }
 
-    function displayLabel() {
+    readonly property string displayText: {
         if (!ClaudeCodeBackend.connected && !ClaudeCodeBackend.demoMode) return "Claude Offline";
         if (root.isWaitingConsent) {
             return "Permission: " + (ClaudeCodeBackend.pendingConsentTool || "Tool");
@@ -57,19 +57,12 @@ Item {
         return root.statusLabel();
     }
 
-    TextMetrics {
-        id: minTextMetrics
-        font.family: root.textFontFamily
-        font.pixelSize: 14
-        font.weight: root.isWaitingConsent ? Font.Bold : Font.DemiBold
-        text: root.displayLabel()
+    function displayLabel() {
+        return root.displayText;
     }
 
-    readonly property real requestedContentWidth: {
-        const baseW = UserConfig ? UserConfig.notchClosedWidth : 185;
-        const naturalW = 16 + 7 + minTextMetrics.width + 32;
-        return naturalW > baseW ? naturalW : 0;
-    }
+    readonly property real naturalContentWidth: 16 + 7 + statusText.implicitWidth + 24
+    readonly property real requestedContentWidth: naturalContentWidth
     readonly property real requestedContentHeight: 0
 
     anchors.fill: parent
@@ -124,7 +117,7 @@ Item {
         Text {
             id: statusText
             anchors.verticalCenter: parent.verticalCenter
-            text: root.displayLabel()
+            text: root.displayText
             font.family: root.textFontFamily
             font.pixelSize: 14
             font.weight: root.isWaitingConsent ? Font.Bold : Font.DemiBold

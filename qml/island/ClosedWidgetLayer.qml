@@ -506,13 +506,17 @@ Item {
                 function recalculateRequestedSizes() {
                     let extraWidth = 0;
                     let maxH = 0;
+                    const basePageWidth = UserConfig ? UserConfig.notchClosedWidth : 185;
+                    const totalSpacing = (pageDelegateItem.slotCount - 1) * 8;
+                    const baseSlotWidth = Math.max(50, (basePageWidth - totalSpacing - 24) / Math.max(1, pageDelegateItem.slotCount));
+
                     for (let i = 0; i < pageSlotsRepeater.count; ++i) {
                         const slot = pageSlotsRepeater.itemAt(i);
                         if (slot && slot.widgetItem && slot.hasWidget) {
                             const reqW = (slot.widgetItem.requestedContentWidth !== undefined)
                                 ? Number(slot.widgetItem.requestedContentWidth) : 0;
-                            if (reqW > slot.width) {
-                                extraWidth += (reqW - slot.width);
+                            if (reqW > baseSlotWidth) {
+                                extraWidth += (reqW - baseSlotWidth);
                             }
                             const reqH = (slot.widgetItem.requestedContentHeight !== undefined)
                                 ? Number(slot.widgetItem.requestedContentHeight) : 0;
@@ -521,7 +525,7 @@ Item {
                             }
                         }
                     }
-                    pageDelegateItem.requestedContentWidth = extraWidth > 0 ? (root.width + extraWidth) : 0;
+                    pageDelegateItem.requestedContentWidth = extraWidth > 0 ? (basePageWidth + extraWidth) : 0;
                     pageDelegateItem.requestedContentHeight = maxH > 0 ? Math.max(root.height, maxH) : 0;
                 }
 
@@ -644,8 +648,8 @@ Item {
                                     id: widgetLoader
                                     anchors.fill: parent
                                     enabled: false
-                                    active: parent.parent.hasWidget
-                                    source: active ? WidgetRegistry.getComponentUrl(parent.parent.widgetId, "minimum") : ""
+                                    active: slotItem.hasWidget
+                                    source: active ? WidgetRegistry.getComponentUrl(slotItem.widgetId, "minimum") : ""
 
                                     onLoaded: {
                                         if (item) {
