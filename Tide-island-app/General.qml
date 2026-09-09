@@ -25,6 +25,11 @@ PagePanel {
         return roundedValue
     }
 
+    function boolValue(key, fallback) {
+        const val = ConfigStore.value(key, fallback)
+        return val === true || val === "true"
+    }
+
     Flickable {
         id: scroller
         anchors.fill: parent
@@ -62,9 +67,10 @@ PagePanel {
                 y: 50
             }
 
+            // 1. Desktop & Window Layering
             Text {
-                id: apperanceTitle
-                text: "Island apperance"
+                id: desktopTitle
+                text: "Desktop & Window Layering"
                 anchors.top: title.bottom
                 anchors.topMargin: 34
                 anchors.left: parent.left
@@ -77,23 +83,21 @@ PagePanel {
             }
 
             Rectangle {
-                id: apperance
+                id: desktopPanel
                 color: Theme.cardBgColor
                 radius: 16
                 border.width: 1
                 border.color: Theme.splitLineColor
-
-                anchors.top: apperanceTitle.bottom
+                anchors.top: desktopTitle.bottom
                 anchors.topMargin: 15
                 anchors.left: parent.left
                 anchors.leftMargin: 30
                 anchors.right: parent.right
                 anchors.rightMargin: 40
-                height: apperanceColumn.implicitHeight + 36
+                height: desktopColumn.implicitHeight + 36
 
                 Column {
-                    id: apperanceColumn
-
+                    id: desktopColumn
                     anchors.top: parent.top
                     anchors.topMargin: 18
                     anchors.left: parent.left
@@ -102,48 +106,15 @@ PagePanel {
                     anchors.rightMargin: 18
                     spacing: 16
 
-                    ConfigRow {
-                        title: "Island Width"
-                        description: "Width of island in clock mode"
-                        keyName: "islandWidth"
-                        fallbackText: "140"
-                        numeric: true
+                    LayerSelectionRow {
                         width: parent.width
                     }
 
                     SplitLine { width: parent.width }
 
                     ConfigRow {
-                        title: "Island Height"
-                        description: "Height of island in clock mode"
-                        keyName: "islandHeight"
-                        fallbackText: "38"
-                        numeric: true
-                        width: parent.width
-                    }
-
-                    SplitLine { width: parent.width }
-
-                    ConfigRow {
-                        title: "Background Transparency"
-                        description: "Opacity of the island background (0 = fully transparent, 100 = solid)"
-                        keyName: "islandBackgroundOpacity"
-                        fallbackText: "60"
-                        numeric: true
-                        minimumValue: 0
-                        maximumValue: 100
-                        width: parent.width
-                    }
-
-                    SplitLine { width: parent.width }
-
-                    ClockFormatRow { width: parent.width }
-
-                    SplitLine { width: parent.width }
-
-                    ConfigRow {
-                        title: "Reserved Top Space"
-                        description: "Screen space reserved for the island (exclusive zone)"
+                        title: "Reserved Screen Space"
+                        description: "Screen margin reserved at the edge to prevent windows overlapping the island (px)"
                         keyName: "islandExclusiveZone"
                         fallbackText: "45"
                         numeric: true
@@ -153,35 +124,21 @@ PagePanel {
 
                     SplitLine { width: parent.width }
 
-                    ConfigRow {
-                        title: "Top Margin"
-                        description: "Distance between the island and the top of the screen"
-                        keyName: "islandTopMargin"
-                        fallbackText: "4"
-                        numeric: true
-                        minimumValue: 0
-                        width: parent.width
-                    }
-
-                    SplitLine { width: parent.width }
-
-                    ConfigRow {
-                        title: "Island Position"
-                        description: "X position of island"
-                        keyName: "islandPositionX"
-                        fallbackText: "50"
-                        numeric: true
-                        minimumValue: 0
-                        maximumValue: 100
+                    ToggleRow {
+                        title: "Hide in Fullscreen"
+                        description: "Automatically retract the island when an active window enters fullscreen"
+                        keyName: "hideNotchInFullscreen"
+                        fallbackState: true
                         width: parent.width
                     }
                 }
             }
 
+            // 2. Power Management (TLP)
             Text {
                 id: tlpTitle
-                text: "TLP"
-                anchors.top: apperance.bottom
+                text: "Power Management"
+                anchors.top: desktopPanel.bottom
                 anchors.topMargin: 34
                 anchors.left: parent.left
                 anchors.leftMargin: 32
@@ -202,7 +159,6 @@ PagePanel {
                 anchors.rightMargin: 40
                 height: implicitHeight
             }
-
         }
     }
 
@@ -241,6 +197,8 @@ PagePanel {
             anchors.top: rowTitle.bottom
             anchors.topMargin: 5
             anchors.left: rowTitle.left
+            width: Math.max(80, parent.width - field.width - 28)
+            elide: Text.ElideRight
             color: Theme.subtleTextColor
         }
 
@@ -275,16 +233,24 @@ PagePanel {
         }
     }
 
-    component ClockFormatRow: Item {
-        id: clockRow
+    component ToggleRow: Item {
+        id: toggleRow
 
-        property string selectedFormat: String(ConfigStore.value("clockFormat", "12")) === "24" ? "24" : "12"
+        property string title: ""
+        property string description: ""
+        property string keyName: ""
+        property bool fallbackState: false
+        property bool invert: false
+        property bool checkedState: {
+            const val = root.boolValue(keyName, fallbackState)
+            return invert ? !val : val
+        }
 
         height: 49
 
         Text {
-            id: clockTitle
-            text: "Clock Format"
+            id: toggleRowTitle
+            text: toggleRow.title
             font.family: Theme.textFontFamily
             font.pixelSize: 18
             color: Theme.textColor
@@ -293,33 +259,117 @@ PagePanel {
         }
 
         Text {
-            text: "Choose 12-hour or 24-hour time"
+            text: toggleRow.description
             font.family: Theme.textFontFamily
             font.pixelSize: 14
-            anchors.top: clockTitle.bottom
+            anchors.top: toggleRowTitle.bottom
             anchors.topMargin: 5
-            anchors.left: clockTitle.left
+            anchors.left: toggleRowTitle.left
+            width: Math.max(80, parent.width - toggleSwitch.width - 28)
+            elide: Text.ElideRight
+            color: Theme.subtleTextColor
+        }
+
+        Item {
+            id: toggleSwitch
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            width: 48
+            height: 26
+
+            Rectangle {
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: 40
+                height: 24
+                radius: 12
+                color: toggleRow.checkedState ? Theme.accentColor : Theme.componentBgColor
+                border.width: 1
+                border.color: toggleRow.checkedState ? Theme.accentColor : Theme.inputBorderColor
+
+                Behavior on color {
+                    ColorAnimation { duration: 180; easing.type: Easing.InOutQuad }
+                }
+            }
+
+            Rectangle {
+                width: 18
+                height: 18
+                radius: 9
+                x: toggleRow.checkedState ? 22 : 6
+                y: 4
+                color: Theme.cardBgColor
+
+                Behavior on x {
+                    NumberAnimation { duration: 180; easing.type: Easing.InOutQuad }
+                }
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: {
+                    const next = !toggleRow.checkedState
+                    toggleRow.checkedState = next
+                    ConfigStore.setValue(toggleRow.keyName, toggleRow.invert ? !next : next)
+                    ConfigStore.save()
+                }
+            }
+        }
+    }
+
+    component LayerSelectionRow: Item {
+        id: layerRow
+
+        property string selectedLayer: String(ConfigStore.value("islandLayer", "top")).toLowerCase() === "overlay" ? "overlay" : "top"
+
+        height: 49
+
+        Text {
+            id: layerTitle
+            text: "Window Layer"
+            font.family: Theme.textFontFamily
+            font.pixelSize: 18
+            color: Theme.textColor
+            anchors.top: parent.top
+            anchors.left: parent.left
+        }
+
+        Text {
+            text: "Render on 'Top' (standard bar) or 'Overlay' (above all windows and lock screens)"
+            font.family: Theme.textFontFamily
+            font.pixelSize: 14
+            anchors.top: layerTitle.bottom
+            anchors.topMargin: 5
+            anchors.left: layerTitle.left
+            width: Math.max(80, parent.width - buttonGroup.width - 28)
+            elide: Text.ElideRight
             color: Theme.subtleTextColor
         }
 
         Row {
+            id: buttonGroup
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
             spacing: 6
 
             Repeater {
-                model: ["12", "24"]
+                model: [
+                    { label: "Top", value: "top" },
+                    { label: "Overlay", value: "overlay" }
+                ]
 
                 Rectangle {
-                    id: formatButton
-                    readonly property bool selected: clockRow.selectedFormat === modelData
+                    id: btn
+                    readonly property bool selected: layerRow.selectedLayer === modelData.value
 
-                    width: 82
+                    width: Math.max(76, btnText.implicitWidth + 20)
                     height: 36
                     radius: 7
                     color: selected ? Theme.cardBgColor
-                                    : formatMouse.pressed ? Theme.controlPressedColor
-                                                          : Theme.componentBgColor
+                                    : btnMouse.pressed ? Theme.controlPressedColor
+                                                       : Theme.componentBgColor
                     border.width: 1
                     border.color: Theme.inputBorderColor
 
@@ -327,22 +377,23 @@ PagePanel {
                     Behavior on border.color { ColorAnimation { duration: Theme.animationDuration } }
 
                     Text {
+                        id: btnText
                         anchors.centerIn: parent
-                        text: modelData + " hour"
-                        color: formatButton.selected ? Theme.textColor : Theme.secondaryTextColor
+                        text: modelData.label
+                        color: btn.selected ? Theme.textColor : Theme.secondaryTextColor
                         font.family: Theme.textFontFamily
                         font.pixelSize: 14
-                        font.weight: formatButton.selected ? Font.DemiBold : Font.Normal
+                        font.weight: btn.selected ? Font.DemiBold : Font.Normal
                     }
 
                     MouseArea {
-                        id: formatMouse
+                        id: btnMouse
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            clockRow.selectedFormat = modelData
-                            ConfigStore.setValue("clockFormat", modelData)
+                            layerRow.selectedLayer = modelData.value
+                            ConfigStore.setValue("islandLayer", modelData.value)
                             ConfigStore.save()
                         }
                     }

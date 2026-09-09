@@ -19,10 +19,9 @@ Item {
     anchors.fill: parent
 
     Row {
+        id: contentRow
         anchors.centerIn: parent
         spacing: 6
-        width: Math.min(parent.width - 8, contentWidth)
-        readonly property real contentWidth: iconText.width + titleText.implicitWidth + 8
 
         Text {
             id: iconText
@@ -41,7 +40,8 @@ Item {
             font.weight: Font.Medium
             color: "white"
             elide: Text.ElideRight
-            width: Math.max(20, root.width - iconText.width - 16)
+            maximumLineCount: 1
+            width: Math.min(implicitWidth, Math.max(0, root.width - iconText.width - contentRow.spacing - 12))
             anchors.verticalCenter: parent.verticalCenter
         }
     }

@@ -13,6 +13,7 @@ Item {
 
     readonly property string state: ClaudeCodeBackend.sessionState
     readonly property bool isWaitingConsent: state === "waiting_consent" || (ClaudeCodeBackend.pendingConsentId !== "")
+    readonly property bool showsLastMessage: UserConfig.claudeMinimumShowsLastMessage || ClaudeCodeBackend.minimumShowsLastMessage
 
     function stateColor() {
         if (!ClaudeCodeBackend.connected && !ClaudeCodeBackend.demoMode) return "#6b7280";
@@ -41,13 +42,27 @@ Item {
         }
     }
 
+    function displayLabel() {
+        if (!ClaudeCodeBackend.connected && !ClaudeCodeBackend.demoMode) return "Claude Offline";
+        if (root.isWaitingConsent) {
+            return "Permission: " + (ClaudeCodeBackend.pendingConsentTool || "Tool");
+        }
+        if (root.showsLastMessage) {
+            const rawMsg = ClaudeCodeBackend.lastMessage || "";
+            const msg = rawMsg.replace(/\r?\n|\r/g, " ").trim();
+            if (msg.length > 0) {
+                return msg;
+            }
+        }
+        return root.statusLabel();
+    }
+
     anchors.fill: parent
 
     Row {
+        id: contentRow
         anchors.centerIn: parent
         spacing: 6
-        width: Math.min(parent.width - 8, contentWidth)
-        readonly property real contentWidth: statusDot.width + textColumn.implicitWidth + 8
 
         // Ambient breathing status dot
         Item {
@@ -91,23 +106,17 @@ Item {
         }
 
         // Status text
-        Item {
-            id: textColumn
-            height: 18
-            width: Math.max(20, root.width - statusDot.width - 16)
+        Text {
+            id: statusText
             anchors.verticalCenter: parent.verticalCenter
-            clip: true
-
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                text: root.statusLabel()
-                font.family: root.textFontFamily
-                font.pixelSize: 11
-                font.weight: root.isWaitingConsent ? Font.Bold : Font.Medium
-                color: root.isWaitingConsent ? "#f59e0b" : "white"
-                elide: Text.ElideRight
-                width: parent.width
-            }
+            text: root.displayLabel()
+            font.family: root.textFontFamily
+            font.pixelSize: 11
+            font.weight: root.isWaitingConsent ? Font.Bold : Font.Medium
+            color: root.isWaitingConsent ? "#f59e0b" : (root.state === "error" ? "#fca5a5" : "white")
+            elide: Text.ElideRight
+            maximumLineCount: 1
+            width: Math.min(implicitWidth, Math.max(0, root.width - statusDot.width - contentRow.spacing - 12))
         }
     }
 }

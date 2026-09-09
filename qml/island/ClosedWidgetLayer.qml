@@ -158,7 +158,6 @@ Item {
                     root.holdProgress = 0.0;
                     if (!root.isEditMode) {
                         root.isEditMode = true;
-                        root.settlePage(root.realPageCount);
                     }
                     popAnim.restart();
                 }

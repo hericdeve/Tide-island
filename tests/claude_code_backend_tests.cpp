@@ -23,6 +23,7 @@ private slots:
     void stateFileParsing();
     void hookInstallation();
     void errorClearing();
+    void minimumShowsLastMessageToggle();
 };
 
 void ClaudeCodeBackendTests::initTestCase()
@@ -152,6 +153,24 @@ void ClaudeCodeBackendTests::errorClearing()
     backend.clearError();
     QCOMPARE(backend.sessionState(), QStringLiteral("idle"));
     QCOMPARE(backend.lastMessage(), QStringLiteral("Ready to assist."));
+}
+
+void ClaudeCodeBackendTests::minimumShowsLastMessageToggle()
+{
+    ClaudeCodeBackend backend;
+    QCOMPARE(backend.minimumShowsLastMessage(), false);
+
+    QSignalSpy spy(&backend, &ClaudeCodeBackend::minimumShowsLastMessageChanged);
+    backend.setMinimumShowsLastMessage(true);
+    QCOMPARE(backend.minimumShowsLastMessage(), true);
+    QCOMPARE(spy.count(), 1);
+
+    backend.setMinimumShowsLastMessage(true);
+    QCOMPARE(spy.count(), 1);
+
+    backend.setMinimumShowsLastMessage(false);
+    QCOMPARE(backend.minimumShowsLastMessage(), false);
+    QCOMPARE(spy.count(), 2);
 }
 
 QTEST_GUILESS_MAIN(ClaudeCodeBackendTests)

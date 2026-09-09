@@ -322,6 +322,43 @@ void UserConfigBackend::setPlayerRememberLastPane(bool remember)
     }
 }
 
+bool UserConfigBackend::claudeMinimumShowsLastMessage() const
+{
+    return m_claudeMinimumShowsLastMessage;
+}
+
+void UserConfigBackend::setClaudeMinimumShowsLastMessage(bool showsLastMessage)
+{
+    if (m_claudeMinimumShowsLastMessage == showsLastMessage)
+        return;
+
+    m_claudeMinimumShowsLastMessage = showsLastMessage;
+    emit claudeMinimumShowsLastMessageChanged();
+
+    QJsonObject configObject;
+    QFile configFile(m_userConfigPath);
+    if (configFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        const QByteArray bytes = configFile.readAll();
+        configFile.close();
+        if (!bytes.trimmed().isEmpty()) {
+            const QByteArray stripped = stripJsonComments(bytes);
+            QJsonDocument doc = QJsonDocument::fromJson(stripped);
+            if (doc.isObject()) {
+                configObject = doc.object();
+            }
+        }
+    }
+
+    configObject[QStringLiteral("claudeMinimumShowsLastMessage")] = m_claudeMinimumShowsLastMessage;
+
+    QFileInfo(m_userConfigPath).dir().mkpath(QStringLiteral("."));
+    QSaveFile saveFile(m_userConfigPath);
+    if (saveFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        saveFile.write(QJsonDocument(configObject).toJson(QJsonDocument::Indented));
+        saveFile.commit();
+    }
+}
+
 int UserConfigBackend::hoverExpandAction() const
 {
     return m_hoverExpandAction;
@@ -544,11 +581,6 @@ int UserConfigBackend::notchOpenWidth() const
 int UserConfigBackend::notchOpenHeight() const
 {
     return m_notchOpenHeight;
-}
-
-int UserConfigBackend::notchCircleExpandedRadius() const
-{
-    return m_notchCircleExpandedRadius;
 }
 
 int UserConfigBackend::notchTopCornerRadius() const
@@ -1041,6 +1073,7 @@ void UserConfigBackend::loadConfig()
     updateField(this, m_excludedPlayers, jsonArray(configObject, QLatin1String("excludedPlayers"), QVariantList{}), &UserConfigBackend::excludedPlayersChanged);
     updateField(this, m_disableAutoExpandOnTrackChange, jsonBool(configObject, QLatin1String("disableAutoExpandOnTrackChange"), true), &UserConfigBackend::disableAutoExpandOnTrackChangeChanged);
     updateField(this, m_playerRememberLastPane, jsonBool(configObject, QLatin1String("playerRememberLastPane"), false), &UserConfigBackend::playerRememberLastPaneChanged);
+    updateField(this, m_claudeMinimumShowsLastMessage, jsonBool(configObject, QLatin1String("claudeMinimumShowsLastMessage"), false), &UserConfigBackend::claudeMinimumShowsLastMessageChanged);
     updateField(this, m_hoverExpandAction, jsonInt(configObject, QLatin1String("hoverExpandAction"), 1), &UserConfigBackend::hoverExpandActionChanged);
     updateField(this, m_islandAutoHideEnabled, jsonBool(configObject, QLatin1String("islandAutoHideEnabled"), true), &UserConfigBackend::islandAutoHideEnabledChanged);
     updateField(this, m_islandAutoHideDelayMs, jsonBoundedInt(configObject, QLatin1String("islandAutoHideDelayMs"), 1000, 100, 10000), &UserConfigBackend::islandAutoHideDelayMsChanged);
@@ -1068,7 +1101,6 @@ void UserConfigBackend::loadConfig()
     updateField(this, m_notchBorderEnabled, jsonBool(configObject, QLatin1String("notchBorderEnabled"), false), &UserConfigBackend::notchBorderEnabledChanged);
     updateField(this, m_notchBorderWidth, jsonBoundedInt(configObject, QLatin1String("notchBorderWidth"), 1, 1, 10), &UserConfigBackend::notchBorderWidthChanged);
     updateField(this, m_notchCircleClosedSize, jsonBoundedInt(configObject, QLatin1String("notchCircleClosedSize"), 44, 24, 160), &UserConfigBackend::notchCircleClosedSizeChanged);
-    updateField(this, m_notchCircleExpandedRadius, jsonBoundedInt(configObject, QLatin1String("notchCircleExpandedRadius"), 48, 14, 95), &UserConfigBackend::notchCircleExpandedRadiusChanged);
 
     updateField(this, m_hideNotchInFullscreen, jsonBool(configObject, QLatin1String("hideNotchInFullscreen"), true), &UserConfigBackend::hideNotchInFullscreenChanged);
     updateField(this, m_showBoringFace, jsonBool(configObject, QLatin1String("showBoringFace"), false), &UserConfigBackend::showBoringFaceChanged);

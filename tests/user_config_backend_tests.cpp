@@ -25,6 +25,7 @@ private slots:
     void playerRememberLastPaneDefaultsAndPersists();
     void setSlotWidgetDeduplicatesAcrossPagesInSameMode();
     void differentModesCanHaveSameWidget();
+    void claudeMinimumShowsLastMessageDefaultsAndPersists();
 };
 
 void UserConfigBackendTests::initTestCase()
@@ -326,6 +327,28 @@ void UserConfigBackendTests::differentModesCanHaveSameWidget()
     QVERIFY(hasPomodoro(QStringLiteral("expanded")));
     QVERIFY(hasPomodoro(QStringLiteral("circle")));
     QVERIFY(hasPomodoro(QStringLiteral("minimum")));
+}
+
+void UserConfigBackendTests::claudeMinimumShowsLastMessageDefaultsAndPersists()
+{
+    UserConfigBackend config;
+    QCOMPARE(config.claudeMinimumShowsLastMessage(), false);
+
+    QSignalSpy spy(&config, &UserConfigBackend::claudeMinimumShowsLastMessageChanged);
+    config.setClaudeMinimumShowsLastMessage(true);
+    QCOMPARE(config.claudeMinimumShowsLastMessage(), true);
+    QCOMPARE(spy.count(), 1);
+
+    // Setting same value is no-op
+    config.setClaudeMinimumShowsLastMessage(true);
+    QCOMPARE(spy.count(), 1);
+
+    // Persists across reload
+    UserConfigBackend reloaded;
+    QCOMPARE(reloaded.claudeMinimumShowsLastMessage(), true);
+
+    reloaded.setClaudeMinimumShowsLastMessage(false);
+    QCOMPARE(reloaded.claudeMinimumShowsLastMessage(), false);
 }
 
 QTEST_MAIN(UserConfigBackendTests)

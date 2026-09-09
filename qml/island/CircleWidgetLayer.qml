@@ -217,7 +217,6 @@ Item {
                     root.holdProgress = 0.0;
                     if (!root.isEditMode) {
                         root.isEditMode = true;
-                        root.currentPageIndex = root.realPageCount;
                     }
                     popAnim.restart();
                 }
@@ -602,52 +601,10 @@ Item {
                 }
             }
 
-            // 2. Fallback clock face on Home page when NOT in edit mode and no widget
+            // 2. Subtle outline ring on empty pages when NOT in edit mode
             Item {
                 anchors.fill: parent
-                visible: !pageItem.hasWidget && !pageItem.isOfferPage && pageItem.pIdx === 0 && !root.isEditMode
-
-                Rectangle {
-                    anchors.centerIn: parent
-                    width: parent.width - 2
-                    height: parent.height - 2
-                    radius: width / 2
-                    color: "transparent"
-                    border.width: 1
-                    border.color: "#2c2c2e"
-                }
-
-                Column {
-                    anchors.centerIn: parent
-                    spacing: 0
-
-                    Text {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        text: root.currentTime
-                        color: "white"
-                        font.family: root.textFontFamily
-                        font.pixelSize: Math.max(9, Math.min(14, Math.round(10 + (root.circleDiameter - 44) * 0.08)))
-                        font.weight: Font.Bold
-                        font.letterSpacing: -0.2
-                    }
-
-                    Text {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        text: root.currentDateLabel !== "" ? root.currentDateLabel : "Today"
-                        color: "#8e8e93"
-                        font.family: root.textFontFamily
-                        font.pixelSize: Math.max(7, Math.min(10, Math.round(7.5 + (root.circleDiameter - 44) * 0.05)))
-                        font.weight: Font.Medium
-                        elide: Text.ElideRight
-                        maximumLineCount: 1
-                    }
-                }
-            }
-
-            // 3. Fallback subtle outline ring on empty custom pages when NOT in edit mode
-            Item {
-                anchors.fill: parent
-                visible: !pageItem.hasWidget && !pageItem.isOfferPage && pageItem.pIdx > 0 && !root.isEditMode
+                visible: !pageItem.hasWidget && !pageItem.isOfferPage && !root.isEditMode
 
                 Rectangle {
                     anchors.centerIn: parent
@@ -660,7 +617,7 @@ Item {
                 }
             }
 
-            // 4. Empty page state in edit mode (Home or custom page with Add Widget and Delete buttons)
+            // 3. Empty page state in edit mode (Home or custom page with Add Widget and Delete buttons)
             Item {
                 id: customEmptyPage
                 readonly property int pageIndex: pageItem.pIdx

@@ -455,3 +455,12 @@ void ClaudeCodeBackend::setDemoState(const QString &state)
     emit toolDetailChanged();
     emit lastMessageChanged();
 }
+
+void ClaudeCodeBackend::setMinimumShowsLastMessage(bool enabled)
+{
+    if (m_minimumShowsLastMessage == enabled)
+        return;
+
+    m_minimumShowsLastMessage = enabled;
+    emit minimumShowsLastMessageChanged();
+}

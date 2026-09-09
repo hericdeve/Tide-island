@@ -78,6 +78,7 @@ qt_add_qml_module(tide-island-config-app
         Shortcut.qml
         ApplicationLauncherSettings.qml
         NotchSettings.qml
+        WidgetsSettings.qml
 )
 
 install(TARGETS tide-island-config-app

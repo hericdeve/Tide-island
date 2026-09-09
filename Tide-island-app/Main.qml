@@ -7,7 +7,7 @@ ApplicationWindow {
     visible: true
     width: 1000
     height: 600
-    title: "Tide Island Config Application"
+    title: "Tide Island Settings"
     color: Theme.totalBgColor
     palette.window: Theme.totalBgColor
     palette.windowText: Theme.textColor
@@ -31,15 +31,17 @@ ApplicationWindow {
         case 1:
             return generalPage
         case 2:
-            return wallpaperPage
+            return islandPage
         case 3:
-            return fontPage
-        case 4:
-            return shortcutPage
-        case 5:
             return interactionPage
+        case 4:
+            return widgetsPage
+        case 5:
+            return wallpaperPage
         case 6:
-            return notchPage
+            return fontPage
+        case 7:
+            return shortcutPage
         default:
             return null
         }
@@ -67,10 +69,10 @@ ApplicationWindow {
         }
     }
 
-    Rectangle{// main split line
-        id:mainSplitLine
+    Rectangle {
+        id: mainSplitLine
         height: parent.height - 60
-        width:2
+        width: 2
         color: Theme.splitLineColor
         x: 180
         y: 30
@@ -83,37 +85,32 @@ ApplicationWindow {
             xAxis.maximum: 250
         }
 
-        MouseArea{
-            anchors.fill:parent
+        MouseArea {
+            anchors.fill: parent
             acceptedButtons: Qt.NoButton
             cursorShape: Qt.SizeHorCursor
         }
     }
 
-    Item{
+    Item {
         id: outline
         width: mainSplitLine.x
-        height:window.height
-        
-        Text{
+        height: window.height
+
+        Text {
             id: title
             anchors.horizontalCenter: parent.horizontalCenter
-            y: 80
+            y: 40
             color: Theme.textColor
-            text: tideIslandText.width > mainSplitLine.x ? "T" : "Tide Island"
+            text: mainSplitLine.x < 130 ? "T" : "Tide Island"
             font.pixelSize: 23
             font.family: Theme.titleFontFamily
 
-            TextMetrics {
-                id: tideIslandText
-                font: islandButton.font
-                text: "Tide Island"
-            }
+            Behavior on color { ColorAnimation { duration: Theme.animationDuration } }
 
-            Behavior on color {ColorAnimation{ duration:Theme.animationDuration}}
-
-            MouseArea{
+            MouseArea {
                 hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
                 anchors.fill: parent
                 onEntered: title.color = Theme.selectedColor
                 onExited: title.color = Theme.textColor
@@ -121,172 +118,58 @@ ApplicationWindow {
             }
         }
 
-        Text{
-            id: islandButton
+        Column {
+            id: navColumn
             anchors.horizontalCenter: parent.horizontalCenter
-            y: 175
-            color: currentPage === 1 ? Theme.selectedColor : Theme.textColor
-            text: islandButtonText.width > mainSplitLine.x ? "G" : "General"
-            font.family: Theme.titleFontFamily
-            font.pixelSize: 23
+            anchors.top: title.bottom
+            anchors.topMargin: 30
+            spacing: 14
 
-            TextMetrics {
-                id: islandButtonText
-                font: islandButton.font
-                text: "General"
-            }
+            Repeater {
+                model: [
+                    { id: 1, label: "General", shortLabel: "G" },
+                    { id: 2, label: "Island", shortLabel: "I" },
+                    { id: 3, label: "Interaction", shortLabel: "A" },
+                    { id: 4, label: "Widgets", shortLabel: "W" },
+                    { id: 5, label: "Wallpaper", shortLabel: "P" },
+                    { id: 6, label: "Typography", shortLabel: "T" },
+                    { id: 7, label: "Shortcuts", shortLabel: "S" }
+                ]
 
-            Behavior on color {ColorAnimation{ duration:Theme.animationDuration}}
+                delegate: Text {
+                    id: tabItem
+                    readonly property bool selected: window.currentPage === modelData.id
+                    readonly property bool compact: mainSplitLine.x < 130
 
-            MouseArea{
-                anchors.fill:parent
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    color: selected ? Theme.selectedColor : Theme.textColor
+                    text: compact ? modelData.shortLabel : modelData.label
+                    font.family: Theme.titleFontFamily
+                    font.pixelSize: 20
+                    font.weight: selected ? Font.Bold : Font.Normal
 
-                onClicked: {
-                    selectPage(1)
-                }
-            }
-        }
+                    Behavior on color { ColorAnimation { duration: Theme.animationDuration } }
 
-        Text{
-            id: wallpaperButton
-            anchors.horizontalCenter: parent.horizontalCenter
-            y: 225
-            color: currentPage === 2 ? Theme.selectedColor : Theme.textColor
-            text: wallpaperButtonText.width > mainSplitLine.x ? "W" : "Wallpaper"
-            font.family: Theme.titleFontFamily
-            font.pixelSize: 23
-
-            TextMetrics {
-                id: wallpaperButtonText
-                font: wallpaperButton.font
-                text: "Wallpaper"
-            }
-
-            Behavior on color {ColorAnimation{ duration:Theme.animationDuration}}
-
-            MouseArea{
-                anchors.fill:parent
-
-                onClicked: {
-                    selectPage(2)
-                }
-            }
-        }
-
-        Text{
-            id: fontButton
-            anchors.horizontalCenter: parent.horizontalCenter
-            y: 275
-            color: currentPage === 3 ? Theme.selectedColor : Theme.textColor
-            text: fontButtonText.width > mainSplitLine.x ? "F" : "Font"
-            font.family: Theme.titleFontFamily
-            font.pixelSize: 23
-
-            TextMetrics {
-                id: fontButtonText
-                font: fontButton.font
-                text: "Font"
-            }
-
-            Behavior on color {ColorAnimation{ duration:Theme.animationDuration}}
-
-            MouseArea{
-                anchors.fill:parent
-
-                onClicked: {
-                    selectPage(3)
-                }
-            }
-        }
-
-        Text{
-            id: shortcutButton
-            anchors.horizontalCenter: parent.horizontalCenter
-            y: 325
-            color: currentPage === 4 ? Theme.selectedColor : Theme.textColor
-            text: shortcutButtonText.width > mainSplitLine.x ? "S" : "Shortcut"
-            font.family: Theme.titleFontFamily
-            font.pixelSize: 23
-
-            TextMetrics {
-                id: shortcutButtonText
-                font: shortcutButton.font
-                text: "Shortcut"
-            }
-
-            Behavior on color {ColorAnimation{ duration:Theme.animationDuration}}
-
-            MouseArea{
-                anchors.fill:parent
-
-                onClicked: {
-                    selectPage(4)
-                }
-            }
-        }
-
-        Text{
-            id: interactionButton
-            anchors.horizontalCenter: parent.horizontalCenter
-            y: 375
-            color: currentPage === 5 ? Theme.selectedColor : Theme.textColor
-            text: interactionButtonText.width > mainSplitLine.x ? "I" : "Interaction"
-            font.family: Theme.titleFontFamily
-            font.pixelSize: 23
-
-            TextMetrics {
-                id: interactionButtonText
-                font:interactionButton.font
-                text: "Interaction"
-            }
-
-            Behavior on color {ColorAnimation{ duration:Theme.animationDuration}}
-
-            MouseArea{
-                anchors.fill:parent
-
-                onClicked: {
-                    selectPage(5)
-                }
-            }
-        }
-
-        Text{
-            id: notchButton
-            anchors.horizontalCenter: parent.horizontalCenter
-            y: 425
-            color: currentPage === 6 ? Theme.selectedColor : Theme.textColor
-            text: notchButtonText.width > mainSplitLine.x ? "N" : "Notch"
-            font.family: Theme.titleFontFamily
-            font.pixelSize: 23
-
-            TextMetrics {
-                id: notchButtonText
-                font: notchButton.font
-                text: "Notch"
-            }
-
-            Behavior on color {ColorAnimation{ duration:Theme.animationDuration}}
-
-            MouseArea{
-                anchors.fill:parent
-
-                onClicked: {
-                    selectPage(6)
+                    MouseArea {
+                        anchors.fill: parent
+                        anchors.margins: -4
+                        cursorShape: Qt.PointingHandCursor
+                        hoverEnabled: true
+                        onClicked: window.selectPage(modelData.id)
+                    }
                 }
             }
         }
 
         Text {
             id: appearanceButton
-
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.bottom: parent.bottom
-            anchors.bottomMargin: 42
+            anchors.bottomMargin: 36
             text: Theme.darkMode ? "Dark" : "Light"
             color: Theme.textColor
             font.family: Theme.titleFontFamily
-            font.pixelSize: 23
+            font.pixelSize: 21
 
             Behavior on color {
                 ColorAnimation { duration: Theme.animationDuration }
@@ -302,23 +185,41 @@ ApplicationWindow {
                 onClicked: backend.setColorScheme(Theme.darkMode ? "light" : "dark")
             }
         }
-
     }
 
-
-
-    Item{
+    Item {
         id: page
         anchors.left: mainSplitLine.right
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.bottom: parent.bottom
 
-        General{
-            id: generalPage           
-            anchors.fill:parent
+        General {
+            id: generalPage
+            anchors.fill: parent
             visible: true
             opacity: 1
+        }
+
+        NotchSettings {
+            id: islandPage
+            anchors.fill: parent
+            visible: false
+            opacity: 0
+        }
+
+        Interaction {
+            id: interactionPage
+            anchors.fill: parent
+            visible: false
+            opacity: 0
+        }
+
+        WidgetsSettings {
+            id: widgetsPage
+            anchors.fill: parent
+            visible: false
+            opacity: 0
         }
 
         WallpaperSettings {
@@ -341,21 +242,6 @@ ApplicationWindow {
             visible: false
             opacity: 0
         }
-
-        Interaction {
-            id: interactionPage
-            anchors.fill: parent
-            visible: false
-            opacity: 0
-        }
-
-        NotchSettings {
-            id: notchPage
-            anchors.fill: parent
-            visible: false
-            opacity: 0
-        }
-
     }
 
     Rectangle {
@@ -382,7 +268,6 @@ ApplicationWindow {
 
         Text {
             id: errorText
-
             anchors.left: parent.left
             anchors.leftMargin: 16
             anchors.right: rewriteButton.left
@@ -399,7 +284,6 @@ ApplicationWindow {
 
         Rectangle {
             id: rewriteButton
-
             width: 112
             height: 32
             anchors.right: parent.right
@@ -422,7 +306,6 @@ ApplicationWindow {
 
             MouseArea {
                 id: rewriteMouse
-
                 anchors.fill: parent
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor

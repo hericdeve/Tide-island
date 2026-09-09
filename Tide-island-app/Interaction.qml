@@ -25,6 +25,24 @@ PagePanel {
 
     property int revision: 0
 
+    function intValue(key, fallback) {
+        return String(ConfigStore.value(key, fallback))
+    }
+
+    function saveInt(key, value, fallback, minimumValue, maximumValue) {
+        if (String(value).trim().length === 0)
+            return fallback
+
+        const parsedValue = Number(value)
+        if (isNaN(parsedValue))
+            return fallback
+
+        const roundedValue = Math.min(maximumValue, Math.max(minimumValue, Math.round(parsedValue)))
+        ConfigStore.setValue(key, roundedValue)
+        ConfigStore.save()
+        return roundedValue
+    }
+
     function normalizedButton(value, fallback) {
         const parsedValue = Number(value)
         if (parsedValue === 1 || parsedValue === 2 || parsedValue === 3)
@@ -168,17 +186,6 @@ PagePanel {
         return delayMs / 1000
     }
 
-    function autoExpandOnTrackChange() {
-        revision
-        return !boolValue("disableAutoExpandOnTrackChange", false)
-    }
-
-    function setAutoExpandOnTrackChange(enabled) {
-        ConfigStore.setValue("disableAutoExpandOnTrackChange", !enabled)
-        ConfigStore.save()
-        revision += 1
-    }
-
     function playerRememberLastPane() {
         revision
         return boolValue("playerRememberLastPane", false)
@@ -217,7 +224,7 @@ PagePanel {
             id: content
 
             width: scroller.width
-            height: playerPanel.y + playerPanel.height + 40
+            height: navigationPanel.y + navigationPanel.height + 40
 
             Text {
                 id: title
@@ -230,10 +237,11 @@ PagePanel {
                 font.pixelSize: 30
             }
 
+            // 1. Mouse Click Actions
             Text {
                 id: clickTitle
 
-                text: "Click"
+                text: "Mouse Click Actions"
                 anchors.top: title.bottom
                 anchors.topMargin: 40
                 anchors.left: parent.left
@@ -291,10 +299,11 @@ PagePanel {
                 }
             }
 
+            // 2. Hover Triggers & Timing
             Text {
                 id: hoverTitle
 
-                text: "Hover"
+                text: "Hover Triggers & Timing"
                 anchors.top: clickPanel.bottom
                 anchors.topMargin: 34
                 anchors.left: parent.left
@@ -338,9 +347,79 @@ PagePanel {
 
                     SplitLine { width: parent.width }
 
+                    ConfigRow {
+                        title: "Hover Open Delay (ms)"
+                        description: "Delay in milliseconds before the notch opens on hover (default 300)"
+                        keyName: "notchHoverOpenDelayMs"
+                        fallbackText: "300"
+                        numeric: true
+                        minimumValue: 0
+                        maximumValue: 3000
+                        width: parent.width
+                    }
+
+                    SplitLine { width: parent.width }
+
+                    ConfigRow {
+                        title: "Hover Close Delay (ms)"
+                        description: "Delay in milliseconds before the notch closes after pointer leaves (default 100)"
+                        keyName: "notchHoverCloseDelayMs"
+                        fallbackText: "100"
+                        numeric: true
+                        minimumValue: 0
+                        maximumValue: 3000
+                        width: parent.width
+                    }
+                }
+            }
+
+            // 3. Auto-Hide
+            Text {
+                id: autoHideTitle
+
+                text: "Auto-Hide"
+                anchors.top: hoverPanel.bottom
+                anchors.topMargin: 34
+                anchors.left: parent.left
+                anchors.leftMargin: 32
+                anchors.right: parent.right
+                anchors.rightMargin: 40
+                color: Theme.textColor
+                font.family: Theme.titleFontFamily
+                font.pixelSize: 23
+            }
+
+            Rectangle {
+                id: autoHidePanel
+
+                color: Theme.cardBgColor
+                radius: 16
+                border.width: 1
+                border.color: Theme.splitLineColor
+                anchors.top: autoHideTitle.bottom
+                anchors.topMargin: 15
+                anchors.left: parent.left
+                anchors.leftMargin: 30
+                anchors.right: parent.right
+                anchors.rightMargin: 40
+                height: autoHideColumn.implicitHeight + 30
+
+                Column {
+                    id: autoHideColumn
+
+                    anchors.top: parent.top
+                    anchors.topMargin: 15
+                    anchors.left: parent.left
+                    anchors.leftMargin: 18
+                    anchors.right: parent.right
+                    anchors.rightMargin: 18
+                    spacing: 15
+
                     AutoHideRow {
                         width: parent.width
                     }
+
+                    SplitLine { width: parent.width }
 
                     ShowWorkspaceAutoHideRow {
                         width: parent.width
@@ -354,11 +433,12 @@ PagePanel {
                 }
             }
 
+            // 4. Expansion & Navigation
             Text {
-                id: playerTitle
+                id: navigationTitle
 
-                text: "Expanded Notch"
-                anchors.top: hoverPanel.bottom
+                text: "Expansion & Page Navigation"
+                anchors.top: autoHidePanel.bottom
                 anchors.topMargin: 34
                 anchors.left: parent.left
                 anchors.leftMargin: 32
@@ -370,22 +450,22 @@ PagePanel {
             }
 
             Rectangle {
-                id: playerPanel
+                id: navigationPanel
 
                 color: Theme.cardBgColor
                 radius: 16
                 border.width: 1
                 border.color: Theme.splitLineColor
-                anchors.top: playerTitle.bottom
+                anchors.top: navigationTitle.bottom
                 anchors.topMargin: 15
                 anchors.left: parent.left
                 anchors.leftMargin: 30
                 anchors.right: parent.right
                 anchors.rightMargin: 40
-                height: playerColumn.implicitHeight + 30
+                height: navigationColumn.implicitHeight + 30
 
                 Column {
-                    id: playerColumn
+                    id: navigationColumn
 
                     anchors.top: parent.top
                     anchors.topMargin: 15
@@ -394,14 +474,6 @@ PagePanel {
                     anchors.right: parent.right
                     anchors.rightMargin: 18
                     spacing: 15
-
-                    AutoExpandTrackRow {
-                        width: parent.width
-                    }
-
-                    SplitLine {
-                        width: parent.width
-                    }
 
                     PlayerPaneRestoreRow {
                         width: parent.width
@@ -414,6 +486,72 @@ PagePanel {
     component SplitLine: Rectangle {
         height: 1
         color: Theme.splitLineColor
+    }
+
+    component ConfigRow: Item {
+        id: configRow
+
+        property string title: ""
+        property string description: ""
+        property string keyName: ""
+        property string fallbackText: ""
+        property bool numeric: false
+        property int minimumValue: 1
+        property int maximumValue: 1000
+
+        height: 49
+
+        Text {
+            id: configRowTitle
+            text: configRow.title
+            font.family: Theme.textFontFamily
+            font.pixelSize: 18
+            color: Theme.textColor
+            anchors.top: parent.top
+            anchors.left: parent.left
+        }
+
+        Text {
+            text: configRow.description
+            font.family: Theme.textFontFamily
+            font.pixelSize: 14
+            anchors.top: configRowTitle.bottom
+            anchors.topMargin: 5
+            anchors.left: configRowTitle.left
+            width: Math.max(80, parent.width - configField.width - 28)
+            elide: Text.ElideRight
+            color: Theme.subtleTextColor
+        }
+
+        ConfigTextField {
+            id: configField
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            width: configRow.numeric ? 100 : 230
+            height: 36
+            placeholderText: configRow.fallbackText
+            inputMethodHints: configRow.numeric ? Qt.ImhDigitsOnly : Qt.ImhNone
+            validator: configRow.numeric ? intValidator : null
+
+            Component.onCompleted: {
+                text = root.intValue(configRow.keyName, Number(configRow.fallbackText))
+            }
+
+            onAccepted: configRow.commit()
+            onEditingFinished: configRow.commit()
+        }
+
+        IntValidator {
+            id: intValidator
+            bottom: configRow.minimumValue
+            top: configRow.maximumValue
+        }
+
+        function commit() {
+            if (numeric) {
+                configField.text = String(root.saveInt(configRow.keyName, configField.text, Number(configRow.fallbackText), configRow.minimumValue, configRow.maximumValue))
+            }
+        }
     }
 
     component ActionButtonRow: Item {
@@ -471,7 +609,7 @@ PagePanel {
         Text {
             id: rowTitle
 
-            text: "Hover Expand"
+            text: "Hover Expand Action"
             anchors.left: parent.left
             anchors.top: parent.top
             color: Theme.textColor
@@ -480,7 +618,7 @@ PagePanel {
         }
 
         Text {
-            text: "Choose what opens when hovered (disables Auto-Hide)"
+            text: "Action triggered when hovering over the island (disables Auto-Hide)"
             anchors.left: rowTitle.left
             anchors.top: rowTitle.bottom
             anchors.topMargin: 5
@@ -505,47 +643,6 @@ PagePanel {
         }
     }
 
-    component AutoExpandTrackRow: Item {
-        id: row
-
-        height: 49
-
-        Text {
-            id: rowTitle
-
-            text: "Auto Expand on Track Change"
-            anchors.left: parent.left
-            anchors.top: parent.top
-            color: Theme.textColor
-            font.family: Theme.textFontFamily
-            font.pixelSize: 18
-        }
-
-        Text {
-            text: "Open the island when the current media track changes"
-            anchors.left: rowTitle.left
-            anchors.top: rowTitle.bottom
-            anchors.topMargin: 5
-            width: Math.max(80, parent.width - autoExpandSwitch.width - 28)
-            color: Theme.subtleTextColor
-            elide: Text.ElideRight
-            font.family: Theme.textFontFamily
-            font.pixelSize: 14
-        }
-
-        StyledSwitch {
-            id: autoExpandSwitch
-
-            anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
-            checked: root.autoExpandOnTrackChange()
-
-            onToggled: function(checked) {
-                root.setAutoExpandOnTrackChange(checked)
-            }
-        }
-    }
-
     component PlayerPaneRestoreRow: Item {
         id: row
 
@@ -554,7 +651,7 @@ PagePanel {
         Text {
             id: rowTitle
 
-            text: "Remember Last Page"
+            text: "Remember Last Visited Page"
             anchors.left: parent.left
             anchors.top: parent.top
             color: Theme.textColor
@@ -563,7 +660,7 @@ PagePanel {
         }
 
         Text {
-            text: "Return to Home or remember the last opened widget page"
+            text: "Restore previous widget page on expand, or return to Home"
             anchors.left: rowTitle.left
             anchors.top: rowTitle.bottom
             anchors.topMargin: 5
@@ -596,7 +693,7 @@ PagePanel {
         Text {
             id: rowTitle
 
-            text: "Auto Hide"
+            text: "Auto-Hide Island"
             anchors.left: parent.left
             anchors.top: parent.top
             color: Theme.textColor
@@ -605,7 +702,7 @@ PagePanel {
         }
 
         Text {
-            text: "Hide the island until pointer reaches edge (disables Hover Expand)"
+            text: "Retract the island when idle (disables Hover Expand)"
             anchors.left: rowTitle.left
             anchors.top: rowTitle.bottom
             anchors.topMargin: 5
@@ -629,7 +726,7 @@ PagePanel {
         }
     }
 
-component ShowWorkspaceAutoHideRow: Item {
+    component ShowWorkspaceAutoHideRow: Item {
         id: row
         height: 49
 
@@ -663,12 +760,12 @@ component ShowWorkspaceAutoHideRow: Item {
             id: workspaceSwitch
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
-            
+
             Component.onCompleted: checked = root.islandShowWorkspaceOnAutoHide()
 
             onToggled: function(checkedValue) {
                 root.setIslandShowWorkspaceOnAutoHide(checkedValue)
-                checked = checkedValue 
+                checked = checkedValue
             }
         }
     }
@@ -690,7 +787,7 @@ component ShowWorkspaceAutoHideRow: Item {
         }
 
         Text {
-            text: "Delay after the pointer leaves the island"
+            text: "Inactivity time before island auto-hides"
             anchors.left: rowTitle.left
             anchors.top: rowTitle.bottom
             anchors.topMargin: 5
@@ -783,7 +880,6 @@ component ShowWorkspaceAutoHideRow: Item {
             Behavior on x {
                 NumberAnimation { duration: 180; easing.type: Easing.InOutQuad }
             }
-
         }
 
         MouseArea {

@@ -31,6 +31,7 @@ class ClaudeCodeBackend final : public QObject {
     Q_PROPERTY(QString lastMessage READ lastMessage NOTIFY lastMessageChanged FINAL)
     Q_PROPERTY(bool hookInstalled READ isHookInstalled NOTIFY hookInstalledChanged FINAL)
     Q_PROPERTY(bool demoMode READ isDemoMode NOTIFY demoModeChanged FINAL)
+    Q_PROPERTY(bool minimumShowsLastMessage READ minimumShowsLastMessage WRITE setMinimumShowsLastMessage NOTIFY minimumShowsLastMessageChanged FINAL)
 
 public:
     explicit ClaudeCodeBackend(QObject *parent = nullptr);
@@ -55,6 +56,8 @@ public:
     QString lastMessage() const { return m_lastMessage; }
     bool isHookInstalled() const { return m_hookInstalled; }
     bool isDemoMode() const { return m_demoMode; }
+    bool minimumShowsLastMessage() const { return m_minimumShowsLastMessage; }
+    Q_INVOKABLE void setMinimumShowsLastMessage(bool enabled);
 
     Q_INVOKABLE void allowConsent(bool always = false);
     Q_INVOKABLE void denyConsent();
@@ -80,6 +83,7 @@ signals:
     void lastMessageChanged();
     void hookInstalledChanged();
     void demoModeChanged();
+    void minimumShowsLastMessageChanged();
     void promptResultReceived(const QString &output, bool success);
 
 private slots:
@@ -113,6 +117,7 @@ private:
     QString m_lastMessage = QStringLiteral("Ready to assist.");
     bool m_hookInstalled = false;
     bool m_demoMode = false;
+    bool m_minimumShowsLastMessage = false;
 
     QFileSystemWatcher m_watcher;
     QTimer m_pollTimer;

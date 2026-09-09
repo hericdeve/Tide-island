@@ -47,6 +47,7 @@ class UserConfigBackend final : public QObject {
     Q_PROPERTY(QVariantList excludedPlayers READ excludedPlayers NOTIFY excludedPlayersChanged FINAL)
     Q_PROPERTY(bool disableAutoExpandOnTrackChange READ disableAutoExpandOnTrackChange NOTIFY disableAutoExpandOnTrackChangeChanged FINAL)
     Q_PROPERTY(bool playerRememberLastPane READ playerRememberLastPane WRITE setPlayerRememberLastPane NOTIFY playerRememberLastPaneChanged FINAL)
+    Q_PROPERTY(bool claudeMinimumShowsLastMessage READ claudeMinimumShowsLastMessage WRITE setClaudeMinimumShowsLastMessage NOTIFY claudeMinimumShowsLastMessageChanged FINAL)
     Q_PROPERTY(int hoverExpandAction READ hoverExpandAction NOTIFY hoverExpandActionChanged FINAL)
     Q_PROPERTY(bool islandAutoHideEnabled READ islandAutoHideEnabled NOTIFY islandAutoHideEnabledChanged FINAL)
     Q_PROPERTY(int islandAutoHideDelayMs READ islandAutoHideDelayMs NOTIFY islandAutoHideDelayMsChanged FINAL)
@@ -63,7 +64,6 @@ class UserConfigBackend final : public QObject {
     Q_PROPERTY(int notchCircleClosedSize READ notchCircleClosedSize NOTIFY notchCircleClosedSizeChanged FINAL)
     Q_PROPERTY(int notchOpenWidth READ notchOpenWidth NOTIFY notchOpenWidthChanged FINAL)
     Q_PROPERTY(int notchOpenHeight READ notchOpenHeight NOTIFY notchOpenHeightChanged FINAL)
-    Q_PROPERTY(int notchCircleExpandedRadius READ notchCircleExpandedRadius NOTIFY notchCircleExpandedRadiusChanged FINAL)
     Q_PROPERTY(int notchTopCornerRadius READ notchTopCornerRadius NOTIFY notchTopCornerRadiusChanged FINAL)
     Q_PROPERTY(int notchBottomCornerRadius READ notchBottomCornerRadius NOTIFY notchBottomCornerRadiusChanged FINAL)
     Q_PROPERTY(int notchHoverOpenDelayMs READ notchHoverOpenDelayMs NOTIFY notchHoverOpenDelayMsChanged FINAL)
@@ -118,6 +118,8 @@ public:
     bool disableAutoExpandOnTrackChange() const;
     bool playerRememberLastPane() const;
     Q_INVOKABLE void setPlayerRememberLastPane(bool remember);
+    bool claudeMinimumShowsLastMessage() const;
+    Q_INVOKABLE void setClaudeMinimumShowsLastMessage(bool showsLastMessage);
     int hoverExpandAction() const;
     bool islandShowWorkspaceOnAutoHide() const;
     bool islandAutoHideEnabled() const;
@@ -138,7 +140,6 @@ public:
     int notchCircleClosedSize() const;
     int notchOpenWidth() const;
     int notchOpenHeight() const;
-    int notchCircleExpandedRadius() const;
     int notchTopCornerRadius() const;
     int notchBottomCornerRadius() const;
     int notchHoverOpenDelayMs() const;
@@ -203,6 +204,7 @@ signals:
     void excludedPlayersChanged();
     void disableAutoExpandOnTrackChangeChanged();
     void playerRememberLastPaneChanged();
+    void claudeMinimumShowsLastMessageChanged();
     void islandShowWorkspaceOnAutoHideChanged();
     void hoverExpandActionChanged();
     void islandAutoHideEnabledChanged();
@@ -219,7 +221,6 @@ signals:
     void notchCircleClosedSizeChanged();
     void notchOpenWidthChanged();
     void notchOpenHeightChanged();
-    void notchCircleExpandedRadiusChanged();
     void notchTopCornerRadiusChanged();
     void notchBottomCornerRadiusChanged();
     void notchHoverOpenDelayMsChanged();
@@ -277,6 +278,7 @@ private:
     bool m_islandShowWorkspaceOnAutoHide = true;
     bool m_disableAutoExpandOnTrackChange = true;
     bool m_playerRememberLastPane = false;
+    bool m_claudeMinimumShowsLastMessage = false;
     int m_hoverExpandAction = 1;
     bool m_islandAutoHideEnabled = true;
     int m_islandAutoHideDelayMs = 1000;
@@ -292,7 +294,6 @@ private:
     int m_notchCircleClosedSize = 44;
     int m_notchOpenWidth = 640;
     int m_notchOpenHeight = 190;
-    int m_notchCircleExpandedRadius = 48;
     int m_notchTopCornerRadius = 6;
     int m_notchBottomCornerRadius = 14;
     int m_notchHoverOpenDelayMs = 300;

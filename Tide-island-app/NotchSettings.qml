@@ -52,21 +52,22 @@ PagePanel {
         Item {
             id: content
             width: scroller.width
-            height: calendarPanel.y + calendarPanel.height + 60
+            height: curvaturePanel.y + curvaturePanel.height + 40
 
             Text {
                 id: title
                 font.family: Theme.titleFontFamily
-                text: "Boring Notch"
+                text: "Island & Notch"
                 color: Theme.textColor
                 font.pixelSize: 30
                 x: 60
                 y: 50
             }
 
+            // 1. Layout & Placement
             Text {
-                id: sizingTitle
-                text: "Notch Sizing & Geometry"
+                id: layoutTitle
+                text: "Layout & Placement"
                 anchors.top: title.bottom
                 anchors.topMargin: 34
                 anchors.left: parent.left
@@ -79,21 +80,21 @@ PagePanel {
             }
 
             Rectangle {
-                id: sizingPanel
+                id: layoutPanel
                 color: Theme.cardBgColor
                 radius: 16
                 border.width: 1
                 border.color: Theme.splitLineColor
-                anchors.top: sizingTitle.bottom
+                anchors.top: layoutTitle.bottom
                 anchors.topMargin: 15
                 anchors.left: parent.left
                 anchors.leftMargin: 30
                 anchors.right: parent.right
                 anchors.rightMargin: 40
-                height: sizingColumn.implicitHeight + 36
+                height: layoutColumn.implicitHeight + 36
 
                 Column {
-                    id: sizingColumn
+                    id: layoutColumn
                     anchors.top: parent.top
                     anchors.topMargin: 18
                     anchors.left: parent.left
@@ -114,8 +115,86 @@ PagePanel {
 
                     SplitLine { width: parent.width }
 
+                    ConfigRow {
+                        title: "Screen Edge Offset"
+                        description: "Distance in pixels between the island and screen edge (default 4)"
+                        keyName: "islandTopMargin"
+                        fallbackText: "4"
+                        numeric: true
+                        minimumValue: 0
+                        maximumValue: 200
+                        width: parent.width
+                    }
+
+                    SplitLine { width: parent.width }
+
+                    ConfigRow {
+                        title: "Horizontal Alignment (%)"
+                        description: "Horizontal position percentage along screen edge (50% = center)"
+                        keyName: "islandPositionX"
+                        fallbackText: "50"
+                        numeric: true
+                        minimumValue: 0
+                        maximumValue: 100
+                        width: parent.width
+                    }
+                }
+            }
+
+            // 2. Appearance & Styling
+            Text {
+                id: appearanceTitle
+                text: "Appearance & Styling"
+                anchors.top: layoutPanel.bottom
+                anchors.topMargin: 34
+                anchors.left: parent.left
+                anchors.leftMargin: 32
+                anchors.right: parent.right
+                anchors.rightMargin: 40
+                font.family: Theme.titleFontFamily
+                font.pixelSize: 23
+                color: Theme.textColor
+            }
+
+            Rectangle {
+                id: appearancePanel
+                color: Theme.cardBgColor
+                radius: 16
+                border.width: 1
+                border.color: Theme.splitLineColor
+                anchors.top: appearanceTitle.bottom
+                anchors.topMargin: 15
+                anchors.left: parent.left
+                anchors.leftMargin: 30
+                anchors.right: parent.right
+                anchors.rightMargin: 40
+                height: appearanceColumn.implicitHeight + 36
+
+                Column {
+                    id: appearanceColumn
+                    anchors.top: parent.top
+                    anchors.topMargin: 18
+                    anchors.left: parent.left
+                    anchors.leftMargin: 18
+                    anchors.right: parent.right
+                    anchors.rightMargin: 18
+                    spacing: 16
+
+                    ConfigRow {
+                        title: "Background Opacity (%)"
+                        description: "Opacity of the island background (0% = transparent, 100% = solid)"
+                        keyName: "islandBackgroundOpacity"
+                        fallbackText: "60"
+                        numeric: true
+                        minimumValue: 0
+                        maximumValue: 100
+                        width: parent.width
+                    }
+
+                    SplitLine { width: parent.width }
+
                     ToggleRow {
-                        title: "Notch Border"
+                        title: "Contour Outline Border"
                         description: "Display an outline border around the notch contour"
                         keyName: "notchBorderEnabled"
                         fallbackState: false
@@ -125,8 +204,8 @@ PagePanel {
                     SplitLine { width: parent.width }
 
                     ConfigRow {
-                        title: "Notch Border Width"
-                        description: "Thickness in pixels of the notch outline border (1-10, default 1)"
+                        title: "Border Thickness"
+                        description: "Thickness in pixels of the outline border (1-10, default 1)"
                         keyName: "notchBorderWidth"
                         fallbackText: "1"
                         numeric: true
@@ -137,9 +216,58 @@ PagePanel {
 
                     SplitLine { width: parent.width }
 
+                    ToggleRow {
+                        title: "Boring Face Idle Animation"
+                        description: "Show playful animated blinking eyes when closed and idle"
+                        keyName: "showBoringFace"
+                        fallbackState: false
+                        width: parent.width
+                    }
+                }
+            }
+
+            // 3. Resting Dimensions
+            Text {
+                id: restingTitle
+                text: "Resting Dimensions"
+                anchors.top: appearancePanel.bottom
+                anchors.topMargin: 34
+                anchors.left: parent.left
+                anchors.leftMargin: 32
+                anchors.right: parent.right
+                anchors.rightMargin: 40
+                font.family: Theme.titleFontFamily
+                font.pixelSize: 23
+                color: Theme.textColor
+            }
+
+            Rectangle {
+                id: restingPanel
+                color: Theme.cardBgColor
+                radius: 16
+                border.width: 1
+                border.color: Theme.splitLineColor
+                anchors.top: restingTitle.bottom
+                anchors.topMargin: 15
+                anchors.left: parent.left
+                anchors.leftMargin: 30
+                anchors.right: parent.right
+                anchors.rightMargin: 40
+                height: restingColumn.implicitHeight + 36
+
+                Column {
+                    id: restingColumn
+                    anchors.top: parent.top
+                    anchors.topMargin: 18
+                    anchors.left: parent.left
+                    anchors.leftMargin: 18
+                    anchors.right: parent.right
+                    anchors.rightMargin: 18
+                    spacing: 16
+
                     ConfigRow {
-                        title: "Closed Notch Width"
-                        description: "Width of notch when resting in Notch/Pill mode (default 185)"
+                        title: "Closed Width (Pill / Notch)"
+                        description: "Width in pixels of notch when resting (default 185)"
                         keyName: "notchClosedWidth"
                         fallbackText: "185"
                         numeric: true
@@ -151,8 +279,8 @@ PagePanel {
                     SplitLine { width: parent.width }
 
                     ConfigRow {
-                        title: "Closed Notch Height"
-                        description: "Height of notch when resting (default 32)"
+                        title: "Closed Height (Pill / Notch)"
+                        description: "Height in pixels of notch when resting (default 32)"
                         keyName: "notchClosedHeight"
                         fallbackText: "32"
                         numeric: true
@@ -164,8 +292,8 @@ PagePanel {
                     SplitLine { width: parent.width }
 
                     ConfigRow {
-                        title: "Circle Closed Size"
-                        description: "Diameter of circle when resting in Circle mode (default 44)"
+                        title: "Circle Diameter"
+                        description: "Diameter in pixels when resting in Circle mode (default 44)"
                         keyName: "notchCircleClosedSize"
                         fallbackText: "44"
                         numeric: true
@@ -173,12 +301,51 @@ PagePanel {
                         maximumValue: 160
                         width: parent.width
                     }
+                }
+            }
 
-                    SplitLine { width: parent.width }
+            // 4. Expanded Dimensions
+            Text {
+                id: expandedTitle
+                text: "Expanded Dimensions"
+                anchors.top: restingPanel.bottom
+                anchors.topMargin: 34
+                anchors.left: parent.left
+                anchors.leftMargin: 32
+                anchors.right: parent.right
+                anchors.rightMargin: 40
+                font.family: Theme.titleFontFamily
+                font.pixelSize: 23
+                color: Theme.textColor
+            }
+
+            Rectangle {
+                id: expandedPanel
+                color: Theme.cardBgColor
+                radius: 16
+                border.width: 1
+                border.color: Theme.splitLineColor
+                anchors.top: expandedTitle.bottom
+                anchors.topMargin: 15
+                anchors.left: parent.left
+                anchors.leftMargin: 30
+                anchors.right: parent.right
+                anchors.rightMargin: 40
+                height: expandedColumn.implicitHeight + 36
+
+                Column {
+                    id: expandedColumn
+                    anchors.top: parent.top
+                    anchors.topMargin: 18
+                    anchors.left: parent.left
+                    anchors.leftMargin: 18
+                    anchors.right: parent.right
+                    anchors.rightMargin: 18
+                    spacing: 16
 
                     ConfigRow {
-                        title: "Open Notch Width"
-                        description: "Width of notch when expanded (default 640)"
+                        title: "Expanded Width"
+                        description: "Width in pixels of island when open (default 640)"
                         keyName: "notchOpenWidth"
                         fallbackText: "640"
                         numeric: true
@@ -190,8 +357,8 @@ PagePanel {
                     SplitLine { width: parent.width }
 
                     ConfigRow {
-                        title: "Open Notch Height"
-                        description: "Height of notch when expanded (default 190)"
+                        title: "Expanded Height"
+                        description: "Height in pixels of island when open (default 190)"
                         keyName: "notchOpenHeight"
                         fallbackText: "190"
                         numeric: true
@@ -199,38 +366,51 @@ PagePanel {
                         maximumValue: 900
                         width: parent.width
                     }
+                }
+            }
 
-                    SplitLine { width: parent.width }
+            // 5. Corner Curvature
+            Text {
+                id: curvatureTitle
+                text: "Corner Curvature"
+                anchors.top: expandedPanel.bottom
+                anchors.topMargin: 34
+                anchors.left: parent.left
+                anchors.leftMargin: 32
+                anchors.right: parent.right
+                anchors.rightMargin: 40
+                font.family: Theme.titleFontFamily
+                font.pixelSize: 23
+                color: Theme.textColor
+            }
+
+            Rectangle {
+                id: curvaturePanel
+                color: Theme.cardBgColor
+                radius: 16
+                border.width: 1
+                border.color: Theme.splitLineColor
+                anchors.top: curvatureTitle.bottom
+                anchors.topMargin: 15
+                anchors.left: parent.left
+                anchors.leftMargin: 30
+                anchors.right: parent.right
+                anchors.rightMargin: 40
+                height: curvatureColumn.implicitHeight + 36
+
+                Column {
+                    id: curvatureColumn
+                    anchors.top: parent.top
+                    anchors.topMargin: 18
+                    anchors.left: parent.left
+                    anchors.leftMargin: 18
+                    anchors.right: parent.right
+                    anchors.rightMargin: 18
+                    spacing: 16
 
                     ConfigRow {
-                        title: "Circle Mode Expanded Roundness"
-                        description: "Corner radius when expanded in Circle mode (default 48)"
-                        keyName: "notchCircleExpandedRadius"
-                        fallbackText: "48"
-                        numeric: true
-                        minimumValue: 14
-                        maximumValue: 95
-                        width: parent.width
-                    }
-
-                    SplitLine { width: parent.width }
-
-                    ConfigRow {
-                        title: "Top Flared Wing Radius"
-                        description: "Curvature of top wings flaring into screen bezel (default 6, 0 = flat)"
-                        keyName: "notchTopCornerRadius"
-                        fallbackText: "6"
-                        numeric: true
-                        minimumValue: 0
-                        maximumValue: 100
-                        width: parent.width
-                    }
-
-                    SplitLine { width: parent.width }
-
-                    ConfigRow {
-                        title: "Bottom Corner Radius"
-                        description: "Curvature of bottom notch corners (default 14)"
+                        title: "Bottom & Expanded Corner Radius"
+                        description: "Curvature radius of bottom corners and expanded notch (default 14)"
                         keyName: "notchBottomCornerRadius"
                         fallbackText: "14"
                         numeric: true
@@ -238,203 +418,17 @@ PagePanel {
                         maximumValue: 100
                         width: parent.width
                     }
-                }
-            }
-
-            Text {
-                id: behaviorTitle
-                text: "Behavior & Gestures"
-                anchors.top: sizingPanel.bottom
-                anchors.topMargin: 34
-                anchors.left: parent.left
-                anchors.leftMargin: 32
-                anchors.right: parent.right
-                anchors.rightMargin: 40
-                font.family: Theme.titleFontFamily
-                font.pixelSize: 23
-                color: Theme.textColor
-            }
-
-            Rectangle {
-                id: behaviorPanel
-                color: Theme.cardBgColor
-                radius: 16
-                border.width: 1
-                border.color: Theme.splitLineColor
-                anchors.top: behaviorTitle.bottom
-                anchors.topMargin: 15
-                anchors.left: parent.left
-                anchors.leftMargin: 30
-                anchors.right: parent.right
-                anchors.rightMargin: 40
-                height: behaviorColumn.implicitHeight + 36
-
-                Column {
-                    id: behaviorColumn
-                    anchors.top: parent.top
-                    anchors.topMargin: 18
-                    anchors.left: parent.left
-                    anchors.leftMargin: 18
-                    anchors.right: parent.right
-                    anchors.rightMargin: 18
-                    spacing: 16
-
-                    ToggleRow {
-                        title: "Hide in Fullscreen"
-                        description: "Automatically retract notch when an active app enters fullscreen"
-                        keyName: "hideNotchInFullscreen"
-                        fallbackState: true
-                        width: parent.width
-                    }
-
-                    SplitLine { width: parent.width }
-
-                    LayerSelectionRow {
-                        width: parent.width
-                    }
-
-                    SplitLine { width: parent.width }
-
-                    ToggleRow {
-                        title: "Boring Face Animation"
-                        description: "Show playful animated blinking eyes in closed notch when idle"
-                        keyName: "showBoringFace"
-                        fallbackState: false
-                        width: parent.width
-                    }
 
                     SplitLine { width: parent.width }
 
                     ConfigRow {
-                        title: "Hover Open Delay (ms)"
-                        description: "Delay before notch opens on hover (default 300)"
-                        keyName: "notchHoverOpenDelayMs"
-                        fallbackText: "300"
+                        title: "Top Bezel Flare Radius"
+                        description: "Curvature of top wings flaring into screen bezel in Notch mode (default 6, 0 = flat)"
+                        keyName: "notchTopCornerRadius"
+                        fallbackText: "6"
                         numeric: true
                         minimumValue: 0
-                        maximumValue: 3000
-                        width: parent.width
-                    }
-
-                    SplitLine { width: parent.width }
-
-                    ConfigRow {
-                        title: "Hover Close Delay (ms)"
-                        description: "Delay before notch closes after pointer leaves (default 100)"
-                        keyName: "notchHoverCloseDelayMs"
-                        fallbackText: "100"
-                        numeric: true
-                        minimumValue: 0
-                        maximumValue: 3000
-                        width: parent.width
-                    }
-                }
-            }
-
-            Text {
-                id: mediaTitle
-                text: "Media & Player Monitoring"
-                anchors.top: behaviorPanel.bottom
-                anchors.topMargin: 34
-                anchors.left: parent.left
-                anchors.leftMargin: 32
-                anchors.right: parent.right
-                anchors.rightMargin: 40
-                font.family: Theme.titleFontFamily
-                font.pixelSize: 23
-                color: Theme.textColor
-            }
-
-            Rectangle {
-                id: mediaPanel
-                color: Theme.cardBgColor
-                radius: 16
-                border.width: 1
-                border.color: Theme.splitLineColor
-                anchors.top: mediaTitle.bottom
-                anchors.topMargin: 15
-                anchors.left: parent.left
-                anchors.leftMargin: 30
-                anchors.right: parent.right
-                anchors.rightMargin: 40
-                height: mediaColumn.implicitHeight + 36
-
-                Column {
-                    id: mediaColumn
-                    anchors.top: parent.top
-                    anchors.topMargin: 18
-                    anchors.left: parent.left
-                    anchors.leftMargin: 18
-                    anchors.right: parent.right
-                    anchors.rightMargin: 18
-                    spacing: 16
-
-                    ToggleRow {
-                        title: "Auto-Expand on Track Change"
-                        description: "Expand island into full player when media changes (disabled by default)"
-                        keyName: "disableAutoExpandOnTrackChange"
-                        fallbackState: true
-                        invert: true
-                        width: parent.width
-                    }
-
-                    SplitLine { width: parent.width }
-
-                    ToggleRow {
-                        title: "Album Art Glow Effect"
-                        description: "Show blurred ambient lighting glow behind album art during playback"
-                        keyName: "mediaLightingEffectEnabled"
-                        fallbackState: true
-                        width: parent.width
-                    }
-
-                    SplitLine { width: parent.width }
-
-                    ExcludedPlayersRow {
-                        width: parent.width
-                    }
-                }
-            }
-
-            Text {
-                id: calendarTitle
-                text: "Calendar & Google Calendar"
-                anchors.top: mediaPanel.bottom
-                anchors.topMargin: 34
-                anchors.left: parent.left
-                anchors.leftMargin: 32
-                anchors.right: parent.right
-                anchors.rightMargin: 40
-                font.family: Theme.titleFontFamily
-                font.pixelSize: 23
-                color: Theme.textColor
-            }
-
-            Rectangle {
-                id: calendarPanel
-                color: Theme.cardBgColor
-                radius: 16
-                border.width: 1
-                border.color: Theme.splitLineColor
-                anchors.top: calendarTitle.bottom
-                anchors.topMargin: 15
-                anchors.left: parent.left
-                anchors.leftMargin: 30
-                anchors.right: parent.right
-                anchors.rightMargin: 40
-                height: calendarColumn.implicitHeight + 36
-
-                Column {
-                    id: calendarColumn
-                    anchors.top: parent.top
-                    anchors.topMargin: 18
-                    anchors.left: parent.left
-                    anchors.leftMargin: 18
-                    anchors.right: parent.right
-                    anchors.rightMargin: 18
-                    spacing: 16
-
-                    CalendarSourcesRow {
+                        maximumValue: 100
                         width: parent.width
                     }
                 }
@@ -477,6 +471,8 @@ PagePanel {
             anchors.top: rowTitle.bottom
             anchors.topMargin: 5
             anchors.left: rowTitle.left
+            width: Math.max(80, parent.width - field.width - 28)
+            elide: Text.ElideRight
             color: Theme.subtleTextColor
         }
 
@@ -597,636 +593,6 @@ PagePanel {
         }
     }
 
-    component ExcludedPlayersRow: Item {
-        id: row
-        height: rowColumn.implicitHeight + 10
-
-        property var playerList: {
-            const raw = ConfigStore.value("excludedPlayers", [])
-            return Array.isArray(raw) ? raw : []
-        }
-
-        function addPlayer(name) {
-            const trimmed = String(name || "").trim().toLowerCase()
-            if (trimmed === "") return
-            const current = playerList.slice()
-            if (current.indexOf(trimmed) === -1) {
-                current.push(trimmed)
-                ConfigStore.setValue("excludedPlayers", current)
-                ConfigStore.save()
-                row.playerList = current
-            }
-        }
-
-        function removePlayer(index) {
-            const current = playerList.slice()
-            if (index >= 0 && index < current.length) {
-                current.splice(index, 1)
-                ConfigStore.setValue("excludedPlayers", current)
-                ConfigStore.save()
-                row.playerList = current
-            }
-        }
-
-        Column {
-            id: rowColumn
-            width: parent.width
-            spacing: 12
-
-            Column {
-                width: parent.width
-                spacing: 4
-
-                Text {
-                    text: "Excluded Media Players"
-                    font.family: Theme.textFontFamily
-                    font.pixelSize: 18
-                    color: Theme.textColor
-                }
-
-                Text {
-                    text: "Ignore background audio players or browser tabs matching these names"
-                    font.family: Theme.textFontFamily
-                    font.pixelSize: 14
-                    color: Theme.subtleTextColor
-                }
-            }
-
-            // Input field + Add button + quick suggestion chips
-            Row {
-                width: parent.width
-                spacing: 8
-
-                ConfigTextField {
-                    id: playerInput
-                    width: 200
-                    height: 36
-                    placeholderText: "e.g. firefox, brave, discord"
-                    onAccepted: {
-                        row.addPlayer(playerInput.text)
-                        playerInput.text = ""
-                    }
-                }
-
-                Rectangle {
-                    width: 64
-                    height: 36
-                    radius: 7
-                    color: addMouse.pressed ? Theme.controlPressedColor : Theme.componentBgColor
-                    border.width: 1
-                    border.color: Theme.inputBorderColor
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: "Add"
-                        color: Theme.textColor
-                        font.family: Theme.textFontFamily
-                        font.pixelSize: 14
-                        font.weight: Font.DemiBold
-                    }
-
-                    MouseArea {
-                        id: addMouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            row.addPlayer(playerInput.text)
-                            playerInput.text = ""
-                        }
-                    }
-                }
-
-                // Quick add suggestion chips
-                Repeater {
-                    model: ["firefox", "chromium", "discord"]
-
-                    delegate: Rectangle {
-                        width: chipText.implicitWidth + 14
-                        height: 36
-                        radius: 7
-                        color: "transparent"
-                        border.width: 1
-                        border.color: Theme.inputBorderColor
-                        visible: row.playerList.indexOf(modelData) === -1
-
-                        Text {
-                            id: chipText
-                            anchors.centerIn: parent
-                            text: "+ " + modelData
-                            color: Theme.subtleTextColor
-                            font.family: Theme.textFontFamily
-                            font.pixelSize: 12
-                        }
-
-                        MouseArea {
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: row.addPlayer(modelData)
-                        }
-                    }
-                }
-            }
-
-            // Active excluded chips list
-            Flow {
-                width: parent.width
-                spacing: 6
-                visible: row.playerList.length > 0
-
-                Repeater {
-                    model: row.playerList
-
-                    delegate: Rectangle {
-                        width: tagRow.implicitWidth + 16
-                        height: 28
-                        radius: 6
-                        color: Theme.componentBgColor
-                        border.width: 1
-                        border.color: Theme.inputBorderColor
-
-                        Row {
-                            id: tagRow
-                            anchors.centerIn: parent
-                            spacing: 6
-
-                            Text {
-                                text: modelData
-                                color: Theme.textColor
-                                font.family: Theme.textFontFamily
-                                font.pixelSize: 13
-                                anchors.verticalCenter: parent.verticalCenter
-                            }
-
-                            Text {
-                                text: "×"
-                                color: "#ff453a"
-                                font.pixelSize: 15
-                                font.weight: Font.Bold
-                                anchors.verticalCenter: parent.verticalCenter
-                            }
-                        }
-
-                        MouseArea {
-                            anchors.fill: parent
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: row.removePlayer(index)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    component LayerSelectionRow: Item {
-        id: layerRow
-
-        property string selectedLayer: String(ConfigStore.value("islandLayer", "top")).toLowerCase() === "overlay" ? "overlay" : "top"
-
-        height: 49
-
-        Text {
-            id: layerTitle
-            text: "Window Layer"
-            font.family: Theme.textFontFamily
-            font.pixelSize: 18
-            color: Theme.textColor
-            anchors.top: parent.top
-            anchors.left: parent.left
-        }
-
-        Text {
-            text: "Render on 'top' (standard) or 'overlay' (above all windows and lock screens)"
-            font.family: Theme.textFontFamily
-            font.pixelSize: 14
-            anchors.top: layerTitle.bottom
-            anchors.topMargin: 5
-            anchors.left: layerTitle.left
-            width: Math.max(80, parent.width - buttonGroup.width - 28)
-            elide: Text.ElideRight
-            color: Theme.subtleTextColor
-        }
-
-        Row {
-            id: buttonGroup
-            anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: 6
-
-            Repeater {
-                model: [
-                    { label: "Top", value: "top" },
-                    { label: "Overlay", value: "overlay" }
-                ]
-
-                Rectangle {
-                    id: btn
-                    readonly property bool selected: layerRow.selectedLayer === modelData.value
-
-                    width: Math.max(76, btnText.implicitWidth + 20)
-                    height: 36
-                    radius: 7
-                    color: selected ? Theme.cardBgColor
-                                    : btnMouse.pressed ? Theme.controlPressedColor
-                                                       : Theme.componentBgColor
-                    border.width: 1
-                    border.color: Theme.inputBorderColor
-
-                    Behavior on color { ColorAnimation { duration: Theme.animationDuration } }
-                    Behavior on border.color { ColorAnimation { duration: Theme.animationDuration } }
-
-                    Text {
-                        id: btnText
-                        anchors.centerIn: parent
-                        text: modelData.label
-                        color: btn.selected ? Theme.textColor : Theme.secondaryTextColor
-                        font.family: Theme.textFontFamily
-                        font.pixelSize: 14
-                        font.weight: btn.selected ? Font.DemiBold : Font.Normal
-                    }
-
-                    MouseArea {
-                        id: btnMouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            layerRow.selectedLayer = modelData.value
-                            ConfigStore.setValue("islandLayer", modelData.value)
-                            ConfigStore.save()
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    component CalendarSourcesRow: Item {
-        id: calRow
-        height: calColumn.implicitHeight + 10
-
-        property var calendarList: {
-            const raw = ConfigStore.value("calendars", [])
-            return Array.isArray(raw) ? raw : []
-        }
-
-        property string selectedColor: "#007aff"
-        property bool showHelp: false
-
-        function addCalendar(name, url) {
-            const trimmedUrl = String(url || "").trim()
-            if (trimmedUrl === "") return
-            const trimmedName = String(name || "").trim() || "Google Calendar"
-
-            let normalizedUrl = trimmedUrl
-            if (normalizedUrl.toLowerCase().startsWith("webcal://")) {
-                normalizedUrl = "https://" + normalizedUrl.substring(9)
-            }
-
-            const current = calendarList.slice()
-            const id = "cal-" + Date.now() + "-" + Math.floor(Math.random() * 1000)
-            current.push({
-                "id": id,
-                "name": trimmedName,
-                "url": normalizedUrl,
-                "color": calRow.selectedColor,
-                "enabled": true
-            })
-            ConfigStore.setValue("calendars", current)
-            ConfigStore.save()
-            calRow.calendarList = current
-        }
-
-        function removeCalendar(index) {
-            const current = calendarList.slice()
-            if (index >= 0 && index < current.length) {
-                current.splice(index, 1)
-                ConfigStore.setValue("calendars", current)
-                ConfigStore.save()
-                calRow.calendarList = current
-            }
-        }
-
-        function toggleCalendar(index) {
-            const current = calendarList.slice()
-            if (index >= 0 && index < current.length) {
-                const item = Object.assign({}, current[index])
-                item.enabled = !item.enabled
-                current[index] = item
-                ConfigStore.setValue("calendars", current)
-                ConfigStore.save()
-                calRow.calendarList = current
-            }
-        }
-
-        Column {
-            id: calColumn
-            width: parent.width
-            spacing: 14
-
-            Column {
-                width: parent.width
-                spacing: 4
-
-                Text {
-                    text: "Google Calendar & Event Feeds"
-                    font.family: Theme.textFontFamily
-                    font.pixelSize: 18
-                    color: Theme.textColor
-                }
-
-                Text {
-                    text: "Connect Google Calendar private feeds (or any iCal/ICS link) and toggle which calendars to display in the notch."
-                    font.family: Theme.textFontFamily
-                    font.pixelSize: 14
-                    color: Theme.subtleTextColor
-                    width: parent.width
-                    wrapMode: Text.WordWrap
-                }
-            }
-
-            // Quick instruction guide toggle
-            Row {
-                spacing: 6
-
-                Text {
-                    text: calRow.showHelp ? "󰅃 Hide Google Calendar setup guide" : "󰅀 How to get your Google Calendar secret iCal link"
-                    color: Theme.accentColor
-                    font.family: Theme.textFontFamily
-                    font.pixelSize: 13
-                    font.weight: Font.Medium
-                }
-
-                MouseArea {
-                    anchors.fill: parent
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: calRow.showHelp = !calRow.showHelp
-                }
-            }
-
-            // Help instructions box
-            Rectangle {
-                width: parent.width
-                height: helpCol.implicitHeight + 24
-                radius: 8
-                color: Theme.componentBgColor
-                border.width: 1
-                border.color: Theme.inputBorderColor
-                visible: calRow.showHelp
-
-                Column {
-                    id: helpCol
-                    anchors.fill: parent
-                    anchors.margins: 12
-                    spacing: 6
-
-                    Text {
-                        text: "1. Open Google Calendar in your web browser (calendar.google.com)"
-                        color: Theme.textColor
-                        font.family: Theme.textFontFamily
-                        font.pixelSize: 13
-                    }
-                    Text {
-                        text: "2. Under 'My calendars' on the left, click the 3 dots (⋮) next to your calendar -> 'Settings and sharing'"
-                        color: Theme.textColor
-                        font.family: Theme.textFontFamily
-                        font.pixelSize: 13
-                    }
-                    Text {
-                        text: "3. Scroll down to 'Integrate calendar' and copy the 'Secret address in iCal format'"
-                        color: Theme.textColor
-                        font.family: Theme.textFontFamily
-                        font.pixelSize: 13
-                    }
-                    Text {
-                        text: "4. Paste the URL below and click Add. You can repeat this for each calendar you want to sync!"
-                        color: Theme.textColor
-                        font.family: Theme.textFontFamily
-                        font.pixelSize: 13
-                    }
-                }
-            }
-
-            // Input form: Name + URL + Color + Add
-            Column {
-                width: parent.width
-                spacing: 8
-
-                Row {
-                    width: parent.width
-                    spacing: 8
-
-                    ConfigTextField {
-                        id: calNameInput
-                        width: 160
-                        height: 36
-                        placeholderText: "Calendar Name"
-                    }
-
-                    ConfigTextField {
-                        id: calUrlInput
-                        width: Math.max(200, parent.width - calNameInput.width - addBtn.width - 24)
-                        height: 36
-                        placeholderText: "https://calendar.google.com/calendar/ical/.../basic.ics"
-                        onAccepted: {
-                            calRow.addCalendar(calNameInput.text, calUrlInput.text)
-                            calNameInput.text = ""
-                            calUrlInput.text = ""
-                        }
-                    }
-
-                    Rectangle {
-                        id: addBtn
-                        width: 72
-                        height: 36
-                        radius: 7
-                        color: addCalMouse.pressed ? Theme.controlPressedColor : Theme.componentBgColor
-                        border.width: 1
-                        border.color: Theme.inputBorderColor
-
-                        Text {
-                            anchors.centerIn: parent
-                            text: "+ Add"
-                            color: Theme.textColor
-                            font.family: Theme.textFontFamily
-                            font.pixelSize: 14
-                            font.weight: Font.DemiBold
-                        }
-
-                        MouseArea {
-                            id: addCalMouse
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: {
-                                calRow.addCalendar(calNameInput.text, calUrlInput.text)
-                                calNameInput.text = ""
-                                calUrlInput.text = ""
-                            }
-                        }
-                    }
-                }
-
-                // Color picker row
-                Row {
-                    spacing: 8
-
-                    Text {
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: "Color:"
-                        color: Theme.subtleTextColor
-                        font.family: Theme.textFontFamily
-                        font.pixelSize: 13
-                    }
-
-                    Repeater {
-                        model: [
-                            { color: "#007aff", label: "Blue" },
-                            { color: "#af52de", label: "Purple" },
-                            { color: "#30d158", label: "Green" },
-                            { color: "#ff9500", label: "Orange" },
-                            { color: "#ff2d55", label: "Red" }
-                        ]
-
-                        Rectangle {
-                            width: 22
-                            height: 22
-                            radius: 11
-                            color: modelData.color
-                            border.width: calRow.selectedColor === modelData.color ? 2 : 0
-                            border.color: "white"
-
-                            Rectangle {
-                                anchors.centerIn: parent
-                                width: 8
-                                height: 8
-                                radius: 4
-                                color: "white"
-                                visible: calRow.selectedColor === modelData.color
-                            }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: calRow.selectedColor = modelData.color
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Configured calendars list
-            Column {
-                width: parent.width
-                spacing: 8
-
-                Text {
-                    text: calRow.calendarList.length > 0 ? "Configured Calendars (" + calRow.calendarList.length + "):" : "No calendars added yet."
-                    color: Theme.subtleTextColor
-                    font.family: Theme.textFontFamily
-                    font.pixelSize: 14
-                    font.weight: Font.Medium
-                }
-
-                Repeater {
-                    model: calRow.calendarList
-
-                    Rectangle {
-                        width: calColumn.width
-                        height: 44
-                        radius: 8
-                        color: Theme.componentBgColor
-                        border.width: 1
-                        border.color: Theme.inputBorderColor
-
-                        Row {
-                            anchors.left: parent.left
-                            anchors.leftMargin: 12
-                            anchors.verticalCenter: parent.verticalCenter
-                            spacing: 10
-
-                            // Checkbox toggle
-                            Rectangle {
-                                width: 22
-                                height: 22
-                                radius: 5
-                                color: modelData.enabled ? Theme.accentColor : "transparent"
-                                border.width: 1
-                                border.color: modelData.enabled ? Theme.accentColor : Theme.inputBorderColor
-                                anchors.verticalCenter: parent.verticalCenter
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: "✓"
-                                    color: "white"
-                                    font.pixelSize: 13
-                                    font.bold: true
-                                    visible: modelData.enabled
-                                }
-
-                                MouseArea {
-                                    anchors.fill: parent
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: calRow.toggleCalendar(index)
-                                }
-                            }
-
-                            // Color dot
-                            Rectangle {
-                                width: 12
-                                height: 12
-                                radius: 6
-                                color: modelData.color || "#007aff"
-                                anchors.verticalCenter: parent.verticalCenter
-                            }
-
-                            // Calendar info
-                            Column {
-                                anchors.verticalCenter: parent.verticalCenter
-                                spacing: 2
-
-                                Text {
-                                    text: modelData.name || "Calendar"
-                                    color: modelData.enabled ? Theme.textColor : Theme.subtleTextColor
-                                    font.family: Theme.textFontFamily
-                                    font.pixelSize: 14
-                                    font.weight: Font.Medium
-                                }
-                            }
-                        }
-
-                        // Remove button
-                        Rectangle {
-                            anchors.right: parent.right
-                            anchors.rightMargin: 10
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: 28
-                            height: 28
-                            radius: 14
-                            color: delCalMouse.containsMouse ? Theme.controlPressedColor : "transparent"
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: "×"
-                                font.pixelSize: 18
-                                color: delCalMouse.containsMouse ? "#ff453a" : Theme.subtleTextColor
-                            }
-
-                            MouseArea {
-                                id: delCalMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: calRow.removeCalendar(index)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     component NotchModeSelectionRow: Item {
         id: modeRow
 
@@ -1242,7 +608,7 @@ PagePanel {
 
         Text {
             id: modeTitle
-            text: "Notch Style"
+            text: "Island Style"
             font.family: Theme.textFontFamily
             font.pixelSize: 18
             color: Theme.textColor
@@ -1251,7 +617,7 @@ PagePanel {
         }
 
         Text {
-            text: "Choose between top-anchored Notch, detached floating Pill, or circular Notch"
+            text: "Choose between top-anchored Notch, detached floating Pill, or compact Circle"
             font.family: Theme.textFontFamily
             font.pixelSize: 14
             anchors.top: modeTitle.bottom
@@ -1321,43 +687,34 @@ PagePanel {
     component NotchPositionSelectionRow: Item {
         id: posRow
 
-        property string selectedPosition: {
-            const raw = String(ConfigStore.value("notchPosition", "top-center")).toLowerCase()
-            if (raw === "top-center" || raw === "bottom-center" ||
-                raw === "top-left" || raw === "top-right" ||
-                raw === "bottom-left" || raw === "bottom-right")
-                return raw
-            return "top-center"
-        }
+        property string selectedPosition: String(ConfigStore.value("notchPosition", "top-center")).toLowerCase()
 
-        height: Math.max(76, buttonCol.implicitHeight)
+        height: 80
 
-        Column {
-            id: textCol
+        Text {
+            id: posTitle
+            text: "Screen Edge Placement"
+            font.family: Theme.textFontFamily
+            font.pixelSize: 18
+            color: Theme.textColor
+            anchors.top: parent.top
             anchors.left: parent.left
-            anchors.verticalCenter: parent.verticalCenter
-            width: Math.max(80, parent.width - buttonCol.width - 24)
-            spacing: 4
+        }
 
-            Text {
-                text: "Notch Placement"
-                font.family: Theme.textFontFamily
-                font.pixelSize: 18
-                color: Theme.textColor
-            }
-
-            Text {
-                text: "Screen position and directional expansion behavior"
-                font.family: Theme.textFontFamily
-                font.pixelSize: 14
-                width: parent.width
-                elide: Text.ElideRight
-                color: Theme.subtleTextColor
-            }
+        Text {
+            text: "Screen edge anchoring location"
+            font.family: Theme.textFontFamily
+            font.pixelSize: 14
+            anchors.top: posTitle.bottom
+            anchors.topMargin: 5
+            anchors.left: posTitle.left
+            width: Math.max(80, parent.width - posButtonGroup.width - 28)
+            elide: Text.ElideRight
+            color: Theme.subtleTextColor
         }
 
         Column {
-            id: buttonCol
+            id: posButtonGroup
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
             spacing: 6

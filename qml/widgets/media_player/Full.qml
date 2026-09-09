@@ -84,7 +84,7 @@ Item {
 
             ClippingRectangle {
                 anchors.fill: parent
-                radius: compactMode ? 10 : 16
+                radius: Math.min(width / 2, Math.max(0, userConfig ? userConfig.notchBottomCornerRadius * 2 : 28))
                 color: "#2c2c2e"
 
                 Image {

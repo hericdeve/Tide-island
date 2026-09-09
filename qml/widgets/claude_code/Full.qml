@@ -312,11 +312,66 @@ Item {
                         }
                     }
 
-                    // Action buttons (Terminal + Demo Simulator)
+                    // Action buttons (Minimum View Mode Toggle + Terminal + Demo Simulator)
                     Row {
                         id: actionsRow
                         anchors.verticalCenter: parent.verticalCenter
                         spacing: 4
+
+                        // Minimum View Mode Toggle (Status vs Last Message)
+                        Rectangle {
+                            id: minModeBtn
+                            readonly property bool showsLastMsg: UserConfig.claudeMinimumShowsLastMessage || ClaudeCodeBackend.minimumShowsLastMessage
+                            readonly property bool compact: root.width < 280
+
+                            width: compact ? 20 : (minModeRow.implicitWidth + 12)
+                            height: 20
+                            radius: 10
+                            color: minModeMouse.containsMouse
+                                ? (showsLastMsg ? "#9333ea" : "#3f3f46")
+                                : (showsLastMsg ? "#7e22ce" : "#27272a")
+                            border.width: 1
+                            border.color: showsLastMsg ? "#c084fc" : "#3f3f46"
+
+                            Behavior on color { ColorAnimation { duration: 150 } }
+                            Behavior on border.color { ColorAnimation { duration: 150 } }
+
+                            Row {
+                                id: minModeRow
+                                anchors.centerIn: parent
+                                spacing: 4
+
+                                Text {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: minModeBtn.showsLastMsg ? "󰍡" : "󰚩"
+                                    font.family: root.iconFontFamily
+                                    font.pixelSize: 10
+                                    color: minModeBtn.showsLastMsg ? "#ffffff" : "#9ca3af"
+                                }
+
+                                Text {
+                                    visible: !minModeBtn.compact
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: minModeBtn.showsLastMsg ? "Min: Last Msg" : "Min: Status"
+                                    font.family: root.textFontFamily
+                                    font.pixelSize: 9
+                                    font.weight: minModeBtn.showsLastMsg ? Font.DemiBold : Font.Normal
+                                    color: minModeBtn.showsLastMsg ? "#ffffff" : "#d1d5db"
+                                }
+                            }
+
+                            MouseArea {
+                                id: minModeMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    const next = !minModeBtn.showsLastMsg;
+                                    UserConfig.setClaudeMinimumShowsLastMessage(next);
+                                    ClaudeCodeBackend.setMinimumShowsLastMessage(next);
+                                }
+                            }
+                        }
 
                         // Demo Mode Toggle (lets user preview states without running Claude)
                         Rectangle {
