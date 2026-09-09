@@ -59,7 +59,7 @@ Item {
     TextMetrics {
         id: circleTextMetrics
         font.family: root.textFontFamily
-        font.pixelSize: 10
+        font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
         text: root.displayStatusText()
     }
 
@@ -165,7 +165,7 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: root.isWaitingConsent ? "󰀦" : ((root.state === "running_tool") ? "󰞷" : "󰚩")
                 font.family: root.iconFontFamily
-                font.pixelSize: root.isPillMode ? 10 : 13
+                font.pixelSize: Math.round((root.isPillMode ? 10 : 13) * root.iconFontSize / 18.0)
                 color: root.stateColor()
 
                 // Pulsing animation if waiting consent
@@ -182,7 +182,7 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: Math.round(root.contextPercent * 100) + "%"
                 font.family: root.textFontFamily
-                font.pixelSize: 8
+                font.pixelSize: Math.round(8 * root.bodyFontSize / 16.0)
                 font.weight: Font.DemiBold
                 color: "#9ca3af"
             }
@@ -199,7 +199,7 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         text: root.displayStatusText()
         font.family: root.textFontFamily
-        font.pixelSize: 11
+        font.pixelSize: Math.round(11 * root.bodyFontSize / 16.0)
         font.weight: Font.Medium
         color: root.isWaitingConsent ? "#f59e0b" : (root.state === "error" ? "#fca5a5" : "white")
         elide: Text.ElideRight

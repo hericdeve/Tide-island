@@ -12,6 +12,7 @@ Item {
     readonly property string iconFontFamily: widgetContext ? widgetContext.iconFontFamily : "Sans Serif"
     readonly property string textFontFamily: widgetContext ? widgetContext.textFontFamily : "Sans Serif"
     readonly property int bodyFontSize: widgetContext ? widgetContext.bodyFontSize : 16
+    readonly property int titleFontSize: widgetContext ? widgetContext.titleFontSize : 20
     readonly property int iconFontSize: widgetContext ? widgetContext.iconFontSize : 18
 
     readonly property bool connected: PomotroidBackend.connected
@@ -249,7 +250,7 @@ Item {
                                     Text {
                                         text: root.roundLabel + " " + root.roundNumber + "/" + root.roundsTotal
                                         font.family: root.textFontFamily
-                                        font.pixelSize: 10
+                                        font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
                                         font.weight: Font.DemiBold
                                         color: root.themeColor
                                         anchors.verticalCenter: parent.verticalCenter
@@ -274,7 +275,7 @@ Item {
                                     Text {
                                         text: "󰓠"
                                         font.family: root.iconFontFamily
-                                        font.pixelSize: 9
+                                        font.pixelSize: Math.round(9 * root.iconFontSize / 18.0)
                                         color: "#a1a1aa"
                                         anchors.verticalCenter: parent.verticalCenter
                                     }
@@ -282,7 +283,7 @@ Item {
                                     Text {
                                         text: (root.isWork ? Math.max(0, root.sessionWorkCount - 1) : root.sessionWorkCount) + "/" + root.goalRounds
                                         font.family: root.textFontFamily
-                                        font.pixelSize: 10
+                                        font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
                                         font.weight: Font.Medium
                                         color: "white"
                                         anchors.verticalCenter: parent.verticalCenter
@@ -299,7 +300,7 @@ Item {
                                         Text {
                                             anchors.centerIn: parent
                                             text: "-"
-                                            font.pixelSize: 11
+                                            font.pixelSize: Math.round(11 * root.bodyFontSize / 16.0)
                                             font.weight: Font.Bold
                                             color: "#d4d4d8"
                                         }
@@ -323,7 +324,7 @@ Item {
                                         Text {
                                             anchors.centerIn: parent
                                             text: "+"
-                                            font.pixelSize: 10
+                                            font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
                                             font.weight: Font.Bold
                                             color: "#d4d4d8"
                                         }
@@ -355,7 +356,7 @@ Item {
                                     anchors.centerIn: parent
                                     text: "󰄫"
                                     font.family: root.iconFontFamily
-                                    font.pixelSize: 12
+                                    font.pixelSize: Math.round(12 * root.iconFontSize / 18.0)
                                     color: statsMouse.containsMouse ? "white" : "#a1a1aa"
                                 }
                                 MouseArea {
@@ -378,7 +379,7 @@ Item {
                                     anchors.centerIn: parent
                                     text: "󰖰"
                                     font.family: root.iconFontFamily
-                                    font.pixelSize: 12
+                                    font.pixelSize: Math.round(12 * root.iconFontSize / 18.0)
                                     color: mainWinMouse.containsMouse ? "white" : "#a1a1aa"
                                 }
                                 MouseArea {
@@ -445,7 +446,7 @@ Item {
                                     anchors.centerIn: parent
                                     text: root.roundNumber
                                     font.family: root.textFontFamily
-                                    font.pixelSize: 13
+                                    font.pixelSize: Math.round(13 * root.titleFontSize / 20.0)
                                     font.weight: Font.Bold
                                     color: root.themeColor
                                 }
@@ -500,7 +501,7 @@ Item {
                                 anchors.centerIn: parent
                                 text: "󰑐"
                                 font.family: root.iconFontFamily
-                                font.pixelSize: 13
+                                font.pixelSize: Math.round(13 * root.iconFontSize / 18.0)
                                 color: btsMouse.containsMouse ? "white" : "#d4d4d8"
                             }
                             MouseArea {
@@ -526,7 +527,7 @@ Item {
                                 Text {
                                     text: root.isRunning ? "󰏤" : "󰐊"
                                     font.family: root.iconFontFamily
-                                    font.pixelSize: 12
+                                    font.pixelSize: Math.round(12 * root.iconFontSize / 18.0)
                                     color: "white"
                                     anchors.verticalCenter: parent.verticalCenter
                                 }
@@ -534,7 +535,7 @@ Item {
                                 Text {
                                     text: root.isRunning ? "Pause" : (root.isPaused ? "Resume" : "Start")
                                     font.family: root.textFontFamily
-                                    font.pixelSize: 11
+                                    font.pixelSize: Math.round(11 * root.bodyFontSize / 16.0)
                                     font.weight: Font.Bold
                                     color: "white"
                                     anchors.verticalCenter: parent.verticalCenter
@@ -563,7 +564,7 @@ Item {
                                 anchors.centerIn: parent
                                 text: "󰒭"
                                 font.family: root.iconFontFamily
-                                font.pixelSize: 13
+                                font.pixelSize: Math.round(13 * root.iconFontSize / 18.0)
                                 color: skipMouse.containsMouse ? "white" : "#d4d4d8"
                             }
                             MouseArea {
@@ -588,7 +589,7 @@ Item {
                                 anchors.centerIn: parent
                                 text: "󰦛"
                                 font.family: root.iconFontFamily
-                                font.pixelSize: 13
+                                font.pixelSize: Math.round(13 * root.iconFontSize / 18.0)
                                 color: resetMouse.containsMouse ? "#ef4444" : "#d4d4d8"
                             }
                             MouseArea {
@@ -633,7 +634,7 @@ Item {
                             Text {
                                 text: "󰓹"
                                 font.family: root.iconFontFamily
-                                font.pixelSize: 11
+                                font.pixelSize: Math.round(11 * root.iconFontSize / 18.0)
                                 color: "#a1a1aa"
                                 anchors.verticalCenter: parent.verticalCenter
                             }
@@ -641,7 +642,7 @@ Item {
                             Text {
                                 text: "Session Tags"
                                 font.family: root.textFontFamily
-                                font.pixelSize: 10
+                                font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
                                 font.weight: Font.DemiBold
                                 color: "#a1a1aa"
                                 anchors.verticalCenter: parent.verticalCenter
@@ -653,7 +654,7 @@ Item {
                             anchors.verticalCenter: parent.verticalCenter
                             text: "Auto-synced"
                             font.family: root.textFontFamily
-                            font.pixelSize: 9
+                            font.pixelSize: Math.round(9 * root.bodyFontSize / 16.0)
                             color: "#52525b"
                         }
                     }
@@ -680,7 +681,7 @@ Item {
                                 Text {
                                     text: "󰑴"
                                     font.family: root.iconFontFamily
-                                    font.pixelSize: 10
+                                    font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
                                     color: "#71717a"
                                     anchors.verticalCenter: parent.verticalCenter
                                 }
@@ -691,7 +692,7 @@ Item {
                                     anchors.verticalCenter: parent.verticalCenter
                                     text: root.currentSubject
                                     font.family: root.textFontFamily
-                                    font.pixelSize: 10
+                                    font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
                                     color: "white"
                                     clip: true
                                     onTextChanged: {
@@ -705,7 +706,7 @@ Item {
                                     Text {
                                         text: "Subject (e.g. Math, Physics)..."
                                         font.family: root.textFontFamily
-                                        font.pixelSize: 10
+                                        font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
                                         color: "#52525b"
                                         visible: !subjectInput.text && !subjectInput.activeFocus
                                         anchors.verticalCenter: parent.verticalCenter
@@ -723,7 +724,7 @@ Item {
                                         anchors.centerIn: parent
                                         text: "󰅀"
                                         font.family: root.iconFontFamily
-                                        font.pixelSize: 8
+                                        font.pixelSize: Math.round(8 * root.iconFontSize / 18.0)
                                         color: "#71717a"
                                     }
                                     MouseArea {
@@ -768,7 +769,7 @@ Item {
                                         anchors.verticalCenter: parent.verticalCenter
                                         text: modelData
                                         font.family: root.textFontFamily
-                                        font.pixelSize: 10
+                                        font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
                                         color: "white"
                                     }
                                     MouseArea {
@@ -810,7 +811,7 @@ Item {
                                 Text {
                                     text: "󰅍"
                                     font.family: root.iconFontFamily
-                                    font.pixelSize: 10
+                                    font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
                                     color: "#71717a"
                                     anchors.verticalCenter: parent.verticalCenter
                                 }
@@ -821,7 +822,7 @@ Item {
                                     anchors.verticalCenter: parent.verticalCenter
                                     text: root.currentTopic
                                     font.family: root.textFontFamily
-                                    font.pixelSize: 10
+                                    font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
                                     color: "white"
                                     clip: true
                                     onTextChanged: root.currentTopic = text
@@ -830,7 +831,7 @@ Item {
                                     Text {
                                         text: "Topic / Chapter..."
                                         font.family: root.textFontFamily
-                                        font.pixelSize: 10
+                                        font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
                                         color: "#52525b"
                                         visible: !topicInput.text && !topicInput.activeFocus
                                         anchors.verticalCenter: parent.verticalCenter
@@ -848,7 +849,7 @@ Item {
                                         anchors.centerIn: parent
                                         text: "󰅀"
                                         font.family: root.iconFontFamily
-                                        font.pixelSize: 8
+                                        font.pixelSize: Math.round(8 * root.iconFontSize / 18.0)
                                         color: "#71717a"
                                     }
                                     MouseArea {
@@ -893,7 +894,7 @@ Item {
                                         anchors.verticalCenter: parent.verticalCenter
                                         text: modelData
                                         font.family: root.textFontFamily
-                                        font.pixelSize: 10
+                                        font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
                                         color: "white"
                                     }
                                     MouseArea {
@@ -935,7 +936,7 @@ Item {
                                 Text {
                                     text: "󰌵"
                                     font.family: root.iconFontFamily
-                                    font.pixelSize: 10
+                                    font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
                                     color: "#71717a"
                                     anchors.verticalCenter: parent.verticalCenter
                                 }
@@ -946,7 +947,7 @@ Item {
                                     anchors.verticalCenter: parent.verticalCenter
                                     text: root.currentStudyType
                                     font.family: root.textFontFamily
-                                    font.pixelSize: 10
+                                    font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
                                     color: "white"
                                     clip: true
                                     onTextChanged: root.currentStudyType = text
@@ -955,7 +956,7 @@ Item {
                                     Text {
                                         text: "Type (Teoria, Exercicio, Leitura)..."
                                         font.family: root.textFontFamily
-                                        font.pixelSize: 10
+                                        font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
                                         color: "#52525b"
                                         visible: !typeInput.text && !typeInput.activeFocus
                                         anchors.verticalCenter: parent.verticalCenter
@@ -973,7 +974,7 @@ Item {
                                         anchors.centerIn: parent
                                         text: "󰅀"
                                         font.family: root.iconFontFamily
-                                        font.pixelSize: 8
+                                        font.pixelSize: Math.round(8 * root.iconFontSize / 18.0)
                                         color: "#71717a"
                                     }
                                     MouseArea {
@@ -1018,7 +1019,7 @@ Item {
                                         anchors.verticalCenter: parent.verticalCenter
                                         text: modelData
                                         font.family: root.textFontFamily
-                                        font.pixelSize: 10
+                                        font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
                                         color: "white"
                                     }
                                     MouseArea {
@@ -1056,7 +1057,7 @@ Item {
                             Text {
                                 text: "󰎞"
                                 font.family: root.iconFontFamily
-                                font.pixelSize: 10
+                                font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
                                 color: "#71717a"
                                 anchors.verticalCenter: parent.verticalCenter
                             }
@@ -1067,7 +1068,7 @@ Item {
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: root.currentNotes
                                 font.family: root.textFontFamily
-                                font.pixelSize: 10
+                                font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
                                 color: "white"
                                 clip: true
                                 onTextChanged: root.currentNotes = text
@@ -1076,7 +1077,7 @@ Item {
                                 Text {
                                     text: "Session notes..."
                                     font.family: root.textFontFamily
-                                    font.pixelSize: 10
+                                    font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
                                     color: "#52525b"
                                     visible: !notesInput.text && !notesInput.activeFocus
                                     anchors.verticalCenter: parent.verticalCenter
@@ -1122,7 +1123,7 @@ Item {
                             Text {
                                 text: root.roundNumber + "/" + root.roundsTotal
                                 font.family: root.textFontFamily
-                                font.pixelSize: 10
+                                font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
                                 font.weight: Font.DemiBold
                                 color: root.themeColor
                             }
@@ -1150,7 +1151,7 @@ Item {
                                     anchors.centerIn: parent
                                     text: "Timer"
                                     font.family: root.textFontFamily
-                                    font.pixelSize: 9
+                                    font.pixelSize: Math.round(9 * root.bodyFontSize / 16.0)
                                     font.weight: root.singleSlotTab === 0 ? Font.Bold : Font.Normal
                                     color: root.singleSlotTab === 0 ? "white" : "#71717a"
                                 }
@@ -1169,7 +1170,7 @@ Item {
                                     anchors.centerIn: parent
                                     text: "Tags"
                                     font.family: root.textFontFamily
-                                    font.pixelSize: 9
+                                    font.pixelSize: Math.round(9 * root.bodyFontSize / 16.0)
                                     font.weight: root.singleSlotTab === 1 ? Font.Bold : Font.Normal
                                     color: root.singleSlotTab === 1 ? "white" : "#71717a"
                                 }
@@ -1198,7 +1199,7 @@ Item {
                             anchors.centerIn: parent
                             text: "󰄫"
                             font.family: root.iconFontFamily
-                            font.pixelSize: 11
+                            font.pixelSize: Math.round(11 * root.iconFontSize / 18.0)
                             color: "#a1a1aa"
                         }
                         MouseArea {
@@ -1221,7 +1222,7 @@ Item {
                             anchors.centerIn: parent
                             text: "󰖰"
                             font.family: root.iconFontFamily
-                            font.pixelSize: 11
+                            font.pixelSize: Math.round(11 * root.iconFontSize / 18.0)
                             color: "#a1a1aa"
                         }
                         MouseArea {
@@ -1255,7 +1256,7 @@ Item {
                             anchors.horizontalCenter: parent.horizontalCenter
                             text: PomotroidBackend.formatTime(root.remainingSeconds)
                             font.family: root.textFontFamily
-                            font.pixelSize: 26
+                            font.pixelSize: Math.round(26 * root.titleFontSize / 20.0)
                             font.weight: Font.Bold
                             color: "white"
                         }
@@ -1264,7 +1265,7 @@ Item {
                             anchors.horizontalCenter: parent.horizontalCenter
                             text: root.currentSubject ? (root.currentSubject + (root.currentTopic ? " • " + root.currentTopic : "")) : (root.isRunning ? "RUNNING" : "IDLE")
                             font.family: root.textFontFamily
-                            font.pixelSize: 10
+                            font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
                             color: root.currentSubject ? "#d4d4d8" : "#71717a"
                             elide: Text.ElideRight
                             width: parent.width - 20
@@ -1305,7 +1306,7 @@ Item {
                                 anchors.centerIn: parent
                                 text: "󰑐"
                                 font.family: root.iconFontFamily
-                                font.pixelSize: 12
+                                font.pixelSize: Math.round(12 * root.iconFontSize / 18.0)
                                 color: "#d4d4d8"
                             }
                             MouseArea {
@@ -1324,7 +1325,7 @@ Item {
                                 anchors.centerIn: parent
                                 text: root.isRunning ? "󰏤" : "󰐊"
                                 font.family: root.iconFontFamily
-                                font.pixelSize: 13
+                                font.pixelSize: Math.round(13 * root.iconFontSize / 18.0)
                                 color: "white"
                             }
                             MouseArea {
@@ -1345,7 +1346,7 @@ Item {
                                 anchors.centerIn: parent
                                 text: "󰒭"
                                 font.family: root.iconFontFamily
-                                font.pixelSize: 12
+                                font.pixelSize: Math.round(12 * root.iconFontSize / 18.0)
                                 color: "#d4d4d8"
                             }
                             MouseArea {
@@ -1366,7 +1367,7 @@ Item {
                                 anchors.centerIn: parent
                                 text: "󰦛"
                                 font.family: root.iconFontFamily
-                                font.pixelSize: 12
+                                font.pixelSize: Math.round(12 * root.iconFontSize / 18.0)
                                 color: "#ef4444"
                             }
                             MouseArea {
@@ -1405,7 +1406,7 @@ Item {
                             verticalAlignment: TextInput.AlignVCenter
                             text: root.currentSubject
                             font.family: root.textFontFamily
-                            font.pixelSize: 10
+                            font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
                             color: "white"
                             clip: true
                             onTextChanged: root.currentSubject = text
@@ -1414,7 +1415,7 @@ Item {
                             Text {
                                 text: "Subject..."
                                 font.family: root.textFontFamily
-                                font.pixelSize: 10
+                                font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
                                 color: "#52525b"
                                 visible: !cSubInput.text && !cSubInput.activeFocus
                                 anchors.verticalCenter: parent.verticalCenter
@@ -1439,7 +1440,7 @@ Item {
                             verticalAlignment: TextInput.AlignVCenter
                             text: root.currentTopic
                             font.family: root.textFontFamily
-                            font.pixelSize: 10
+                            font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
                             color: "white"
                             clip: true
                             onTextChanged: root.currentTopic = text
@@ -1448,7 +1449,7 @@ Item {
                             Text {
                                 text: "Topic..."
                                 font.family: root.textFontFamily
-                                font.pixelSize: 10
+                                font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
                                 color: "#52525b"
                                 visible: !cTopInput.text && !cTopInput.activeFocus
                                 anchors.verticalCenter: parent.verticalCenter
@@ -1473,7 +1474,7 @@ Item {
                             verticalAlignment: TextInput.AlignVCenter
                             text: root.currentStudyType
                             font.family: root.textFontFamily
-                            font.pixelSize: 10
+                            font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
                             color: "white"
                             clip: true
                             onTextChanged: root.currentStudyType = text
@@ -1482,7 +1483,7 @@ Item {
                             Text {
                                 text: "Study Type..."
                                 font.family: root.textFontFamily
-                                font.pixelSize: 10
+                                font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
                                 color: "#52525b"
                                 visible: !cTypInput.text && !cTypInput.activeFocus
                                 anchors.verticalCenter: parent.verticalCenter
@@ -1507,7 +1508,7 @@ Item {
                             verticalAlignment: TextInput.AlignVCenter
                             text: root.currentNotes
                             font.family: root.textFontFamily
-                            font.pixelSize: 10
+                            font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
                             color: "white"
                             clip: true
                             onTextChanged: root.currentNotes = text
@@ -1516,7 +1517,7 @@ Item {
                             Text {
                                 text: "Notes..."
                                 font.family: root.textFontFamily
-                                font.pixelSize: 10
+                                font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
                                 color: "#52525b"
                                 visible: !cNotInput.text && !cNotInput.activeFocus
                                 anchors.verticalCenter: parent.verticalCenter

@@ -11,6 +11,7 @@ Item {
     readonly property string iconFontFamily: widgetContext ? widgetContext.iconFontFamily : "Sans Serif"
     readonly property string textFontFamily: widgetContext ? widgetContext.textFontFamily : "Sans Serif"
     readonly property int bodyFontSize: widgetContext ? widgetContext.bodyFontSize : 16
+    readonly property int iconFontSize: widgetContext ? widgetContext.iconFontSize : 18
 
     readonly property string state: ClaudeCodeBackend.sessionState
     readonly property bool isWaitingConsent: state === "waiting_consent" || (ClaudeCodeBackend.pendingConsentId !== "")
@@ -120,7 +121,7 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             text: root.displayText
             font.family: root.textFontFamily
-            font.pixelSize: 14
+            font.pixelSize: Math.round(14 * root.bodyFontSize / 16.0)
             font.weight: root.isWaitingConsent ? Font.Bold : Font.DemiBold
             color: root.isWaitingConsent ? "#f59e0b" : (root.state === "error" ? "#fca5a5" : "white")
             elide: Text.ElideRight

@@ -23,7 +23,7 @@ Item {
         visible: false
         width: Math.max(120, (root.width > 0 ? root.width : 600) - 64)
         font.family: root.textFontFamily
-        font.pixelSize: 10
+        font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
         wrapMode: Text.Wrap
         text: ClaudeCodeBackend.toolDetail || ClaudeCodeBackend.lastMessage || ""
     }
@@ -33,7 +33,7 @@ Item {
         visible: false
         width: Math.max(120, (root.width > 0 ? root.width : 600) - 40)
         font.family: "Monospace"
-        font.pixelSize: 10
+        font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
         wrapMode: Text.WrapAnywhere
         text: ClaudeCodeBackend.pendingConsentDetail || ClaudeCodeBackend.toolDetail || ""
     }
@@ -122,7 +122,7 @@ Item {
                         anchors.centerIn: parent
                         text: "󰀦"
                         font.family: root.iconFontFamily
-                        font.pixelSize: 13
+                        font.pixelSize: Math.round(13 * root.iconFontSize / 18.0)
                         color: "#f59e0b"
                     }
                 }
@@ -133,14 +133,14 @@ Item {
                     Text {
                         text: "Action Permission"
                         font.family: root.textFontFamily
-                        font.pixelSize: 11
+                        font.pixelSize: Math.round(11 * root.bodyFontSize / 16.0)
                         font.weight: Font.DemiBold
                         color: "white"
                     }
                     Text {
                         text: "Tool: " + (ClaudeCodeBackend.pendingConsentTool || ClaudeCodeBackend.currentTool || "Action")
                         font.family: root.textFontFamily
-                        font.pixelSize: 10
+                        font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
                         color: "#d1d5db"
                         elide: Text.ElideRight
                         width: parent.width
@@ -169,7 +169,7 @@ Item {
                         anchors.centerIn: parent
                         text: "Allow"
                         font.family: root.textFontFamily
-                        font.pixelSize: 10
+                        font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
                         font.weight: Font.DemiBold
                         color: "white"
                     }
@@ -193,7 +193,7 @@ Item {
                         anchors.centerIn: parent
                         text: "Always"
                         font.family: root.textFontFamily
-                        font.pixelSize: 10
+                        font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
                         font.weight: Font.DemiBold
                         color: "white"
                     }
@@ -217,7 +217,7 @@ Item {
                         anchors.centerIn: parent
                         text: "Deny"
                         font.family: root.textFontFamily
-                        font.pixelSize: 10
+                        font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
                         font.weight: Font.DemiBold
                         color: "white"
                     }
@@ -257,7 +257,7 @@ Item {
                         id: detailText
                         text: ClaudeCodeBackend.pendingConsentDetail || ClaudeCodeBackend.toolDetail || "Execute command"
                         font.family: "Monospace"
-                        font.pixelSize: 10
+                        font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
                         color: "#93c5fd"
                         wrapMode: Text.WrapAnywhere
                         width: Math.max(10, consentFlickable.width - 12)
@@ -294,7 +294,7 @@ Item {
                             anchors.centerIn: parent
                             text: "󰚩"
                             font.family: root.iconFontFamily
-                            font.pixelSize: 13
+                            font.pixelSize: Math.round(13 * root.iconFontSize / 18.0)
                             color: root.stateColor()
                         }
 
@@ -335,7 +335,7 @@ Item {
                             Text {
                                 text: ClaudeCodeBackend.projectName || "Claude Code"
                                 font.family: root.textFontFamily
-                                font.pixelSize: 11
+                                font.pixelSize: Math.round(11 * root.bodyFontSize / 16.0)
                                 font.weight: Font.Bold
                                 color: "white"
                                 elide: Text.ElideRight
@@ -355,13 +355,13 @@ Item {
                                     Text {
                                         text: "󰘬"
                                         font.family: root.iconFontFamily
-                                        font.pixelSize: 8
+                                        font.pixelSize: Math.round(8 * root.iconFontSize / 18.0)
                                         color: "#9ca3af"
                                     }
                                     Text {
                                         text: ClaudeCodeBackend.gitBranch
                                         font.family: root.textFontFamily
-                                        font.pixelSize: 9
+                                        font.pixelSize: Math.round(9 * root.bodyFontSize / 16.0)
                                         color: "#d1d5db"
                                     }
                                 }
@@ -371,7 +371,7 @@ Item {
                         Text {
                             text: root.stateText() + (ClaudeCodeBackend.currentTool ? " (" + ClaudeCodeBackend.currentTool + ")" : "")
                             font.family: root.textFontFamily
-                            font.pixelSize: 10
+                            font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
                             color: root.stateColor()
                             elide: Text.ElideRight
                             width: parent.width
@@ -411,7 +411,7 @@ Item {
                                     anchors.verticalCenter: parent.verticalCenter
                                     text: minModeBtn.showsLastMsg ? "󰍡" : "󰚩"
                                     font.family: root.iconFontFamily
-                                    font.pixelSize: 10
+                                    font.pixelSize: Math.round(10 * root.iconFontSize / 18.0)
                                     color: minModeBtn.showsLastMsg ? "#ffffff" : "#9ca3af"
                                 }
 
@@ -420,7 +420,7 @@ Item {
                                     anchors.verticalCenter: parent.verticalCenter
                                     text: minModeBtn.showsLastMsg ? "Min: Last Msg" : "Min: Status"
                                     font.family: root.textFontFamily
-                                    font.pixelSize: 9
+                                    font.pixelSize: Math.round(9 * root.bodyFontSize / 16.0)
                                     font.weight: minModeBtn.showsLastMsg ? Font.DemiBold : Font.Normal
                                     color: minModeBtn.showsLastMsg ? "#ffffff" : "#d1d5db"
                                 }
@@ -449,7 +449,7 @@ Item {
                                 anchors.centerIn: parent
                                 text: "󰍉"
                                 font.family: root.iconFontFamily
-                                font.pixelSize: 10
+                                font.pixelSize: Math.round(10 * root.iconFontSize / 18.0)
                                 color: ClaudeCodeBackend.demoMode ? "#a855f7" : "#9ca3af"
                             }
                             MouseArea {
@@ -482,7 +482,7 @@ Item {
                                 anchors.centerIn: parent
                                 text: "󰆍"
                                 font.family: root.iconFontFamily
-                                font.pixelSize: 10
+                                font.pixelSize: Math.round(10 * root.iconFontSize / 18.0)
                                 color: "#e4e4e7"
                             }
                             MouseArea {
@@ -520,7 +520,7 @@ Item {
                             anchors.topMargin: 2
                             text: (root.state === "thinking") ? "󰑣" : ((root.state === "running_tool") ? "󰞷" : ((root.state === "error") ? "󰅚" : "󰋼"))
                             font.family: root.iconFontFamily
-                            font.pixelSize: 11
+                            font.pixelSize: Math.round(11 * root.iconFontSize / 18.0)
                             color: root.stateColor()
 
                             RotationAnimation on rotation {
@@ -536,7 +536,7 @@ Item {
                             width: parent.width - 24 - (dismissErrorBtn.visible ? 20 : 0)
                             text: ClaudeCodeBackend.toolDetail || ClaudeCodeBackend.lastMessage || "Ready to assist"
                             font.family: root.textFontFamily
-                            font.pixelSize: 10
+                            font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
                             color: root.state === "error" ? "#fca5a5" : "#e4e4e7"
                             wrapMode: Text.Wrap
                             elide: Text.ElideRight
@@ -554,7 +554,7 @@ Item {
                                 anchors.centerIn: parent
                                 text: "󰅖"
                                 font.family: root.iconFontFamily
-                                font.pixelSize: 10
+                                font.pixelSize: Math.round(10 * root.iconFontSize / 18.0)
                                 color: dismissMouse.containsMouse ? "#ffffff" : "#ef4444"
                             }
 
@@ -583,7 +583,7 @@ Item {
                         Text {
                             text: Math.round(ClaudeCodeBackend.contextUsagePercent * 100) + "% Context"
                             font.family: root.textFontFamily
-                            font.pixelSize: 9
+                            font.pixelSize: Math.round(9 * root.bodyFontSize / 16.0)
                             color: "#9ca3af"
                         }
                         Item { width: parent.width - costLabel.implicitWidth - 70; height: 1 }
@@ -591,7 +591,7 @@ Item {
                             id: costLabel
                             text: "$" + ClaudeCodeBackend.estimatedCost.toFixed(2) + " · " + (ClaudeCodeBackend.modelName || "Claude")
                             font.family: root.textFontFamily
-                            font.pixelSize: 9
+                            font.pixelSize: Math.round(9 * root.bodyFontSize / 16.0)
                             color: "#9ca3af"
                         }
                     }
@@ -639,7 +639,7 @@ Item {
                             anchors.verticalCenter: parent.verticalCenter
                             text: "󰍉"
                             font.family: root.iconFontFamily
-                            font.pixelSize: 11
+                            font.pixelSize: Math.round(11 * root.iconFontSize / 18.0)
                             color: "#9ca3af"
                         }
 
@@ -648,7 +648,7 @@ Item {
                             anchors.verticalCenter: parent.verticalCenter
                             width: parent.width - 44
                             font.family: root.textFontFamily
-                            font.pixelSize: 10
+                            font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
                             color: "white"
                             clip: true
                             onAccepted: {
@@ -661,7 +661,7 @@ Item {
                             Text {
                                 text: "Ask Claude Code..."
                                 font.family: root.textFontFamily
-                                font.pixelSize: 10
+                                font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
                                 color: "#71717a"
                                 visible: !promptInput.text && !promptInput.activeFocus
                                 anchors.verticalCenter: parent.verticalCenter
@@ -679,7 +679,7 @@ Item {
                                 anchors.centerIn: parent
                                 text: "󰅂"
                                 font.family: root.iconFontFamily
-                                font.pixelSize: 9
+                                font.pixelSize: Math.round(9 * root.iconFontSize / 18.0)
                                 color: "white"
                             }
                             MouseArea {
