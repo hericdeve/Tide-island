@@ -115,6 +115,7 @@ Item {
         bodyFontSize: root.userConfig ? root.userConfig.bodyFontSize : 16,
         titleFontSize: root.userConfig ? root.userConfig.titleFontSize : 20,
         iconFontSize: root.userConfig ? root.userConfig.iconFontSize : 18,
+        claudeCodeScrollSpeed: root.userConfig ? root.userConfig.claudeCodeScrollSpeed : 17,
         faceScale: root.faceScale,
         circleDiameter: root.circleDiameter,
         uiScale: root.faceScale,

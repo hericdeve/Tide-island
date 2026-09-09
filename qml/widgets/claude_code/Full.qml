@@ -21,9 +21,9 @@ Item {
     Text {
         id: bannerTextMeasure
         visible: false
-        width: Math.max(120, (root.width > 0 ? root.width : 600) - 64)
+        width: Math.max(120, (root.width > 0 ? root.width : 600) - (root.state === "error" ? 56 : 36))
         font.family: root.textFontFamily
-        font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
+        font.pixelSize: Math.round(13 * root.bodyFontSize / 16.0)
         wrapMode: Text.Wrap
         text: ClaudeCodeBackend.toolDetail || ClaudeCodeBackend.lastMessage || ""
     }
@@ -52,16 +52,16 @@ Item {
         if (root.isWaitingConsent) {
             const h = consentTextMeasure.implicitHeight;
             if (h > 42) {
-                const extraH = Math.min(80, h - 42);
+                const extraH = Math.min(120, h - 42);
                 return baseSlotHeight + extraH;
             }
             return 0;
         }
 
         const bannerH = bannerTextMeasure.implicitHeight;
-        // Standard resting banner fits up to 2 wrapped lines (~32px)
-        if (bannerH > 32) {
-            const extraH = Math.min(80, bannerH - 28);
+        // Standard resting banner fits 1 wrapped line (~20px with base 13)
+        if (bannerH > 22) {
+            const extraH = Math.min(120, bannerH - 18);
             return baseSlotHeight + extraH;
         }
         return 0;
@@ -536,11 +536,10 @@ Item {
                             width: parent.width - 24 - (dismissErrorBtn.visible ? 20 : 0)
                             text: ClaudeCodeBackend.toolDetail || ClaudeCodeBackend.lastMessage || "Ready to assist"
                             font.family: root.textFontFamily
-                            font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
+                            font.pixelSize: Math.round(13 * root.bodyFontSize / 16.0)
                             color: root.state === "error" ? "#fca5a5" : "#e4e4e7"
                             wrapMode: Text.Wrap
                             elide: Text.ElideRight
-                            maximumLineCount: activityBanner.height > 60 ? 5 : (activityBanner.height > 40 ? 3 : 2)
                         }
 
                         Item {

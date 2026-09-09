@@ -183,6 +183,19 @@ PagePanel {
                         maximumValue: 200
                         width: parent.width
                     }
+
+                    SplitLine { width: parent.width }
+
+                    ConfigRow {
+                        title: "Claude Code Scroll Speed"
+                        description: "Claude Code overflow text speed in pixels per second"
+                        keyName: "claudeCodeScrollSpeed"
+                        fallbackText: "17"
+                        numeric: true
+                        minimumValue: 1
+                        maximumValue: 100
+                        width: parent.width
+                    }
                 }
             }
         }

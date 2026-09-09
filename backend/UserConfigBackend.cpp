@@ -801,6 +801,11 @@ int UserConfigBackend::iconFontSize() const
     return m_iconFontSize;
 }
 
+int UserConfigBackend::claudeCodeScrollSpeed() const
+{
+    return m_claudeCodeScrollSpeed;
+}
+
 QJsonObject UserConfigBackend::widgetLayouts() const
 {
     return m_widgetLayouts;
@@ -1274,6 +1279,7 @@ void UserConfigBackend::loadConfig()
     updateField(this, m_bodyFontSize, jsonInt(configObject, QLatin1String("bodyFontSize"), 16), &UserConfigBackend::bodyFontSizeChanged);
     updateField(this, m_titleFontSize, jsonInt(configObject, QLatin1String("titleFontSize"), 20), &UserConfigBackend::titleFontSizeChanged);
     updateField(this, m_iconFontSize, jsonInt(configObject, QLatin1String("iconFontSize"), 18), &UserConfigBackend::iconFontSizeChanged);
+    updateField(this, m_claudeCodeScrollSpeed, jsonBoundedInt(configObject, QLatin1String("claudeCodeScrollSpeed"), 17, 1, 100), &UserConfigBackend::claudeCodeScrollSpeedChanged);
 
     if (configObject.contains(QLatin1String("widgetLayouts")) && configObject.value(QLatin1String("widgetLayouts")).isObject()) {
         QJsonObject layouts = configObject.value(QLatin1String("widgetLayouts")).toObject();

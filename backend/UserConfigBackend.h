@@ -80,6 +80,7 @@ class UserConfigBackend final : public QObject {
     Q_PROPERTY(int bodyFontSize READ bodyFontSize NOTIFY bodyFontSizeChanged FINAL)
     Q_PROPERTY(int titleFontSize READ titleFontSize NOTIFY titleFontSizeChanged FINAL)
     Q_PROPERTY(int iconFontSize READ iconFontSize NOTIFY iconFontSizeChanged FINAL)
+    Q_PROPERTY(int claudeCodeScrollSpeed READ claudeCodeScrollSpeed NOTIFY claudeCodeScrollSpeedChanged FINAL)
     Q_PROPERTY(QJsonObject widgetLayouts READ widgetLayouts NOTIFY widgetLayoutsChanged FINAL)
 
     Q_PROPERTY(bool dynamicResizeEnabledFull READ dynamicResizeEnabledFull WRITE setDynamicResizeEnabledFull NOTIFY dynamicResizeEnabledFullChanged FINAL)
@@ -176,6 +177,7 @@ public:
     int bodyFontSize() const;
     int titleFontSize() const;
     int iconFontSize() const;
+    int claudeCodeScrollSpeed() const;
     QJsonObject widgetLayouts() const;
     QJsonObject defaultWidgetLayouts() const;
     void setDefaultWallpaperPath(const QString &path);
@@ -263,6 +265,7 @@ signals:
     void bodyFontSizeChanged();
     void titleFontSizeChanged();
     void iconFontSizeChanged();
+    void claudeCodeScrollSpeedChanged();
     void widgetLayoutsChanged();
 
 private:
@@ -342,6 +345,7 @@ private:
     int m_bodyFontSize = 16;
     int m_titleFontSize = 20;
     int m_iconFontSize = 18;
+    int m_claudeCodeScrollSpeed = 17;
     QJsonObject m_widgetLayouts;
 
     QFileSystemWatcher m_watcher;

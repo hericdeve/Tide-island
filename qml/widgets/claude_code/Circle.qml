@@ -12,6 +12,11 @@ Item {
     readonly property string textFontFamily: widgetContext ? widgetContext.textFontFamily : "Sans Serif"
     readonly property int bodyFontSize: widgetContext ? widgetContext.bodyFontSize : 16
     readonly property int iconFontSize: widgetContext ? widgetContext.iconFontSize : 18
+    readonly property real scrollSpeed: widgetContext ? widgetContext.claudeCodeScrollSpeed : 17
+
+    onScrollSpeedChanged: {
+        pillScrollAnimation.restart();
+    }
 
     readonly property string state: ClaudeCodeBackend.sessionState
     readonly property bool isWaitingConsent: state === "waiting_consent" || (ClaudeCodeBackend.pendingConsentId !== "")
@@ -200,15 +205,15 @@ Item {
         height: pillStatusText.implicitHeight
         clip: true
         interactive: false
-        contentWidth: pillStatusText.implicitWidth
+        contentWidth: pillScrollAnimation.running
+            ? (pillStatusText.implicitWidth * 2 + textSpacing)
+            : pillStatusText.implicitWidth
         contentHeight: height
         opacity: root.isPillMode ? 1.0 : 0.0
         visible: opacity > 0.001
 
-        onContentWidthChanged: {
-            contentX = 0;
-            pillScrollAnimation.restart();
-        }
+        readonly property int textSpacing: Math.round(3.0 * root.bodyFontSize)
+
         onWidthChanged: {
             contentX = 0;
             pillScrollAnimation.restart();
@@ -216,6 +221,7 @@ Item {
 
         Text {
             id: pillStatusText
+            x: 0
             width: implicitWidth
             anchors.verticalCenter: parent.verticalCenter
             text: root.displayStatusText()
@@ -223,28 +229,45 @@ Item {
             font.pixelSize: Math.round(11 * root.bodyFontSize / 16.0)
             font.weight: Font.Medium
             color: root.isWaitingConsent ? "#f59e0b" : (root.state === "error" ? "#fca5a5" : "white")
+
+            onImplicitWidthChanged: {
+                pillStatusViewport.contentX = 0;
+                pillScrollAnimation.restart();
+            }
+            onTextChanged: {
+                pillStatusViewport.contentX = 0;
+                pillScrollAnimation.restart();
+            }
         }
 
-        SequentialAnimation {
+        Text {
+            id: pillStatusTextDuplicate
+            x: pillStatusText.implicitWidth + pillStatusViewport.textSpacing
+            width: implicitWidth
+            anchors.verticalCenter: parent.verticalCenter
+            visible: pillScrollAnimation.running
+            text: pillStatusText.text
+            font.family: pillStatusText.font.family
+            font.pixelSize: pillStatusText.font.pixelSize
+            font.weight: pillStatusText.font.weight
+            color: pillStatusText.color
+        }
+
+        NumberAnimation {
             id: pillScrollAnimation
+            target: pillStatusViewport
+            property: "contentX"
+            from: 0
+            to: pillStatusText.implicitWidth + pillStatusViewport.textSpacing
+            duration: Math.max(1, (pillStatusText.implicitWidth + pillStatusViewport.textSpacing) / Math.max(1, root.scrollSpeed) * 1000)
             running: root.isPillMode && pillStatusText.implicitWidth > pillStatusViewport.width
             loops: Animation.Infinite
+            easing.type: Easing.Linear
 
-            PauseAnimation { duration: 900 }
-            NumberAnimation {
-                target: pillStatusViewport
-                property: "contentX"
-                to: Math.max(0, pillStatusText.implicitWidth - pillStatusViewport.width)
-                duration: Math.max(1200, Math.min(4200, pillStatusText.implicitWidth * 12))
-                easing.type: Easing.InOutQuad
-            }
-            PauseAnimation { duration: 900 }
-            NumberAnimation {
-                target: pillStatusViewport
-                property: "contentX"
-                to: 0
-                duration: 700
-                easing.type: Easing.InOutQuad
+            onRunningChanged: {
+                if (!running) {
+                    pillStatusViewport.contentX = 0;
+                }
             }
         }
 

@@ -1971,6 +1971,7 @@ PanelWindow {
             bodyFontSize: root.bodyFontSize,
             titleFontSize: root.titleFontSize,
             iconFontSize: root.iconFontSize,
+            claudeCodeScrollSpeed: userConfig.claudeCodeScrollSpeed,
             faceScale: 0.85,
             circleDiameter: 48,
             uiScale: 1.0,
