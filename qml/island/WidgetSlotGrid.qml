@@ -23,6 +23,34 @@ Item {
     readonly property real spacing: 12
     readonly property real slotBaseWidth: Math.max(40, (gridContainer.width - (slotCount - 1) * spacing) / slotCount)
 
+    readonly property real requestedContentWidth: {
+        let extraWidth = 0;
+        for (let i = 0; i < slotsRepeater.count; ++i) {
+            const wrapper = slotsRepeater.itemAt(i);
+            if (wrapper && wrapper.slotItem && wrapper.visible) {
+                const reqW = Number(wrapper.slotItem.requestedContentWidth) || 0;
+                if (reqW > wrapper.width) {
+                    extraWidth += (reqW - wrapper.width);
+                }
+            }
+        }
+        return extraWidth > 0 ? (gridContainer.width + extraWidth) : 0;
+    }
+
+    readonly property real requestedContentHeight: {
+        let maxReqH = 0;
+        for (let i = 0; i < slotsRepeater.count; ++i) {
+            const wrapper = slotsRepeater.itemAt(i);
+            if (wrapper && wrapper.slotItem && wrapper.visible) {
+                const reqH = Number(wrapper.slotItem.requestedContentHeight) || 0;
+                if (reqH > maxReqH) {
+                    maxReqH = reqH;
+                }
+            }
+        }
+        return maxReqH > 0 ? Math.max(gridContainer.height, maxReqH) : 0;
+    }
+
     readonly property bool showEditHeader: root.isEditMode && root.pageData && !root.pageData.isHome
 
     // Edit controls header (shown above slot grid when in edit mode on non-Home pages)
@@ -113,6 +141,7 @@ Item {
 
         // Repeater for all slots
         Repeater {
+            id: slotsRepeater
             model: root.slotCount
 
             Item {
@@ -122,6 +151,7 @@ Item {
                 readonly property bool coveredBySpan: gridContainer.isSlotCoveredBySpan(index)
                 readonly property int rawSpan: placedItem ? (placedItem.slotSpan || 1) : 1
                 readonly property int span: Math.max(1, Math.min(rawSpan, root.slotCount - currentSlotIndex))
+                readonly property var slotItem: slotComponent
 
                 visible: !coveredBySpan
                 x: currentSlotIndex * (root.slotBaseWidth + root.spacing)
@@ -129,6 +159,7 @@ Item {
                 height: gridContainer.height
 
                 WidgetSlot {
+                    id: slotComponent
                     anchors.fill: parent
                     slotIndex: slotWrapper.currentSlotIndex
                     slotSpan: slotWrapper.span

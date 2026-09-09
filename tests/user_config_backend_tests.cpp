@@ -26,6 +26,8 @@ private slots:
     void setSlotWidgetDeduplicatesAcrossPagesInSameMode();
     void differentModesCanHaveSameWidget();
     void claudeMinimumShowsLastMessageDefaultsAndPersists();
+    void dynamicResizeEnabledDefaultsAndPersists();
+    void dynamicResizeMaxPctDefaultsAndClamping();
 };
 
 void UserConfigBackendTests::initTestCase()
@@ -349,6 +351,91 @@ void UserConfigBackendTests::claudeMinimumShowsLastMessageDefaultsAndPersists()
 
     reloaded.setClaudeMinimumShowsLastMessage(false);
     QCOMPARE(reloaded.claudeMinimumShowsLastMessage(), false);
+}
+
+void UserConfigBackendTests::dynamicResizeEnabledDefaultsAndPersists()
+{
+    UserConfigBackend config;
+    QCOMPARE(config.dynamicResizeEnabledFull(), true);
+    QCOMPARE(config.dynamicResizeEnabledMinimum(), true);
+    QCOMPARE(config.dynamicResizeEnabledCircle(), false);
+
+    QSignalSpy spyFull(&config, &UserConfigBackend::dynamicResizeEnabledFullChanged);
+    QSignalSpy spyMin(&config, &UserConfigBackend::dynamicResizeEnabledMinimumChanged);
+    QSignalSpy spyCircle(&config, &UserConfigBackend::dynamicResizeEnabledCircleChanged);
+
+    config.setDynamicResizeEnabledFull(false);
+    config.setDynamicResizeEnabledMinimum(false);
+    config.setDynamicResizeEnabledCircle(true);
+
+    QCOMPARE(config.dynamicResizeEnabledFull(), false);
+    QCOMPARE(config.dynamicResizeEnabledMinimum(), false);
+    QCOMPARE(config.dynamicResizeEnabledCircle(), true);
+
+    QCOMPARE(spyFull.count(), 1);
+    QCOMPARE(spyMin.count(), 1);
+    QCOMPARE(spyCircle.count(), 1);
+
+    // Test polymorphic setDynamicResizeEnabled
+    config.setDynamicResizeEnabled(QStringLiteral("full"), true);
+    config.setDynamicResizeEnabled(QStringLiteral("minimum"), true);
+    config.setDynamicResizeEnabled(QStringLiteral("circle"), false);
+
+    QCOMPARE(config.dynamicResizeEnabledFull(), true);
+    QCOMPARE(config.dynamicResizeEnabledMinimum(), true);
+    QCOMPARE(config.dynamicResizeEnabledCircle(), false);
+
+    // Persists across reload
+    UserConfigBackend reloaded;
+    QCOMPARE(reloaded.dynamicResizeEnabledFull(), true);
+    QCOMPARE(reloaded.dynamicResizeEnabledMinimum(), true);
+    QCOMPARE(reloaded.dynamicResizeEnabledCircle(), false);
+
+    reloaded.setDynamicResizeEnabledCircle(true);
+    UserConfigBackend reloaded2;
+    QCOMPARE(reloaded2.dynamicResizeEnabledCircle(), true);
+    reloaded2.setDynamicResizeEnabledCircle(false);
+}
+
+void UserConfigBackendTests::dynamicResizeMaxPctDefaultsAndClamping()
+{
+    UserConfigBackend config;
+    QCOMPARE(config.dynamicResizeMaxPctFull(), 40);
+    QCOMPARE(config.dynamicResizeMaxPctMinimum(), 50);
+    QCOMPARE(config.dynamicResizeMaxPctCircle(), 60);
+
+    QSignalSpy spyFull(&config, &UserConfigBackend::dynamicResizeMaxPctFullChanged);
+    QSignalSpy spyMin(&config, &UserConfigBackend::dynamicResizeMaxPctMinimumChanged);
+    QSignalSpy spyCircle(&config, &UserConfigBackend::dynamicResizeMaxPctCircleChanged);
+
+    config.setDynamicResizeMaxPctFull(75);
+    config.setDynamicResizeMaxPctMinimum(80);
+    config.setDynamicResizeMaxPctCircle(90);
+
+    QCOMPARE(config.dynamicResizeMaxPctFull(), 75);
+    QCOMPARE(config.dynamicResizeMaxPctMinimum(), 80);
+    QCOMPARE(config.dynamicResizeMaxPctCircle(), 90);
+
+    QCOMPARE(spyFull.count(), 1);
+    QCOMPARE(spyMin.count(), 1);
+    QCOMPARE(spyCircle.count(), 1);
+
+    // Test clamping bounds [10, 200]
+    config.setDynamicResizeMaxPctFull(5); // clamps to 10
+    QCOMPARE(config.dynamicResizeMaxPctFull(), 10);
+
+    config.setDynamicResizeMaxPctMinimum(250); // clamps to 200
+    QCOMPARE(config.dynamicResizeMaxPctMinimum(), 200);
+
+    // Test polymorphic setDynamicResizeMaxPct
+    config.setDynamicResizeMaxPct(QStringLiteral("circle"), 120);
+    QCOMPARE(config.dynamicResizeMaxPctCircle(), 120);
+
+    // Persists across reload
+    UserConfigBackend reloaded;
+    QCOMPARE(reloaded.dynamicResizeMaxPctFull(), 10);
+    QCOMPARE(reloaded.dynamicResizeMaxPctMinimum(), 200);
+    QCOMPARE(reloaded.dynamicResizeMaxPctCircle(), 120);
 }
 
 QTEST_MAIN(UserConfigBackendTests)

@@ -2443,6 +2443,184 @@ PanelWindow {
             id: mainCapsule
             z: 5
             property int morphDuration: 300
+
+            // Dynamic Resizing Engine: manages universal adaptive expansion across full, minimum, and circle modes
+            Item {
+                id: dynamicResizeEngine
+
+                readonly property string currentMode: {
+                    if (root.overviewVisible) return "";
+                    if (islandContainer.islandState === "expanded" || islandContainer.islandState === "bluetooth_expanded") {
+                        return "full";
+                    }
+                    if (userConfig.notchMode === "circle") {
+                        if (islandContainer.islandState === "normal" || islandContainer.islandState === "default"
+                                || (islandContainer.islandState !== "expanded"
+                                    && islandContainer.islandState !== "bluetooth_expanded"
+                                    && islandContainer.islandState !== "control_center"
+                                    && islandContainer.islandState !== "notification_center"
+                                    && islandContainer.islandState !== "wallpaper_picker"
+                                    && islandContainer.islandState !== "application_launcher"
+                                    && islandContainer.islandState !== "file_shelf"
+                                    && islandContainer.islandState !== "notification"
+                                    && islandContainer.islandState !== "long_capsule"
+                                    && islandContainer.islandState !== "split"
+                                    && (islandContainer.islandState !== "widget_library" || islandContainer.isDraggingWidgetFromLibrary))) {
+                            return "circle";
+                        }
+                        return "";
+                    }
+                    if (islandContainer.islandState === "normal" && Math.abs(islandContainer.swipeTransitionProgress) < 0.01) {
+                        return "minimum";
+                    }
+                    return "";
+                }
+
+                readonly property bool enabledForCurrentMode: {
+                    if (!userConfig) return false;
+                    switch (currentMode) {
+                    case "full": return userConfig.dynamicResizeEnabledFull === true;
+                    case "minimum": return userConfig.dynamicResizeEnabledMinimum === true;
+                    case "circle": return userConfig.dynamicResizeEnabledCircle === true;
+                    default: return false;
+                    }
+                }
+
+                readonly property int maxExpansionPct: {
+                    if (!userConfig) return 0;
+                    switch (currentMode) {
+                    case "full": return userConfig.dynamicResizeMaxPctFull;
+                    case "minimum": return userConfig.dynamicResizeMaxPctMinimum;
+                    case "circle": return userConfig.dynamicResizeMaxPctCircle;
+                    default: return 0;
+                    }
+                }
+
+                readonly property real baseWidth: {
+                    switch (currentMode) {
+                    case "full": return userConfig ? userConfig.notchOpenWidth : 640;
+                    case "minimum":
+                        return islandContainer.currentTrack !== ""
+                            ? Math.round(userConfig.notchClosedWidth + 2 * Math.max(0, userConfig.notchClosedHeight - 12) + 20)
+                            : (userConfig ? userConfig.notchClosedWidth : 185);
+                    case "circle": return userConfig ? userConfig.notchCircleClosedSize : 44;
+                    default: return 0;
+                    }
+                }
+
+                readonly property real baseHeight: {
+                    switch (currentMode) {
+                    case "full": return userConfig ? userConfig.notchOpenHeight : 190;
+                    case "minimum": return userConfig ? userConfig.notchClosedHeight : 32;
+                    case "circle": return userConfig ? userConfig.notchCircleClosedSize : 44;
+                    default: return 0;
+                    }
+                }
+
+                readonly property real requestedWidth: {
+                    switch (currentMode) {
+                    case "full":
+                        return (expandedPlayerLoader.item && expandedPlayerLoader.active)
+                            ? (Number(expandedPlayerLoader.item.requestedContentWidth) || 0) : 0;
+                    case "minimum":
+                        return (closedWidgetLoader.item && closedWidgetLoader.active)
+                            ? (Number(closedWidgetLoader.item.requestedContentWidth) || 0) : 0;
+                    case "circle":
+                        return (circleClosedLoader.item && circleClosedLoader.active)
+                            ? (Number(circleClosedLoader.item.requestedContentWidth) || 0) : 0;
+                    default:
+                        return 0;
+                    }
+                }
+
+                readonly property real requestedHeight: {
+                    switch (currentMode) {
+                    case "full":
+                        return (expandedPlayerLoader.item && expandedPlayerLoader.active)
+                            ? (Number(expandedPlayerLoader.item.requestedContentHeight) || 0) : 0;
+                    case "minimum":
+                        return (closedWidgetLoader.item && closedWidgetLoader.active)
+                            ? (Number(closedWidgetLoader.item.requestedContentHeight) || 0) : 0;
+                    case "circle":
+                        return (circleClosedLoader.item && circleClosedLoader.active)
+                            ? (Number(circleClosedLoader.item.requestedContentHeight) || 0) : 0;
+                    default:
+                        return 0;
+                    }
+                }
+
+                readonly property real maxWidth: Math.round(baseWidth * (1.0 + maxExpansionPct / 100.0))
+                readonly property real maxHeight: Math.round(baseHeight * (1.0 + maxExpansionPct / 100.0))
+
+                readonly property real overflowW: Math.max(0, requestedWidth - baseWidth)
+                readonly property real overflowH: Math.max(0, requestedHeight - baseHeight)
+
+                readonly property real targetExtraWidth: {
+                    if (!enabledForCurrentMode || baseWidth <= 0) return 0;
+                    if (overflowW <= 0) return 0;
+                    return Math.min(overflowW, maxWidth - baseWidth);
+                }
+
+                readonly property real targetExtraHeight: {
+                    if (!enabledForCurrentMode || baseHeight <= 0) return 0;
+                    if (overflowH <= 0) return 0;
+                    return Math.min(overflowH, maxHeight - baseHeight);
+                }
+
+                property real activeExtraWidth: 0
+                property real activeExtraHeight: 0
+                property string previousMode: ""
+
+                Timer {
+                    id: shrinkSettleTimer
+                    interval: 350
+                    repeat: false
+                    onTriggered: {
+                        dynamicResizeEngine.activeExtraWidth = dynamicResizeEngine.targetExtraWidth;
+                        dynamicResizeEngine.activeExtraHeight = dynamicResizeEngine.targetExtraHeight;
+                    }
+                }
+
+                function updateActiveDimensions() {
+                    if (currentMode !== previousMode) {
+                        previousMode = currentMode;
+                        shrinkSettleTimer.stop();
+                        activeExtraWidth = targetExtraWidth;
+                        activeExtraHeight = targetExtraHeight;
+                        return;
+                    }
+
+                    const targetW = targetExtraWidth;
+                    const targetH = targetExtraHeight;
+
+                    const isGrowingW = targetW > activeExtraWidth;
+                    const isGrowingH = targetH > activeExtraHeight;
+
+                    if (isGrowingW || isGrowingH) {
+                        shrinkSettleTimer.stop();
+                        if (isGrowingW) activeExtraWidth = targetW;
+                        if (isGrowingH) activeExtraHeight = targetH;
+                    }
+
+                    const isShrinkingW = targetW < activeExtraWidth;
+                    const isShrinkingH = targetH < activeExtraHeight;
+
+                    if (isShrinkingW || isShrinkingH) {
+                        if (!shrinkSettleTimer.running) {
+                            shrinkSettleTimer.restart();
+                        }
+                    } else if (!isGrowingW && !isGrowingH) {
+                        shrinkSettleTimer.stop();
+                    }
+                }
+
+                onTargetExtraWidthChanged: updateActiveDimensions()
+                onTargetExtraHeightChanged: updateActiveDimensions()
+                onCurrentModeChanged: updateActiveDimensions()
+                onEnabledForCurrentModeChanged: updateActiveDimensions()
+                onBaseWidthChanged: updateActiveDimensions()
+                onBaseHeightChanged: updateActiveDimensions()
+            }
             readonly property bool notificationHistorySurface: islandContainer.islandState === "notification_center"
             readonly property bool borderEnabled: userConfig.notchBorderEnabled === true
             property real outlineWidth: root.overviewContentVisible || notificationHistorySurface
@@ -2467,9 +2645,10 @@ PanelWindow {
                     case "widget_library":
                         return Math.min(root.width - 48, 700);
                     case "file_shelf":
+                        return userConfig.notchOpenWidth;
                     case "expanded":
                     case "bluetooth_expanded":
-                        return userConfig.notchOpenWidth;
+                        return userConfig.notchOpenWidth + dynamicResizeEngine.activeExtraWidth;
                     case "notification":
                         if (!notificationLoader.item) return 272;
                         return Math.max(
@@ -2481,7 +2660,7 @@ PanelWindow {
                     case "split":
                         return islandContainer.splitCapsuleWidth;
                     default:
-                        return userConfig.notchCircleClosedSize;
+                        return userConfig.notchCircleClosedSize + dynamicResizeEngine.activeExtraWidth;
                     }
                 }
 
@@ -2518,9 +2697,10 @@ PanelWindow {
                 case "widget_library":
                     return Math.min(root.width - 48, 700);
                 case "file_shelf":
+                    return userConfig.notchOpenWidth;
                 case "expanded":
                 case "bluetooth_expanded":
-                    return userConfig.notchOpenWidth;
+                    return userConfig.notchOpenWidth + dynamicResizeEngine.activeExtraWidth;
                 case "notification":
                     if (!notificationLoader.item) return 272;
                     return Math.max(
@@ -2528,9 +2708,10 @@ PanelWindow {
                         Math.min(root.width - 48, notificationLoader.item.maximumWidth, notificationLoader.item.preferredWidth)
                     );
                 default:
-                    return islandContainer.currentTrack !== ""
+                    const standardClosedWidth = islandContainer.currentTrack !== ""
                         ? Math.round(userConfig.notchClosedWidth + 2 * Math.max(0, userConfig.notchClosedHeight - 12) + 20)
                         : userConfig.notchClosedWidth;
+                    return standardClosedWidth + dynamicResizeEngine.activeExtraWidth;
                 }
             }
             readonly property real targetHeight: {
@@ -2549,17 +2730,18 @@ PanelWindow {
                 case "widget_library":
                     return 520;
                 case "file_shelf":
+                    return userConfig.notchOpenHeight;
                 case "expanded":
                 case "bluetooth_expanded":
-                    return userConfig.notchOpenHeight;
+                    return userConfig.notchOpenHeight + dynamicResizeEngine.activeExtraHeight;
                 case "notification":
                     return notificationLoader.item
                         ? Math.max(56, notificationLoader.item.preferredHeight)
                         : 56;
                 default:
                     if (userConfig.notchMode === "circle")
-                        return userConfig.notchCircleClosedSize;
-                    return userConfig.notchClosedHeight;
+                        return userConfig.notchCircleClosedSize + dynamicResizeEngine.activeExtraHeight;
+                    return userConfig.notchClosedHeight + dynamicResizeEngine.activeExtraHeight;
                 }
             }
             readonly property real targetRadius: {

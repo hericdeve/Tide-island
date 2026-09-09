@@ -25,10 +25,23 @@ Item {
     property bool isCharging: false
     property bool cameraMirrorActive: false
     property bool isEditMode: false
+    property bool dynamicResizeToastOpen: false
     property int hoveredSlotIndex: -1
     property bool isDraggingWidget: false
 
     readonly property int currentPage: expandedPageStrip ? expandedPageStrip.currentPage : 0
+
+    readonly property real requestedContentWidth: {
+        if (!expandedPageStrip) return 0;
+        const stripReqW = expandedPageStrip.requestedContentWidth;
+        return stripReqW > 0 ? (stripReqW + 32) : 0;
+    }
+
+    readonly property real requestedContentHeight: {
+        if (!expandedPageStrip) return 0;
+        const stripReqH = expandedPageStrip.requestedContentHeight;
+        return stripReqH > 0 ? (stripReqH + (statusBar ? statusBar.height : 28) + 28) : 0;
+    }
 
     function showPage(pageIdx, immediate) {
         if (expandedPageStrip) {
@@ -92,8 +105,16 @@ Item {
         }
     }
 
+    onShowConditionChanged: {
+        if (!showCondition) {
+            root.dynamicResizeToastOpen = false;
+        }
+    }
+
     Keys.onEscapePressed: event => {
-        if (root.isEditMode) {
+        if (root.dynamicResizeToastOpen) {
+            root.dynamicResizeToastOpen = false;
+        } else if (root.isEditMode) {
             root.isEditMode = false;
         } else {
             root.closeRequested();
@@ -186,6 +207,7 @@ Item {
                 currentPage: expandedPageStrip.currentPage
                 isEditMode: root.isEditMode
                 cameraMirrorActive: root.cameraMirrorActive
+                dynamicResizeToastActive: root.dynamicResizeToastOpen
                 batteryCapacity: root.batteryCapacity
                 isCharging: root.isCharging
                 iconFontFamily: root.iconFontFamily
@@ -203,6 +225,7 @@ Item {
                 onShelfRequested: root.shelfRequested()
                 onCameraToggleRequested: root.cameraMirrorActive = !root.cameraMirrorActive
                 onEditModeToggleRequested: root.isEditMode = !root.isEditMode
+                onDynamicResizeToggleRequested: root.dynamicResizeToastOpen = !root.dynamicResizeToastOpen
                 onSettingsRequested: SystemServices.openConfigApp()
                 onCloseRequested: root.closeRequested()
             }
@@ -247,6 +270,18 @@ Item {
                     if (userConfig)
                         userConfig.removePage("expanded", pIdx);
                 }
+            }
+        }
+
+        DynamicResizeToast {
+            id: resizeToast
+            open: root.dynamicResizeToastOpen
+            iconFontFamily: root.iconFontFamily
+            textFontFamily: root.textFontFamily
+            onCloseRequested: root.dynamicResizeToastOpen = false
+            onOpenSettingsRequested: {
+                root.dynamicResizeToastOpen = false;
+                SystemServices.openConfigApp();
             }
         }
     }

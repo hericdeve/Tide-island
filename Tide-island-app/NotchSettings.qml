@@ -52,7 +52,7 @@ PagePanel {
         Item {
             id: content
             width: scroller.width
-            height: curvaturePanel.y + curvaturePanel.height + 40
+            height: dynamicResizePanel.y + dynamicResizePanel.height + 40
 
             Text {
                 id: title
@@ -429,6 +429,84 @@ PagePanel {
                         numeric: true
                         minimumValue: 0
                         maximumValue: 100
+                        width: parent.width
+                    }
+                }
+            }
+
+            // 6. Dynamic Resizing Limits
+            Text {
+                id: dynamicResizeTitle
+                text: "Dynamic Resizing Limits"
+                anchors.top: curvaturePanel.bottom
+                anchors.topMargin: 34
+                anchors.left: parent.left
+                anchors.leftMargin: 32
+                anchors.right: parent.right
+                anchors.rightMargin: 40
+                font.family: Theme.titleFontFamily
+                font.pixelSize: 23
+                color: Theme.textColor
+            }
+
+            Rectangle {
+                id: dynamicResizePanel
+                color: Theme.cardBgColor
+                radius: 16
+                border.width: 1
+                border.color: Theme.splitLineColor
+                anchors.top: dynamicResizeTitle.bottom
+                anchors.topMargin: 15
+                anchors.left: parent.left
+                anchors.leftMargin: 30
+                anchors.right: parent.right
+                anchors.rightMargin: 40
+                height: dynamicResizeColumn.implicitHeight + 36
+
+                Column {
+                    id: dynamicResizeColumn
+                    anchors.top: parent.top
+                    anchors.topMargin: 18
+                    anchors.left: parent.left
+                    anchors.leftMargin: 18
+                    anchors.right: parent.right
+                    anchors.rightMargin: 18
+                    spacing: 16
+
+                    ConfigRow {
+                        title: "Expanded View Max Growth (%)"
+                        description: "Maximum percentage expanded notch can grow for long content (default 40%)"
+                        keyName: "dynamicResizeMaxPctFull"
+                        fallbackText: "40"
+                        numeric: true
+                        minimumValue: 10
+                        maximumValue: 200
+                        width: parent.width
+                    }
+
+                    SplitLine { width: parent.width }
+
+                    ConfigRow {
+                        title: "Minimum Pill Max Growth (%)"
+                        description: "Maximum percentage closed pill can expand horizontally and vertically (default 50%)"
+                        keyName: "dynamicResizeMaxPctMinimum"
+                        fallbackText: "50"
+                        numeric: true
+                        minimumValue: 10
+                        maximumValue: 200
+                        width: parent.width
+                    }
+
+                    SplitLine { width: parent.width }
+
+                    ConfigRow {
+                        title: "Circle View Max Growth (%)"
+                        description: "Maximum percentage circle mode can morph horizontally into a pill (default 60%)"
+                        keyName: "dynamicResizeMaxPctCircle"
+                        fallbackText: "60"
+                        numeric: true
+                        minimumValue: 10
+                        maximumValue: 200
                         width: parent.width
                     }
                 }

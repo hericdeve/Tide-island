@@ -113,6 +113,32 @@ void updateField(Owner *owner, T &field, T nextValue, Signal signal)
     field = std::move(nextValue);
     emit(owner->*signal)();
 }
+
+void writeConfigJsonField(const QString &configPath, const QString &key, const QJsonValue &value)
+{
+    QJsonObject configObject;
+    QFile configFile(configPath);
+    if (configFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        const QByteArray bytes = configFile.readAll();
+        configFile.close();
+        if (!bytes.trimmed().isEmpty()) {
+            const QByteArray stripped = stripJsonComments(bytes);
+            QJsonDocument doc = QJsonDocument::fromJson(stripped);
+            if (doc.isObject()) {
+                configObject = doc.object();
+            }
+        }
+    }
+
+    configObject[key] = value;
+
+    QFileInfo(configPath).dir().mkpath(QStringLiteral("."));
+    QSaveFile saveFile(configPath);
+    if (saveFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        saveFile.write(QJsonDocument(configObject).toJson(QJsonDocument::Indented));
+        saveFile.commit();
+    }
+}
 }
 
 UserConfigBackend::UserConfigBackend(QObject *parent)
@@ -356,6 +382,123 @@ void UserConfigBackend::setClaudeMinimumShowsLastMessage(bool showsLastMessage)
     if (saveFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
         saveFile.write(QJsonDocument(configObject).toJson(QJsonDocument::Indented));
         saveFile.commit();
+    }
+}
+
+bool UserConfigBackend::dynamicResizeEnabledFull() const
+{
+    return m_dynamicResizeEnabledFull;
+}
+
+void UserConfigBackend::setDynamicResizeEnabledFull(bool enabled)
+{
+    if (m_dynamicResizeEnabledFull == enabled)
+        return;
+
+    m_dynamicResizeEnabledFull = enabled;
+    emit dynamicResizeEnabledFullChanged();
+    writeConfigJsonField(m_userConfigPath, QStringLiteral("dynamicResizeEnabledFull"), m_dynamicResizeEnabledFull);
+}
+
+bool UserConfigBackend::dynamicResizeEnabledMinimum() const
+{
+    return m_dynamicResizeEnabledMinimum;
+}
+
+void UserConfigBackend::setDynamicResizeEnabledMinimum(bool enabled)
+{
+    if (m_dynamicResizeEnabledMinimum == enabled)
+        return;
+
+    m_dynamicResizeEnabledMinimum = enabled;
+    emit dynamicResizeEnabledMinimumChanged();
+    writeConfigJsonField(m_userConfigPath, QStringLiteral("dynamicResizeEnabledMinimum"), m_dynamicResizeEnabledMinimum);
+}
+
+bool UserConfigBackend::dynamicResizeEnabledCircle() const
+{
+    return m_dynamicResizeEnabledCircle;
+}
+
+void UserConfigBackend::setDynamicResizeEnabledCircle(bool enabled)
+{
+    if (m_dynamicResizeEnabledCircle == enabled)
+        return;
+
+    m_dynamicResizeEnabledCircle = enabled;
+    emit dynamicResizeEnabledCircleChanged();
+    writeConfigJsonField(m_userConfigPath, QStringLiteral("dynamicResizeEnabledCircle"), m_dynamicResizeEnabledCircle);
+}
+
+int UserConfigBackend::dynamicResizeMaxPctFull() const
+{
+    return m_dynamicResizeMaxPctFull;
+}
+
+void UserConfigBackend::setDynamicResizeMaxPctFull(int pct)
+{
+    const int bounded = std::clamp(pct, 10, 200);
+    if (m_dynamicResizeMaxPctFull == bounded)
+        return;
+
+    m_dynamicResizeMaxPctFull = bounded;
+    emit dynamicResizeMaxPctFullChanged();
+    writeConfigJsonField(m_userConfigPath, QStringLiteral("dynamicResizeMaxPctFull"), m_dynamicResizeMaxPctFull);
+}
+
+int UserConfigBackend::dynamicResizeMaxPctMinimum() const
+{
+    return m_dynamicResizeMaxPctMinimum;
+}
+
+void UserConfigBackend::setDynamicResizeMaxPctMinimum(int pct)
+{
+    const int bounded = std::clamp(pct, 10, 200);
+    if (m_dynamicResizeMaxPctMinimum == bounded)
+        return;
+
+    m_dynamicResizeMaxPctMinimum = bounded;
+    emit dynamicResizeMaxPctMinimumChanged();
+    writeConfigJsonField(m_userConfigPath, QStringLiteral("dynamicResizeMaxPctMinimum"), m_dynamicResizeMaxPctMinimum);
+}
+
+int UserConfigBackend::dynamicResizeMaxPctCircle() const
+{
+    return m_dynamicResizeMaxPctCircle;
+}
+
+void UserConfigBackend::setDynamicResizeMaxPctCircle(int pct)
+{
+    const int bounded = std::clamp(pct, 10, 200);
+    if (m_dynamicResizeMaxPctCircle == bounded)
+        return;
+
+    m_dynamicResizeMaxPctCircle = bounded;
+    emit dynamicResizeMaxPctCircleChanged();
+    writeConfigJsonField(m_userConfigPath, QStringLiteral("dynamicResizeMaxPctCircle"), m_dynamicResizeMaxPctCircle);
+}
+
+void UserConfigBackend::setDynamicResizeEnabled(const QString &mode, bool enabled)
+{
+    const QString m = mode.trimmed().toLower();
+    if (m == QLatin1String("full") || m == QLatin1String("expanded")) {
+        setDynamicResizeEnabledFull(enabled);
+    } else if (m == QLatin1String("minimum") || m == QLatin1String("pill") || m == QLatin1String("closed")) {
+        setDynamicResizeEnabledMinimum(enabled);
+    } else if (m == QLatin1String("circle")) {
+        setDynamicResizeEnabledCircle(enabled);
+    }
+}
+
+void UserConfigBackend::setDynamicResizeMaxPct(const QString &mode, int percentage)
+{
+    const QString m = mode.trimmed().toLower();
+    if (m == QLatin1String("full") || m == QLatin1String("expanded")) {
+        setDynamicResizeMaxPctFull(percentage);
+    } else if (m == QLatin1String("minimum") || m == QLatin1String("pill") || m == QLatin1String("closed")) {
+        setDynamicResizeMaxPctMinimum(percentage);
+    } else if (m == QLatin1String("circle")) {
+        setDynamicResizeMaxPctCircle(percentage);
     }
 }
 
@@ -1074,6 +1217,12 @@ void UserConfigBackend::loadConfig()
     updateField(this, m_disableAutoExpandOnTrackChange, jsonBool(configObject, QLatin1String("disableAutoExpandOnTrackChange"), true), &UserConfigBackend::disableAutoExpandOnTrackChangeChanged);
     updateField(this, m_playerRememberLastPane, jsonBool(configObject, QLatin1String("playerRememberLastPane"), false), &UserConfigBackend::playerRememberLastPaneChanged);
     updateField(this, m_claudeMinimumShowsLastMessage, jsonBool(configObject, QLatin1String("claudeMinimumShowsLastMessage"), false), &UserConfigBackend::claudeMinimumShowsLastMessageChanged);
+    updateField(this, m_dynamicResizeEnabledFull, jsonBool(configObject, QLatin1String("dynamicResizeEnabledFull"), true), &UserConfigBackend::dynamicResizeEnabledFullChanged);
+    updateField(this, m_dynamicResizeEnabledMinimum, jsonBool(configObject, QLatin1String("dynamicResizeEnabledMinimum"), true), &UserConfigBackend::dynamicResizeEnabledMinimumChanged);
+    updateField(this, m_dynamicResizeEnabledCircle, jsonBool(configObject, QLatin1String("dynamicResizeEnabledCircle"), false), &UserConfigBackend::dynamicResizeEnabledCircleChanged);
+    updateField(this, m_dynamicResizeMaxPctFull, jsonBoundedInt(configObject, QLatin1String("dynamicResizeMaxPctFull"), 40, 10, 200), &UserConfigBackend::dynamicResizeMaxPctFullChanged);
+    updateField(this, m_dynamicResizeMaxPctMinimum, jsonBoundedInt(configObject, QLatin1String("dynamicResizeMaxPctMinimum"), 50, 10, 200), &UserConfigBackend::dynamicResizeMaxPctMinimumChanged);
+    updateField(this, m_dynamicResizeMaxPctCircle, jsonBoundedInt(configObject, QLatin1String("dynamicResizeMaxPctCircle"), 60, 10, 200), &UserConfigBackend::dynamicResizeMaxPctCircleChanged);
     updateField(this, m_hoverExpandAction, jsonInt(configObject, QLatin1String("hoverExpandAction"), 1), &UserConfigBackend::hoverExpandActionChanged);
     updateField(this, m_islandAutoHideEnabled, jsonBool(configObject, QLatin1String("islandAutoHideEnabled"), true), &UserConfigBackend::islandAutoHideEnabledChanged);
     updateField(this, m_islandAutoHideDelayMs, jsonBoundedInt(configObject, QLatin1String("islandAutoHideDelayMs"), 1000, 100, 10000), &UserConfigBackend::islandAutoHideDelayMsChanged);

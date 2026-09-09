@@ -57,6 +57,20 @@ Item {
         return root.statusLabel();
     }
 
+    TextMetrics {
+        id: minTextMetrics
+        font.family: root.textFontFamily
+        font.pixelSize: 14
+        font.weight: root.isWaitingConsent ? Font.Bold : Font.DemiBold
+        text: root.displayLabel()
+    }
+
+    readonly property real requestedContentWidth: {
+        const naturalW = 16 + 7 + minTextMetrics.width + 32;
+        return naturalW > root.width ? naturalW : 0;
+    }
+    readonly property real requestedContentHeight: 0
+
     anchors.fill: parent
 
     Row {
@@ -116,7 +130,7 @@ Item {
             color: root.isWaitingConsent ? "#f59e0b" : (root.state === "error" ? "#fca5a5" : "white")
             elide: Text.ElideRight
             maximumLineCount: 1
-            width: Math.min(implicitWidth, Math.max(0, root.width - statusDot.width - contentRow.spacing - 8))
+            width: Math.min(implicitWidth, Math.max(0, root.width - statusDot.width - contentRow.spacing - 12))
         }
     }
 }

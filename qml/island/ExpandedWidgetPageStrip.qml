@@ -25,6 +25,15 @@ Item {
     readonly property real clampedPageProgress: Math.max(0, Math.min(pageCount - 1, pageProgress))
     readonly property real pageSlideDistance: Math.max(1, width + 24)
 
+    readonly property real requestedContentWidth: {
+        const curWrapper = pagesRepeater.itemAt(root.currentPage);
+        return (curWrapper && curWrapper.gridItem) ? Number(curWrapper.gridItem.requestedContentWidth) : 0;
+    }
+    readonly property real requestedContentHeight: {
+        const curWrapper = pagesRepeater.itemAt(root.currentPage);
+        return (curWrapper && curWrapper.gridItem) ? Number(curWrapper.gridItem.requestedContentHeight) : 0;
+    }
+
     function settlePage(target) {
         const clampedTarget = Math.max(0, Math.min(pageCount - 1, target));
         settleAnimation.stop();
@@ -162,12 +171,14 @@ Item {
     }
 
     Repeater {
+        id: pagesRepeater
         model: root.pageCount
 
         Item {
             id: pageWrapper
             readonly property int pIdx: index
             readonly property real pageOffset: (pIdx - root.clampedPageProgress) * root.pageSlideDistance
+            readonly property var gridItem: slotGrid
 
             width: root.width
             height: root.height
@@ -177,6 +188,7 @@ Item {
             enabled: pIdx === root.currentPage
 
             WidgetSlotGrid {
+                id: slotGrid
                 anchors.fill: parent
                 pageIndex: pageWrapper.pIdx
                 pageData: (root.pages && root.pages[pageWrapper.pIdx]) ? root.pages[pageWrapper.pIdx] : null

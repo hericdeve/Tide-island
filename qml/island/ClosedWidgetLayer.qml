@@ -76,6 +76,17 @@ Item {
     readonly property real clampedPageProgress: Math.max(0, Math.min(pageCount - 1, pageProgress))
     readonly property real pageSlideDistance: Math.max(1, width + 16)
 
+    readonly property real requestedContentWidth: {
+        const curPageItem = pageStripRepeater.itemAt(root.currentPage);
+        return (curPageItem && curPageItem.requestedContentWidth !== undefined)
+            ? Number(curPageItem.requestedContentWidth) : 0;
+    }
+    readonly property real requestedContentHeight: {
+        const curPageItem = pageStripRepeater.itemAt(root.currentPage);
+        return (curPageItem && curPageItem.requestedContentHeight !== undefined)
+            ? Number(curPageItem.requestedContentHeight) : 0;
+    }
+
     function settlePage(target) {
         const clampedTarget = Math.max(0, Math.min(pageCount - 1, target));
         settleAnimation.stop();
@@ -475,6 +486,7 @@ Item {
         clip: true
 
         Repeater {
+            id: pageStripRepeater
             model: root.pageCount
 
             Item {
@@ -486,6 +498,33 @@ Item {
                 readonly property var items: (pageData && pageData.items) ? pageData.items : []
                 readonly property bool isCustomPage: pIdx > 0
                 readonly property bool isPageEmpty: (items || []).length === 0
+
+                readonly property real requestedContentWidth: {
+                    let extraWidth = 0;
+                    for (let i = 0; i < pageSlotsRepeater.count; ++i) {
+                        const slot = pageSlotsRepeater.itemAt(i);
+                        if (slot && slot.widgetItem && slot.hasWidget) {
+                            const reqW = Number(slot.widgetItem.requestedContentWidth) || 0;
+                            if (reqW > slot.width) {
+                                extraWidth += (reqW - slot.width);
+                            }
+                        }
+                    }
+                    return extraWidth > 0 ? (root.width + extraWidth) : 0;
+                }
+                readonly property real requestedContentHeight: {
+                    let maxH = 0;
+                    for (let i = 0; i < pageSlotsRepeater.count; ++i) {
+                        const slot = pageSlotsRepeater.itemAt(i);
+                        if (slot && slot.widgetItem && slot.hasWidget) {
+                            const reqH = Number(slot.widgetItem.requestedContentHeight) || 0;
+                            if (reqH > maxH) {
+                                maxH = reqH;
+                            }
+                        }
+                    }
+                    return maxH > 0 ? Math.max(root.height, maxH) : 0;
+                }
 
                 readonly property real pageOffset: (pIdx - root.clampedPageProgress) * root.pageSlideDistance
                 width: pageStrip.width
@@ -538,9 +577,11 @@ Item {
                     visible: !pageDelegateItem.isOfferPage
 
                     Repeater {
+                        id: pageSlotsRepeater
                         model: pageDelegateItem.isOfferPage ? 0 : pageDelegateItem.slotCount
 
                         Item {
+                            id: slotItem
                             readonly property int sIdx: index
                             readonly property var placedItem: {
                                 const its = pageDelegateItem.items || [];
@@ -552,6 +593,7 @@ Item {
                             }
                             readonly property string widgetId: placedItem ? (placedItem.widgetId || "") : ""
                             readonly property bool hasWidget: widgetId !== ""
+                            readonly property var widgetItem: widgetLoader.item
 
                             width: closedSlotWidth
                             height: pageStrip.height
@@ -584,6 +626,7 @@ Item {
                                 }
 
                                 Loader {
+                                    id: widgetLoader
                                     anchors.fill: parent
                                     enabled: false
                                     active: parent.parent.hasWidget

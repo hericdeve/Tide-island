@@ -9,6 +9,7 @@ Item {
     property bool isEditMode: false
     property bool cameraMirrorActive: false
     property bool fileShelfActive: false
+    property bool dynamicResizeToastActive: false
     property int batteryCapacity: -1
     property bool isCharging: false
     property string iconFontFamily: "Sans Serif"
@@ -25,6 +26,7 @@ Item {
     signal shelfRequested()
     signal cameraToggleRequested()
     signal editModeToggleRequested()
+    signal dynamicResizeToggleRequested()
     signal settingsRequested()
     signal closeRequested()
 
@@ -399,6 +401,65 @@ Item {
                         else userConfig.setNotchMode("notch");
                     }
                 }
+            }
+        }
+
+        // Dynamic Resize Quick-Access Toggle button
+        Rectangle {
+            id: resizeToggleBtn
+            width: 24
+            height: 24
+            radius: 12
+            color: root.dynamicResizeToastActive ? "#38ffffff" : (resizeMouse.pressed ? "#38ffffff" : (resizeMouse.containsMouse ? "#1fffffff" : "transparent"))
+            border.width: 1
+            border.color: root.dynamicResizeToastActive ? "#4dffffff" : (resizeMouse.containsMouse ? "#2effffff" : "transparent")
+
+            Behavior on color { ColorAnimation { duration: 120 } }
+            Behavior on border.color { ColorAnimation { duration: 120 } }
+
+            Text {
+                anchors.centerIn: parent
+                text: "󰁌"
+                color: root.dynamicResizeToastActive ? "#ffffff" : (resizeMouse.containsMouse ? "#ffffff" : "#8e8e93")
+                font.family: root.iconFontFamily
+                font.pixelSize: 13
+            }
+
+            // Tooltip badge showing "Dynamic Resizing" on hover
+            Rectangle {
+                id: resizeTooltipBadge
+                visible: opacity > 0.001
+                opacity: resizeMouse.containsMouse && !root.dynamicResizeToastActive ? 1.0 : 0.0
+                anchors.top: parent.bottom
+                anchors.topMargin: 5
+                anchors.horizontalCenter: parent.horizontalCenter
+                height: 18
+                width: resizeTooltipText.implicitWidth + 12
+                radius: 9
+                color: "#f01c1c1e"
+                border.width: 1
+                border.color: "#33ffffff"
+                z: 100
+
+                Behavior on opacity { NumberAnimation { duration: 120 } }
+
+                Text {
+                    id: resizeTooltipText
+                    anchors.centerIn: parent
+                    text: "Dynamic Resizing"
+                    color: "#ffffff"
+                    font.family: root.textFontFamily
+                    font.pixelSize: 10
+                    font.weight: Font.Medium
+                }
+            }
+
+            MouseArea {
+                id: resizeMouse
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: root.dynamicResizeToggleRequested()
             }
         }
 

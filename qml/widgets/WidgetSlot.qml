@@ -21,6 +21,11 @@ Item {
     readonly property string componentSource: widgetId !== "" ? WidgetRegistry.getComponentUrl(widgetId, size) : ""
     readonly property bool hasWidget: widgetId !== "" && componentSource !== ""
 
+    readonly property real requestedContentWidth: (widgetLoader.item && widgetLoader.item.requestedContentWidth !== undefined)
+        ? Number(widgetLoader.item.requestedContentWidth) : 0
+    readonly property real requestedContentHeight: (widgetLoader.item && widgetLoader.item.requestedContentHeight !== undefined)
+        ? Number(widgetLoader.item.requestedContentHeight) : 0
+
     clip: false
 
     // 1. Empty slot placeholder (shown in edit mode when slot is unoccupied)

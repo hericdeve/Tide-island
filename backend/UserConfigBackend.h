@@ -82,6 +82,13 @@ class UserConfigBackend final : public QObject {
     Q_PROPERTY(int iconFontSize READ iconFontSize NOTIFY iconFontSizeChanged FINAL)
     Q_PROPERTY(QJsonObject widgetLayouts READ widgetLayouts NOTIFY widgetLayoutsChanged FINAL)
 
+    Q_PROPERTY(bool dynamicResizeEnabledFull READ dynamicResizeEnabledFull WRITE setDynamicResizeEnabledFull NOTIFY dynamicResizeEnabledFullChanged FINAL)
+    Q_PROPERTY(bool dynamicResizeEnabledMinimum READ dynamicResizeEnabledMinimum WRITE setDynamicResizeEnabledMinimum NOTIFY dynamicResizeEnabledMinimumChanged FINAL)
+    Q_PROPERTY(bool dynamicResizeEnabledCircle READ dynamicResizeEnabledCircle WRITE setDynamicResizeEnabledCircle NOTIFY dynamicResizeEnabledCircleChanged FINAL)
+    Q_PROPERTY(int dynamicResizeMaxPctFull READ dynamicResizeMaxPctFull WRITE setDynamicResizeMaxPctFull NOTIFY dynamicResizeMaxPctFullChanged FINAL)
+    Q_PROPERTY(int dynamicResizeMaxPctMinimum READ dynamicResizeMaxPctMinimum WRITE setDynamicResizeMaxPctMinimum NOTIFY dynamicResizeMaxPctMinimumChanged FINAL)
+    Q_PROPERTY(int dynamicResizeMaxPctCircle READ dynamicResizeMaxPctCircle WRITE setDynamicResizeMaxPctCircle NOTIFY dynamicResizeMaxPctCircleChanged FINAL)
+
 public:
     explicit UserConfigBackend(QObject *parent = nullptr);
 
@@ -120,6 +127,20 @@ public:
     Q_INVOKABLE void setPlayerRememberLastPane(bool remember);
     bool claudeMinimumShowsLastMessage() const;
     Q_INVOKABLE void setClaudeMinimumShowsLastMessage(bool showsLastMessage);
+    bool dynamicResizeEnabledFull() const;
+    Q_INVOKABLE void setDynamicResizeEnabledFull(bool enabled);
+    bool dynamicResizeEnabledMinimum() const;
+    Q_INVOKABLE void setDynamicResizeEnabledMinimum(bool enabled);
+    bool dynamicResizeEnabledCircle() const;
+    Q_INVOKABLE void setDynamicResizeEnabledCircle(bool enabled);
+    int dynamicResizeMaxPctFull() const;
+    Q_INVOKABLE void setDynamicResizeMaxPctFull(int pct);
+    int dynamicResizeMaxPctMinimum() const;
+    Q_INVOKABLE void setDynamicResizeMaxPctMinimum(int pct);
+    int dynamicResizeMaxPctCircle() const;
+    Q_INVOKABLE void setDynamicResizeMaxPctCircle(int pct);
+    Q_INVOKABLE void setDynamicResizeEnabled(const QString &mode, bool enabled);
+    Q_INVOKABLE void setDynamicResizeMaxPct(const QString &mode, int percentage);
     int hoverExpandAction() const;
     bool islandShowWorkspaceOnAutoHide() const;
     bool islandAutoHideEnabled() const;
@@ -205,6 +226,12 @@ signals:
     void disableAutoExpandOnTrackChangeChanged();
     void playerRememberLastPaneChanged();
     void claudeMinimumShowsLastMessageChanged();
+    void dynamicResizeEnabledFullChanged();
+    void dynamicResizeEnabledMinimumChanged();
+    void dynamicResizeEnabledCircleChanged();
+    void dynamicResizeMaxPctFullChanged();
+    void dynamicResizeMaxPctMinimumChanged();
+    void dynamicResizeMaxPctCircleChanged();
     void islandShowWorkspaceOnAutoHideChanged();
     void hoverExpandActionChanged();
     void islandAutoHideEnabledChanged();
@@ -279,6 +306,12 @@ private:
     bool m_disableAutoExpandOnTrackChange = true;
     bool m_playerRememberLastPane = false;
     bool m_claudeMinimumShowsLastMessage = false;
+    bool m_dynamicResizeEnabledFull = true;
+    bool m_dynamicResizeEnabledMinimum = true;
+    bool m_dynamicResizeEnabledCircle = false;
+    int m_dynamicResizeMaxPctFull = 40;
+    int m_dynamicResizeMaxPctMinimum = 50;
+    int m_dynamicResizeMaxPctCircle = 60;
     int m_hoverExpandAction = 1;
     bool m_islandAutoHideEnabled = true;
     int m_islandAutoHideDelayMs = 1000;

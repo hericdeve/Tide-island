@@ -81,6 +81,15 @@ Item {
     readonly property int totalPageCount: realPageCount + (isEditMode ? 1 : 0)
     readonly property int pageCount: totalPageCount
 
+    readonly property real requestedContentWidth: {
+        const curPage = circlePageRepeater.itemAt(root.currentPageIndex);
+        return (curPage && curPage.requestedContentWidth !== undefined) ? Number(curPage.requestedContentWidth) : 0;
+    }
+    readonly property real requestedContentHeight: {
+        const curPage = circlePageRepeater.itemAt(root.currentPageIndex);
+        return (curPage && curPage.requestedContentHeight !== undefined) ? Number(curPage.requestedContentHeight) : 0;
+    }
+
     // Shared context passed into each Circle widget
     readonly property var sharedWidgetContext: ({
         activePlayer: null,
@@ -380,6 +389,7 @@ Item {
 
     // Widget faces — each page renders its widget filling the circle (or Add Widget, or Offer Page)
     Repeater {
+        id: circlePageRepeater
         model: root.pageCount
 
         Item {
@@ -394,6 +404,11 @@ Item {
             readonly property bool isDeletePageAction: !hasWidget && pIdx > 0
             readonly property bool isRemoveWidgetAction: hasWidget
             readonly property bool showTopButton: root.isEditMode && !isOfferPage && (isRemoveWidgetAction || isDeletePageAction)
+            readonly property var widgetItem: pageWidgetLoader.item
+            readonly property real requestedContentWidth: (widgetItem && widgetItem.requestedContentWidth !== undefined)
+                ? Number(widgetItem.requestedContentWidth) : 0
+            readonly property real requestedContentHeight: (widgetItem && widgetItem.requestedContentHeight !== undefined)
+                ? Number(widgetItem.requestedContentHeight) : 0
 
             anchors.fill: parent
             opacity: pIdx === root.currentPageIndex ? 1.0 : 0.0

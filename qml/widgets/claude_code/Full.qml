@@ -15,6 +15,36 @@ Item {
     readonly property string state: ClaudeCodeBackend.sessionState
     readonly property bool isWaitingConsent: state === "waiting_consent" || (ClaudeCodeBackend.pendingConsentId !== "")
 
+    TextMetrics {
+        id: fullTextMetrics
+        font.family: root.textFontFamily
+        font.pixelSize: 10
+        text: ClaudeCodeBackend.pendingConsentDetail || ClaudeCodeBackend.toolDetail || ClaudeCodeBackend.lastMessage || ""
+    }
+
+    readonly property real requestedContentWidth: {
+        const textW = fullTextMetrics.width;
+        if (textW <= 0) return 0;
+        const needed = textW + 80;
+        return needed > root.width ? needed : 0;
+    }
+
+    readonly property real requestedContentHeight: {
+        const text = fullTextMetrics.text;
+        if (!text || text.length === 0) return 0;
+        const availableW = Math.max(120, root.width - 60);
+        const textW = fullTextMetrics.width;
+        const hasNewlines = text.indexOf('\n') !== -1;
+        const lineCount = hasNewlines
+            ? Math.min(4, text.split('\n').length)
+            : (textW > availableW ? Math.min(4, Math.ceil(textW / availableW)) : 1);
+
+        if (lineCount > 1) {
+            return root.height + (lineCount - 1) * 16;
+        }
+        return 0;
+    }
+
     function stateColor() {
         if (!ClaudeCodeBackend.connected && !ClaudeCodeBackend.demoMode) return "#6b7280";
         switch (root.state) {
@@ -431,8 +461,9 @@ Item {
 
                 // Middle: Last message or active activity banner
                 Rectangle {
+                    id: activityBanner
                     width: parent.width
-                    height: 28
+                    height: Math.max(28, Math.min(76, bannerText.implicitHeight + 10))
                     radius: 6
                     color: root.state === "error" ? "#221113" : "#111113"
                     border.width: 1
@@ -441,12 +472,12 @@ Item {
 
                     Row {
                         anchors.fill: parent
-                        anchors.leftMargin: 8
-                        anchors.rightMargin: 8
+                        anchors.margins: 6
                         spacing: 6
 
                         Text {
-                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.top: parent.top
+                            anchors.topMargin: 2
                             text: (root.state === "thinking") ? "󰑣" : ((root.state === "running_tool") ? "󰞷" : ((root.state === "error") ? "󰅚" : "󰋼"))
                             font.family: root.iconFontFamily
                             font.pixelSize: 11
@@ -460,14 +491,16 @@ Item {
                         }
 
                         Text {
+                            id: bannerText
                             anchors.verticalCenter: parent.verticalCenter
                             width: parent.width - 24 - (dismissErrorBtn.visible ? 20 : 0)
                             text: ClaudeCodeBackend.toolDetail || ClaudeCodeBackend.lastMessage || "Ready to assist"
                             font.family: root.textFontFamily
                             font.pixelSize: 10
                             color: root.state === "error" ? "#fca5a5" : "#e4e4e7"
+                            wrapMode: Text.Wrap
                             elide: Text.ElideRight
-                            maximumLineCount: 1
+                            maximumLineCount: root.height > 150 ? 4 : 2
                         }
 
                         Item {
