@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QFileSystemWatcher>
 #include <QObject>
 #include <QString>
 #include <QVariantMap>
@@ -17,7 +18,7 @@ class Backend final : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString userConfigPath READ userConfigPath CONSTANT)
     Q_PROPERTY(QString errorString READ errorString NOTIFY errorStringChanged)
-    Q_PROPERTY(QVariantMap userConfig READ userConfig CONSTANT)
+    Q_PROPERTY(QVariantMap userConfig READ userConfig NOTIFY userConfigChanged)
     Q_PROPERTY(QString colorScheme READ colorScheme WRITE setColorScheme NOTIFY colorSchemeChanged)
 
 public:
@@ -48,6 +49,7 @@ public:
     Q_INVOKABLE bool toggleApplicationLauncher();
     Q_INVOKABLE void startGoogleCalendarAuth();
     Q_INVOKABLE void signOutGoogle();
+    Q_INVOKABLE void refreshGoogleCalendars();
     Q_INVOKABLE bool isGoogleSignedIn() const;
     Q_INVOKABLE QString googleAccountEmail() const;
     Q_INVOKABLE QString googleAuthError() const;
@@ -63,6 +65,7 @@ signals:
     void errorStringChanged();
     void colorSchemeChanged();
     void googleCredentialsChanged();
+    void userConfigChanged();
 
 private:
     QString hyprlandConfigPath() const;
@@ -86,4 +89,6 @@ private:
     QString m_errorString;
     QString m_colorScheme;
     UserConfigMap m_userConfig;
+    QFileSystemWatcher m_fileWatcher;
+    bool m_savingConfig = false;
 };

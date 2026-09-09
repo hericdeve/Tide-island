@@ -5,6 +5,7 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QFileSystemWatcher>
 #include <QGuiApplication>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -528,6 +529,18 @@ Backend::Backend(QObject *parent)
     m_colorScheme = normalizedColorScheme(
         settings.value(QString::fromLatin1(colorSchemeKey), QStringLiteral("light")).toString());
     load();
+
+    const QString path = m_userConfigPath;
+    if (QFile::exists(path)) {
+        m_fileWatcher.addPath(path);
+    }
+    connect(&m_fileWatcher, &QFileSystemWatcher::fileChanged, this, [this](const QString &path) {
+        if (m_savingConfig) return;
+        if (!m_fileWatcher.files().contains(path) && QFile::exists(path)) {
+            m_fileWatcher.addPath(path);
+        }
+        load();
+    });
 }
 
 QString Backend::userConfigPath() const{
@@ -601,8 +614,10 @@ bool Backend::save(const QVariantMap &userConfig){
         return false;
     }
 
+    m_savingConfig = true;
     file.write(QJsonDocument(mergedObject).toJson(QJsonDocument::Indented));
     if (!file.commit()) {
+        m_savingConfig = false;
         setErrorString(QStringLiteral("Could not save %1: %2").arg(m_userConfigPath, file.errorString()));
         return false;
     }
@@ -610,6 +625,7 @@ bool Backend::save(const QVariantMap &userConfig){
     QFile::setPermissions(m_userConfigPath, QFileDevice::ReadOwner | QFileDevice::WriteOwner);
 
     setUserConfig(mergedObject.toVariantMap());
+    m_savingConfig = false;
     setErrorString(QString());
     return true;
 }
@@ -1274,6 +1290,7 @@ QVariantMap Backend::toVariantMap() const{
 
 void Backend::setUserConfig(const QVariantMap &userConfig){
     m_userConfig = toUserConfigMap(userConfig);
+    emit userConfigChanged();
 }
 
 void Backend::startGoogleCalendarAuth() {
@@ -1300,14 +1317,14 @@ void Backend::signOutGoogle() {
     googleAuth[QStringLiteral("isSignedIn")] = false;
     googleAuth[QStringLiteral("email")] = QString();
     googleAuth[QStringLiteral("accessToken")] = QString();
+    googleAuth[QStringLiteral("lastError")] = QString();
     googleAuth.remove(QStringLiteral("refreshToken"));
-    googleAuth.remove(QStringLiteral("clientSecret"));
     config[QStringLiteral("googleAuth")] = googleAuth;
     config[QStringLiteral("googleCalendars")] = QVariantList();
     config[QStringLiteral("calendarEvents")] = QVariantList();
     save(config);
 
-    // Notify daemon to clear its memory state as well
+    // Notify daemon to sign out
     QProcess::startDetached(
         QString::fromLatin1(quickshellPath),
         {
@@ -1317,7 +1334,21 @@ void Backend::signOutGoogle() {
             QString::fromLatin1(tideQmlPath),
             QStringLiteral("call"),
             QStringLiteral("tide"),
-            QStringLiteral("startGoogleCalendarAuth"),
+            QStringLiteral("signOutGoogle"),
+        });
+}
+
+void Backend::refreshGoogleCalendars() {
+    QProcess::startDetached(
+        QString::fromLatin1(quickshellPath),
+        {
+            QStringLiteral("ipc"),
+            QStringLiteral("--any-display"),
+            QStringLiteral("-p"),
+            QString::fromLatin1(tideQmlPath),
+            QStringLiteral("call"),
+            QStringLiteral("tide"),
+            QStringLiteral("refreshGoogleCalendars"),
         });
 }
 

@@ -1275,18 +1275,22 @@ PagePanel {
                             anchors.fill: parent
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
-                                backend.startGoogleCalendarAuth() // refresh calendars trigger
+                                backend.refreshGoogleCalendars()
                             }
                         }
                     }
                 }
 
                 Text {
-                    visible: calRow.googleCalendarsList.length === 0
-                    text: "No calendars fetched yet. Click Refresh or sign in again."
-                    color: Theme.subtleTextColor
+                    visible: calRow.isGoogleSignedIn && calRow.googleCalendarsList.length === 0
+                    text: calRow.googleError !== ""
+                        ? calRow.googleError
+                        : "No calendars fetched yet. Click Refresh or check your Google Cloud Console."
+                    color: calRow.googleError !== "" ? "#ff453a" : Theme.subtleTextColor
                     font.family: Theme.textFontFamily
                     font.pixelSize: 13
+                    width: parent.width
+                    wrapMode: Text.WordWrap
                 }
 
                 Repeater {

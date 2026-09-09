@@ -29,6 +29,11 @@ int main(int argc, char *argv[]) {
     QGuiApplication app(argc, argv);
     Backend backend;
     QQmlApplicationEngine engine;
+    QObject::connect(&engine, &QQmlApplicationEngine::warnings, [](const QList<QQmlError> &warnings) {
+        for (const auto &w : warnings) {
+            qWarning().noquote() << "[QML Warning]" << w.toString();
+        }
+    });
     engine.rootContext()->setContextProperty(QStringLiteral("backend"), &backend);
     engine.loadFromModule(QStringLiteral("TideIsland"), QStringLiteral("Main"));
     if (engine.rootObjects().isEmpty()) return -1;

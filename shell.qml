@@ -272,6 +272,18 @@ Scope {
                 CalendarBackend.startGoogleAuth();
             }
         }
+
+        function signOutGoogle() {
+            if (CalendarBackend) {
+                CalendarBackend.signOutGoogle();
+            }
+        }
+
+        function refreshGoogleCalendars() {
+            if (CalendarBackend) {
+                CalendarBackend.refreshGoogleCalendars();
+            }
+        }
     }
 
     IpcHandler {

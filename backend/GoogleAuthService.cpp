@@ -466,11 +466,20 @@ void GoogleAuthService::fetchCalendarList(const std::function<void(bool success,
         connect(reply, &QNetworkReply::finished, this, [this, reply, callback]() {
             reply->deleteLater();
             if (reply->error() != QNetworkReply::NoError) {
+                const QByteArray errBytes = reply->readAll();
                 m_lastError = QStringLiteral("Failed to fetch calendar list: ") + reply->errorString();
+                const int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+                if (statusCode == 403) {
+                    m_lastError += QStringLiteral(" (HTTP 403: Google Calendar API may not be enabled in your Google Cloud Console project, or your Google account is not added as an OAuth test user)");
+                } else if (!errBytes.isEmpty()) {
+                    m_lastError += QStringLiteral(" (") + QString::fromUtf8(errBytes).trimmed() + QStringLiteral(")");
+                }
+                qWarning() << "GoogleAuthService:" << m_lastError;
                 emit syncErrorOccurred(m_lastError);
                 if (callback) callback(false, m_lastError);
                 return;
             }
+            m_lastError.clear();
             parseCalendarListJson(reply->readAll());
             if (callback) callback(true, QString());
         });
