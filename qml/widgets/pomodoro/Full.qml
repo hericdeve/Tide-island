@@ -74,160 +74,122 @@ Item {
         anchors.margins: 8
         visible: !root.connected
 
-        Rectangle {
-            anchors.fill: parent
-            radius: 12
-            color: "#18181b"
-            border.width: 1
-            border.color: "#27272a"
+        // Wide layout (centered column)
+        Column {
+            anchors.centerIn: parent
+            spacing: 6
+            visible: root.isWide
 
-            // Wide layout (horizontal row)
-            Row {
-                anchors.centerIn: parent
-                spacing: 14
-                visible: root.isWide
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "Pomotroid Offline"
+                font.family: root.textFontFamily
+                font.pixelSize: 13
+                font.weight: Font.Bold
+                color: "white"
+            }
 
-                Rectangle {
-                    width: 44
-                    height: 44
-                    radius: 22
-                    color: "#26ff453a"
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "Launch Pomotroid to start tracking sessions"
+                font.family: root.textFontFamily
+                font.pixelSize: 11
+                color: "#a1a1aa"
+            }
+
+            Item { width: 1; height: 4 }
+
+            Rectangle {
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: launchRow.implicitWidth + 20
+                height: 26
+                radius: 13
+                color: launchMouse.pressed ? "#dc2626" : (launchMouse.containsMouse ? "#ef4444" : "#ff453a")
+
+                Row {
+                    id: launchRow
+                    anchors.centerIn: parent
+                    spacing: 6
 
                     Text {
-                        anchors.centerIn: parent
-                        text: "󰄉"
+                        text: "󰐊"
                         font.family: root.iconFontFamily
-                        font.pixelSize: 22
-                        color: "#ff453a"
+                        font.pixelSize: 11
+                        color: "white"
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+
+                    Text {
+                        text: "Launch Pomotroid"
+                        font.family: root.textFontFamily
+                        font.pixelSize: 11
+                        font.weight: Font.DemiBold
+                        color: "white"
+                        anchors.verticalCenter: parent.verticalCenter
                     }
                 }
 
-                Column {
+                MouseArea {
+                    id: launchMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: PomotroidBackend.launchPomotroid()
+                }
+            }
+        }
+
+        // Compact layout (vertical column for narrow 1-slot views)
+        Column {
+            anchors.centerIn: parent
+            spacing: 6
+            visible: !root.isWide
+
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "Pomotroid Offline"
+                font.family: root.textFontFamily
+                font.pixelSize: 11
+                font.weight: Font.Bold
+                color: "white"
+            }
+
+            Rectangle {
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: compactLaunchRow.implicitWidth + 16
+                height: 22
+                radius: 11
+                color: compactLaunchMouse.pressed ? "#dc2626" : (compactLaunchMouse.containsMouse ? "#ef4444" : "#ff453a")
+
+                Row {
+                    id: compactLaunchRow
+                    anchors.centerIn: parent
                     spacing: 4
 
                     Text {
-                        text: "Pomotroid Offline"
-                        font.family: root.textFontFamily
-                        font.pixelSize: 13
-                        font.weight: Font.Bold
-                        color: "white"
-                    }
-
-                    Text {
-                        text: "Launch Pomotroid to start tracking sessions"
-                        font.family: root.textFontFamily
-                        font.pixelSize: 11
-                        color: "#a1a1aa"
-                    }
-
-                    Rectangle {
-                        width: launchRow.implicitWidth + 20
-                        height: 26
-                        radius: 13
-                        color: launchMouse.pressed ? "#dc2626" : (launchMouse.containsMouse ? "#ef4444" : "#ff453a")
-
-                        Row {
-                            id: launchRow
-                            anchors.centerIn: parent
-                            spacing: 6
-
-                            Text {
-                                text: "󰐊"
-                                font.family: root.iconFontFamily
-                                font.pixelSize: 11
-                                color: "white"
-                                anchors.verticalCenter: parent.verticalCenter
-                            }
-
-                            Text {
-                                text: "Launch Pomotroid"
-                                font.family: root.textFontFamily
-                                font.pixelSize: 11
-                                font.weight: Font.DemiBold
-                                color: "white"
-                                anchors.verticalCenter: parent.verticalCenter
-                            }
-                        }
-
-                        MouseArea {
-                            id: launchMouse
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: PomotroidBackend.launchPomotroid()
-                        }
-                    }
-                }
-            }
-
-            // Compact layout (vertical column for narrow 1-slot views)
-            Column {
-                anchors.centerIn: parent
-                spacing: 6
-                visible: !root.isWide
-
-                Rectangle {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    width: 34
-                    height: 34
-                    radius: 17
-                    color: "#26ff453a"
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: "󰄉"
+                        text: "󰐊"
                         font.family: root.iconFontFamily
-                        font.pixelSize: 18
-                        color: "#ff453a"
+                        font.pixelSize: 10
+                        color: "white"
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+
+                    Text {
+                        text: "Launch"
+                        font.family: root.textFontFamily
+                        font.pixelSize: 10
+                        font.weight: Font.DemiBold
+                        color: "white"
+                        anchors.verticalCenter: parent.verticalCenter
                     }
                 }
 
-                Text {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: "Pomotroid Offline"
-                    font.family: root.textFontFamily
-                    font.pixelSize: 11
-                    font.weight: Font.Bold
-                    color: "white"
-                }
-
-                Rectangle {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    width: compactLaunchRow.implicitWidth + 16
-                    height: 22
-                    radius: 11
-                    color: compactLaunchMouse.pressed ? "#dc2626" : (compactLaunchMouse.containsMouse ? "#ef4444" : "#ff453a")
-
-                    Row {
-                        id: compactLaunchRow
-                        anchors.centerIn: parent
-                        spacing: 4
-
-                        Text {
-                            text: "󰐊"
-                            font.family: root.iconFontFamily
-                            font.pixelSize: 10
-                            color: "white"
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-
-                        Text {
-                            text: "Launch"
-                            font.family: root.textFontFamily
-                            font.pixelSize: 10
-                            font.weight: Font.DemiBold
-                            color: "white"
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-                    }
-
-                    MouseArea {
-                        id: compactLaunchMouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: PomotroidBackend.launchPomotroid()
-                    }
+                MouseArea {
+                    id: compactLaunchMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: PomotroidBackend.launchPomotroid()
                 }
             }
         }
@@ -281,15 +243,6 @@ Item {
                                 Row {
                                     id: badgeRow
                                     anchors.centerIn: parent
-                                    spacing: 4
-
-                                    Text {
-                                        text: root.isWork ? "󰄉" : "󱫠"
-                                        font.family: root.iconFontFamily
-                                        font.pixelSize: 10
-                                        color: root.themeColor
-                                        anchors.verticalCenter: parent.verticalCenter
-                                    }
 
                                     Text {
                                         text: root.roundLabel + " " + root.roundNumber + "/" + root.roundsTotal
@@ -486,9 +439,10 @@ Item {
 
                                 Text {
                                     anchors.centerIn: parent
-                                    text: root.isWork ? "󰄉" : "󱫠"
-                                    font.family: root.iconFontFamily
-                                    font.pixelSize: 16
+                                    text: root.roundNumber
+                                    font.family: root.textFontFamily
+                                    font.pixelSize: 13
+                                    font.weight: Font.Bold
                                     color: root.themeColor
                                 }
                             }
@@ -1155,14 +1109,6 @@ Item {
                         Row {
                             id: compactBadgeRow
                             anchors.centerIn: parent
-                            spacing: 4
-
-                            Text {
-                                text: root.isWork ? "󰄉" : "󱫠"
-                                font.family: root.iconFontFamily
-                                font.pixelSize: 10
-                                color: root.themeColor
-                            }
 
                             Text {
                                 text: root.roundNumber + "/" + root.roundsTotal

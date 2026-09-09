@@ -26,12 +26,12 @@ Item {
 
     Row {
         anchors.centerIn: parent
-        spacing: 6
+        spacing: 7
 
         Text {
             text: root.currentVolume === 0 ? "󰖁" : "󰕾"
             font.family: root.iconFontFamily
-            font.pixelSize: 13
+            font.pixelSize: 16
             color: "#0a84ff"
             anchors.verticalCenter: parent.verticalCenter
         }
@@ -39,8 +39,8 @@ Item {
         Text {
             text: Math.round(root.currentVolume * 100) + "%"
             font.family: root.textFontFamily
-            font.pixelSize: 12
-            font.weight: Font.Medium
+            font.pixelSize: 14
+            font.weight: Font.DemiBold
             color: "white"
             anchors.verticalCenter: parent.verticalCenter
         }

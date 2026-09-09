@@ -29,86 +29,39 @@ Item {
     anchors.fill: parent
 
     Row {
+        id: textRow
         anchors.centerIn: parent
         spacing: 6
-        width: Math.min(parent.width - 4, contentWidth)
-        readonly property real contentWidth: iconItem.width + textRow.implicitWidth + 8
 
-        Item {
-            id: iconItem
-            width: 14
-            height: 14
+        Text {
+            text: root.connected ? root.timeDisplay : "Pomotroid"
+            font.family: root.textFontFamily
+            font.pixelSize: 14
+            font.weight: Font.Bold
+            font.letterSpacing: -0.2
+            color: root.connected ? "white" : "#a1a1aa"
             anchors.verticalCenter: parent.verticalCenter
-
-            Text {
-                id: iconText
-                anchors.centerIn: parent
-                text: root.isWork ? "󰄉" : "󱫠"
-                font.family: root.iconFontFamily
-                font.pixelSize: 13
-                color: root.themeColor
-            }
-
-            // Pulsing ring when active
-            Rectangle {
-                anchors.centerIn: parent
-                width: 16
-                height: 16
-                radius: 8
-                color: "transparent"
-                border.width: 1
-                border.color: root.themeColor
-                opacity: root.isRunning ? 0.7 : 0.0
-
-                SequentialAnimation on scale {
-                    running: root.isRunning
-                    loops: Animation.Infinite
-                    NumberAnimation { from: 1.0; to: 1.35; duration: 900; easing.type: Easing.OutQuad }
-                    NumberAnimation { from: 1.35; to: 1.0; duration: 900; easing.type: Easing.InQuad }
-                }
-                SequentialAnimation on opacity {
-                    running: root.isRunning
-                    loops: Animation.Infinite
-                    NumberAnimation { from: 0.7; to: 0.15; duration: 900 }
-                    NumberAnimation { from: 0.15; to: 0.7; duration: 900 }
-                }
-            }
         }
 
-        Row {
-            id: textRow
-            spacing: 5
+        // Secondary badge (subject or round fraction)
+        Rectangle {
+            visible: root.connected
+            height: 18
+            width: badgeText.implicitWidth + 10
+            radius: 9
+            color: "#27272a"
             anchors.verticalCenter: parent.verticalCenter
 
             Text {
-                text: root.connected ? root.timeDisplay : "Pomotroid"
+                id: badgeText
+                anchors.centerIn: parent
+                text: root.subject ? root.subject : (root.roundNumber + "/" + root.roundsTotal)
                 font.family: root.textFontFamily
                 font.pixelSize: 11
                 font.weight: Font.DemiBold
-                color: root.connected ? "white" : "#a1a1aa"
-                anchors.verticalCenter: parent.verticalCenter
-            }
-
-            // Secondary badge (subject or round fraction)
-            Rectangle {
-                visible: root.connected
-                height: 14
-                width: badgeText.implicitWidth + 8
-                radius: 7
-                color: "#27272a"
-                anchors.verticalCenter: parent.verticalCenter
-
-                Text {
-                    id: badgeText
-                    anchors.centerIn: parent
-                    text: root.subject ? root.subject : (root.roundNumber + "/" + root.roundsTotal)
-                    font.family: root.textFontFamily
-                    font.pixelSize: 9
-                    font.weight: Font.Medium
-                    color: "#d4d4d8"
-                    elide: Text.ElideRight
-                    maximumLineCount: 1
-                }
+                color: "#d4d4d8"
+                elide: Text.ElideRight
+                maximumLineCount: 1
             }
         }
     }

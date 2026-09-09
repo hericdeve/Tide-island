@@ -24,57 +24,57 @@ Item {
 
         // CPU
         Row {
-            spacing: 3
+            spacing: 4
             anchors.verticalCenter: parent.verticalCenter
             Text {
                 text: "󰻠"
                 font.family: root.iconFontFamily
-                font.pixelSize: 11
+                font.pixelSize: 13
                 color: "#ff2d55"
             }
             Text {
                 text: Math.round(root.cpuUsage) + "%"
                 font.family: root.textFontFamily
-                font.pixelSize: 11
-                font.weight: Font.Medium
+                font.pixelSize: 13
+                font.weight: Font.DemiBold
                 color: "white"
             }
         }
 
         // RAM
         Row {
-            spacing: 3
+            spacing: 4
             anchors.verticalCenter: parent.verticalCenter
             Text {
                 text: "󰍛"
                 font.family: root.iconFontFamily
-                font.pixelSize: 11
+                font.pixelSize: 13
                 color: "#007aff"
             }
             Text {
                 text: Math.round(root.ramUsage) + "%"
                 font.family: root.textFontFamily
-                font.pixelSize: 11
-                font.weight: Font.Medium
+                font.pixelSize: 13
+                font.weight: Font.DemiBold
                 color: "white"
             }
         }
 
         // Battery
         Row {
-            spacing: 3
+            spacing: 4
             anchors.verticalCenter: parent.verticalCenter
             Text {
                 text: root.isCharging ? "󰂄" : "󰁹"
                 font.family: root.iconFontFamily
-                font.pixelSize: 11
+                font.pixelSize: 13
                 color: "#30d158"
             }
             Text {
                 text: (root.batteryPct >= 0 ? root.batteryPct : 100) + "%"
                 font.family: root.textFontFamily
-                font.pixelSize: 11
-                font.weight: Font.Medium
+                font.pixelSize: 13
+                font.weight: Font.DemiBold
                 color: "white"
             }
         }

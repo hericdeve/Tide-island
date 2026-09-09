@@ -69,6 +69,8 @@ public:
     Q_INVOKABLE void setDemoMode(bool enabled);
     Q_INVOKABLE void setDemoState(const QString &state);
 
+    static QString cleanFirstMeaningfulLine(const QString &text);
+
 signals:
     void connectedChanged();
     void sessionStateChanged();
@@ -95,6 +97,7 @@ private:
     QString consentResponseFilePath() const;
     QString hookScriptPath() const;
     void loadStateFromFile();
+    bool loadStateFromClaudeDirectory();
     void checkHookInstallation();
     void writeConsentResponse(const QString &action);
 
@@ -118,6 +121,7 @@ private:
     bool m_hookInstalled = false;
     bool m_demoMode = false;
     bool m_minimumShowsLastMessage = false;
+    QString m_activeTranscriptPath;
 
     QFileSystemWatcher m_watcher;
     QTimer m_pollTimer;

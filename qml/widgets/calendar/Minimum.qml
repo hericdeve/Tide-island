@@ -16,13 +16,15 @@ Item {
     anchors.fill: parent
 
     Row {
+        id: contentRow
         anchors.centerIn: parent
-        spacing: 6
+        spacing: 7
 
         Text {
+            id: iconText
             text: "󰸗"
             font.family: root.iconFontFamily
-            font.pixelSize: 13
+            font.pixelSize: 16
             color: "#ff3b30"
             anchors.verticalCenter: parent.verticalCenter
         }
@@ -30,11 +32,12 @@ Item {
         Text {
             text: root.eventSummary !== "" ? root.eventSummary : Qt.formatDate(new Date(), "ddd, MMM d")
             font.family: root.textFontFamily
-            font.pixelSize: 12
-            font.weight: Font.Medium
+            font.pixelSize: 14
+            font.weight: Font.DemiBold
             color: "white"
             elide: Text.ElideRight
             maximumLineCount: 1
+            width: Math.min(implicitWidth, Math.max(0, root.width - iconText.width - contentRow.spacing - 8))
             anchors.verticalCenter: parent.verticalCenter
         }
     }

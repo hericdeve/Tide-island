@@ -62,29 +62,29 @@ Item {
     Row {
         id: contentRow
         anchors.centerIn: parent
-        spacing: 6
+        spacing: 7
 
         // Ambient breathing status dot
         Item {
             id: statusDot
-            width: 14
-            height: 14
+            width: 16
+            height: 16
             anchors.verticalCenter: parent.verticalCenter
 
             Rectangle {
                 id: dotCore
                 anchors.centerIn: parent
-                width: 8
-                height: 8
-                radius: 4
+                width: 9
+                height: 9
+                radius: 4.5
                 color: root.stateColor()
             }
 
             Rectangle {
                 anchors.centerIn: parent
-                width: 14
-                height: 14
-                radius: 7
+                width: 16
+                height: 16
+                radius: 8
                 color: "transparent"
                 border.width: 1.5
                 border.color: root.stateColor()
@@ -111,12 +111,12 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             text: root.displayLabel()
             font.family: root.textFontFamily
-            font.pixelSize: 11
-            font.weight: root.isWaitingConsent ? Font.Bold : Font.Medium
+            font.pixelSize: 14
+            font.weight: root.isWaitingConsent ? Font.Bold : Font.DemiBold
             color: root.isWaitingConsent ? "#f59e0b" : (root.state === "error" ? "#fca5a5" : "white")
             elide: Text.ElideRight
             maximumLineCount: 1
-            width: Math.min(implicitWidth, Math.max(0, root.width - statusDot.width - contentRow.spacing - 12))
+            width: Math.min(implicitWidth, Math.max(0, root.width - statusDot.width - contentRow.spacing - 8))
         }
     }
 }

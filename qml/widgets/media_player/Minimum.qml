@@ -21,13 +21,13 @@ Item {
     Row {
         id: contentRow
         anchors.centerIn: parent
-        spacing: 6
+        spacing: 7
 
         Text {
             id: iconText
             text: root.isPlaying ? "󰎆" : "󰐊"
             font.family: root.iconFontFamily
-            font.pixelSize: 13
+            font.pixelSize: 16
             color: root.isPlaying ? "#ffffff" : "#8e8e93"
             anchors.verticalCenter: parent.verticalCenter
         }
@@ -36,12 +36,12 @@ Item {
             id: titleText
             text: root.currentTrack !== "" ? (root.currentArtist !== "" ? root.currentTrack + " • " + root.currentArtist : root.currentTrack) : "Music"
             font.family: root.textFontFamily
-            font.pixelSize: 12
-            font.weight: Font.Medium
+            font.pixelSize: 14
+            font.weight: Font.DemiBold
             color: "white"
             elide: Text.ElideRight
             maximumLineCount: 1
-            width: Math.min(implicitWidth, Math.max(0, root.width - iconText.width - contentRow.spacing - 12))
+            width: Math.min(implicitWidth, Math.max(0, root.width - iconText.width - contentRow.spacing - 8))
             anchors.verticalCenter: parent.verticalCenter
         }
     }

@@ -127,9 +127,11 @@ Item {
     }
 
     // Gesture navigation
+    readonly property real swipeDistanceThreshold: 95
+
     Timer {
         id: wheelResetTimer
-        interval: 200
+        interval: 420
         repeat: false
         onTriggered: {
             circleWheelHandler.accumulated = 0;
@@ -162,10 +164,17 @@ Item {
                 return;
             }
 
+            const rawAx = (event.angleDelta && event.angleDelta.x !== undefined) ? event.angleDelta.x : 0;
+            const rawAy = (event.angleDelta && event.angleDelta.y !== undefined) ? event.angleDelta.y : 0;
             const px = (event.pixelDelta && event.pixelDelta.x !== undefined) ? event.pixelDelta.x : 0;
             const py = (event.pixelDelta && event.pixelDelta.y !== undefined) ? event.pixelDelta.y : 0;
-            const ax = (event.angleDelta && event.angleDelta.x !== undefined) ? (event.angleDelta.x / 5) : 0;
-            const ay = (event.angleDelta && event.angleDelta.y !== undefined) ? (event.angleDelta.y / 5) : 0;
+            const ax = rawAx / 5;
+            const ay = rawAy / 5;
+
+            // Discrete mouse wheel notches are multiples of 120 with zero pixelDelta
+            const isDiscreteWheel = (Math.abs(px) < 0.001 && Math.abs(py) < 0.001) &&
+                                    ((rawAx !== 0 && Math.abs(rawAx) % 120 === 0) || (rawAy !== 0 && Math.abs(rawAy) % 120 === 0));
+            const threshold = isDiscreteWheel ? 20 : root.swipeDistanceThreshold;
 
             const dx = Math.abs(px) > 0.001 ? px : ax;
             const dy = Math.abs(py) > 0.001 ? py : ay;
@@ -179,12 +188,12 @@ Item {
             wheelResetTimer.restart();
             accumulated += delta;
 
-            if (accumulated < -12) {
+            if (accumulated < -threshold) {
                 root.currentPageIndex = Math.min(root.pageCount - 1, root.currentPageIndex + 1);
                 accumulated = 0;
                 gestureLocked = true;
                 event.accepted = true;
-            } else if (accumulated > 12) {
+            } else if (accumulated > threshold) {
                 root.currentPageIndex = Math.max(0, root.currentPageIndex - 1);
                 accumulated = 0;
                 gestureLocked = true;

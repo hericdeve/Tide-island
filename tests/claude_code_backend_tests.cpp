@@ -24,6 +24,8 @@ private slots:
     void hookInstallation();
     void errorClearing();
     void minimumShowsLastMessageToggle();
+    void cleanFirstMeaningfulLineTests();
+    void claudeDirectoryTranscriptParsing();
 };
 
 void ClaudeCodeBackendTests::initTestCase()
@@ -171,6 +173,91 @@ void ClaudeCodeBackendTests::minimumShowsLastMessageToggle()
     backend.setMinimumShowsLastMessage(false);
     QCOMPARE(backend.minimumShowsLastMessage(), false);
     QCOMPARE(spy.count(), 2);
+}
+
+void ClaudeCodeBackendTests::cleanFirstMeaningfulLineTests()
+{
+    // Plain line
+    QCOMPARE(ClaudeCodeBackend::cleanFirstMeaningfulLine(QStringLiteral("Plain response text.")),
+             QStringLiteral("Plain response text."));
+
+    // Markdown heading
+    QCOMPARE(ClaudeCodeBackend::cleanFirstMeaningfulLine(QStringLiteral("## Scaled minimum widgets successfully")),
+             QStringLiteral("Scaled minimum widgets successfully"));
+
+    // Bold, backticks and markdown formatting
+    QCOMPARE(ClaudeCodeBackend::cleanFirstMeaningfulLine(QStringLiteral("**Important:** Updated `ClaudeCodeBackend.cpp`")),
+             QStringLiteral("Important: Updated ClaudeCodeBackend.cpp"));
+
+    // Bullet point
+    QCOMPARE(ClaudeCodeBackend::cleanFirstMeaningfulLine(QStringLiteral("- Fixed the last message display issue")),
+             QStringLiteral("Fixed the last message display issue"));
+
+    // Skipping generic heading if subsequent line exists
+    const QString multiLine = QStringLiteral("### Summary:\n- Implemented live transcript reading from Claude directory");
+    QCOMPARE(ClaudeCodeBackend::cleanFirstMeaningfulLine(multiLine),
+             QStringLiteral("Implemented live transcript reading from Claude directory"));
+}
+
+void ClaudeCodeBackendTests::claudeDirectoryTranscriptParsing()
+{
+    // Create mock .claude directory structure in temporary folder
+    const QString mockClaudeDir = m_tempDir.filePath(QStringLiteral("mock_claude"));
+    const QString sessionsDir = mockClaudeDir + QStringLiteral("/sessions");
+    const QString projectsDir = mockClaudeDir + QStringLiteral("/projects/-mock-work-MyProject");
+    QDir().mkpath(sessionsDir);
+    QDir().mkpath(projectsDir);
+
+    qputenv("CLAUDE_CONFIG_DIR", mockClaudeDir.toLocal8Bit());
+
+    // Remove state file override so it uses Claude directory
+    qunsetenv("CLAUDE_TIDE_STATE");
+    if (QFile::exists(m_stateFilePath)) {
+        QFile::remove(m_stateFilePath);
+    }
+
+    // Write mock session file using current test PID
+    const qint64 currentPid = QCoreApplication::applicationPid();
+    QJsonObject sessionObj;
+    sessionObj[QStringLiteral("pid")] = static_cast<int>(currentPid);
+    sessionObj[QStringLiteral("sessionId")] = QStringLiteral("mock-session-123");
+    sessionObj[QStringLiteral("cwd")] = QStringLiteral("/mock/work/MyProject");
+    sessionObj[QStringLiteral("status")] = QStringLiteral("busy");
+    sessionObj[QStringLiteral("updatedAt")] = static_cast<qint64>(1788910000000LL);
+
+    QFile sFile(sessionsDir + QStringLiteral("/%1.json").arg(currentPid));
+    QVERIFY(sFile.open(QIODevice::WriteOnly));
+    sFile.write(QJsonDocument(sessionObj).toJson());
+    sFile.close();
+
+    // Write mock transcript (.jsonl)
+    const QString transcriptPath = projectsDir + QStringLiteral("/mock-session-123.jsonl");
+    QFile tFile(transcriptPath);
+    QVERIFY(tFile.open(QIODevice::WriteOnly | QIODevice::Text));
+
+    // Entry 1: User message
+    tFile.write("{\"type\":\"user\",\"gitBranch\":\"feature/live-widget\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"hello\"}]}}\n");
+
+    // Entry 2: Assistant response with tool and text
+    tFile.write("{\"type\":\"assistant\",\"gitBranch\":\"feature/live-widget\",\"message\":{\"role\":\"assistant\",\"model\":\"claude-3-5-sonnet\",\"usage\":{\"input_tokens\":35000,\"output_tokens\":1200,\"cache_read_input_tokens\":25000},\"content\":[{\"type\":\"text\",\"text\":\"### Summary:\\n- Successfully updated live status and last message.\"},{\"type\":\"tool_use\",\"name\":\"Edit\",\"input\":{\"file_path\":\"/path/to/Widget.qml\"}}]}}\n");
+    tFile.close();
+
+    ClaudeCodeBackend backend;
+    QCOMPARE(backend.isConnected(), true);
+    QCOMPARE(backend.projectName(), QStringLiteral("MyProject"));
+    QCOMPARE(backend.gitBranch(), QStringLiteral("feature/live-widget"));
+    QCOMPARE(backend.modelName(), QStringLiteral("Claude Sonnet"));
+    QCOMPARE(backend.inputTokens(), 35000);
+    QCOMPARE(backend.outputTokens(), 1200);
+    QCOMPARE(backend.cacheReadTokens(), 25000);
+    QVERIFY(backend.contextUsagePercent() > 0.25);
+    QCOMPARE(backend.currentTool(), QStringLiteral("Edit"));
+    QCOMPARE(backend.sessionState(), QStringLiteral("running_tool"));
+    QCOMPARE(backend.lastMessage(), QStringLiteral("Successfully updated live status and last message."));
+
+    // Reset env vars
+    qputenv("CLAUDE_TIDE_STATE", m_stateFilePath.toLocal8Bit());
+    qunsetenv("CLAUDE_CONFIG_DIR");
 }
 
 QTEST_GUILESS_MAIN(ClaudeCodeBackendTests)
