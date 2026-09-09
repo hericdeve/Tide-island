@@ -190,22 +190,63 @@ Item {
     }
 
     // Side Status Label in Pill Mode
-    Text {
-        id: pillStatusText
+    Flickable {
+        id: pillStatusViewport
         anchors.left: complicationContainer.right
         anchors.leftMargin: 6
         anchors.right: parent.right
         anchors.rightMargin: 8
         anchors.verticalCenter: parent.verticalCenter
-        text: root.displayStatusText()
-        font.family: root.textFontFamily
-        font.pixelSize: Math.round(11 * root.bodyFontSize / 16.0)
-        font.weight: Font.Medium
-        color: root.isWaitingConsent ? "#f59e0b" : (root.state === "error" ? "#fca5a5" : "white")
-        elide: Text.ElideRight
-        maximumLineCount: 1
+        height: pillStatusText.implicitHeight
+        clip: true
+        interactive: false
+        contentWidth: pillStatusText.implicitWidth
+        contentHeight: height
         opacity: root.isPillMode ? 1.0 : 0.0
         visible: opacity > 0.001
+
+        onContentWidthChanged: {
+            contentX = 0;
+            pillScrollAnimation.restart();
+        }
+        onWidthChanged: {
+            contentX = 0;
+            pillScrollAnimation.restart();
+        }
+
+        Text {
+            id: pillStatusText
+            width: implicitWidth
+            anchors.verticalCenter: parent.verticalCenter
+            text: root.displayStatusText()
+            font.family: root.textFontFamily
+            font.pixelSize: Math.round(11 * root.bodyFontSize / 16.0)
+            font.weight: Font.Medium
+            color: root.isWaitingConsent ? "#f59e0b" : (root.state === "error" ? "#fca5a5" : "white")
+        }
+
+        SequentialAnimation {
+            id: pillScrollAnimation
+            running: root.isPillMode && pillStatusText.implicitWidth > pillStatusViewport.width
+            loops: Animation.Infinite
+
+            PauseAnimation { duration: 900 }
+            NumberAnimation {
+                target: pillStatusViewport
+                property: "contentX"
+                to: Math.max(0, pillStatusText.implicitWidth - pillStatusViewport.width)
+                duration: Math.max(1200, Math.min(4200, pillStatusText.implicitWidth * 12))
+                easing.type: Easing.InOutQuad
+            }
+            PauseAnimation { duration: 900 }
+            NumberAnimation {
+                target: pillStatusViewport
+                property: "contentX"
+                to: 0
+                duration: 700
+                easing.type: Easing.InOutQuad
+            }
+        }
 
         Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.InOutQuad } }
     }
