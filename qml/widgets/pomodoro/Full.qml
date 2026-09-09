@@ -408,6 +408,8 @@ Item {
                                 Canvas {
                                     id: miniDial
                                     anchors.fill: parent
+                                    antialiasing: true
+                                    renderTarget: Canvas.FramebufferObject
                                     onPaint: {
                                         const ctx = getContext("2d");
                                         ctx.reset();
@@ -449,22 +451,27 @@ Item {
 
                             // Big Time Display
                             Column {
+                                width: 86
                                 anchors.verticalCenter: parent.verticalCenter
                                 spacing: 0
 
                                 Text {
+                                    width: parent.width
                                     text: PomotroidBackend.formatTime(root.remainingSeconds)
                                     font.family: root.textFontFamily
                                     font.pixelSize: 28
                                     font.weight: Font.Bold
+                                    horizontalAlignment: Text.AlignHCenter
                                     color: "white"
                                 }
 
                                 Text {
+                                    width: parent.width
                                     text: root.isRunning ? "RUNNING" : (root.isPaused ? "PAUSED" : "IDLE")
                                     font.family: root.textFontFamily
                                     font.pixelSize: 9
                                     font.weight: Font.DemiBold
+                                    horizontalAlignment: Text.AlignHCenter
                                     color: root.isRunning ? root.themeColor : "#71717a"
                                 }
                             }
