@@ -312,6 +312,18 @@ Scope {
     }
 
     Variants {
+        id: barOverlayVariants
+
+        model: userConfig.barBackgroundOverlayEnabled ? Quickshell.screens : []
+
+        BarOverlayWindow {
+            required property var modelData
+
+            screen: modelData
+        }
+    }
+
+    Variants {
         id: panelVariants
 
         model: Quickshell.screens

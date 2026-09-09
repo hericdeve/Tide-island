@@ -131,6 +131,47 @@ PagePanel {
                         fallbackState: true
                         width: parent.width
                     }
+
+                    SplitLine { width: parent.width }
+
+                    ToggleRow {
+                        title: "Maximized Bar Background"
+                        description: "Span a backdrop covering the bar area from side to side with the same background as the notch"
+                        keyName: "barBackgroundOverlayEnabled"
+                        fallbackState: false
+                        width: parent.width
+                    }
+
+                    SplitLine {
+                        width: parent.width
+                        visible: ConfigStore.value("barBackgroundOverlayEnabled", false)
+                    }
+
+                    ToggleRow {
+                        title: "Show Only When Maximized"
+                        description: "Reveal the bar backdrop only when a window is maximized; keep transparent when windows are tiled or floating"
+                        keyName: "barOverlayOnlyWhenMaximized"
+                        fallbackState: true
+                        visible: ConfigStore.value("barBackgroundOverlayEnabled", false)
+                        width: parent.width
+                    }
+
+                    SplitLine {
+                        width: parent.width
+                        visible: ConfigStore.value("barBackgroundOverlayEnabled", false)
+                    }
+
+                    ConfigRow {
+                        title: "Bar Area Height"
+                        description: "Height in pixels of the bar area to cover (default 40px)"
+                        keyName: "barOverlayHeight"
+                        fallbackText: "40"
+                        numeric: true
+                        minimumValue: 1
+                        maximumValue: 200
+                        visible: ConfigStore.value("barBackgroundOverlayEnabled", false)
+                        width: parent.width
+                    }
                 }
             }
 

@@ -333,6 +333,7 @@ include(GNUInstallDirs)
 install(FILES
     shell.qml
     DynamicIslandWindow.qml
+    BarOverlayWindow.qml
     DESTINATION ${CMAKE_INSTALL_DATADIR}/tide-island
 )
 install(DIRECTORY qml

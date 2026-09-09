@@ -94,6 +94,10 @@ class UserConfigBackend final : public QObject {
     Q_PROPERTY(bool circleDynamicOpacityEnabled READ circleDynamicOpacityEnabled WRITE setCircleDynamicOpacityEnabled NOTIFY circleDynamicOpacityEnabledChanged FINAL)
     Q_PROPERTY(int circleDynamicOpacityInactive READ circleDynamicOpacityInactive WRITE setCircleDynamicOpacityInactive NOTIFY circleDynamicOpacityInactiveChanged FINAL)
 
+    Q_PROPERTY(bool barBackgroundOverlayEnabled READ barBackgroundOverlayEnabled WRITE setBarBackgroundOverlayEnabled NOTIFY barBackgroundOverlayEnabledChanged FINAL)
+    Q_PROPERTY(int barOverlayHeight READ barOverlayHeight WRITE setBarOverlayHeight NOTIFY barOverlayHeightChanged FINAL)
+    Q_PROPERTY(bool barOverlayOnlyWhenMaximized READ barOverlayOnlyWhenMaximized WRITE setBarOverlayOnlyWhenMaximized NOTIFY barOverlayOnlyWhenMaximizedChanged FINAL)
+
 public:
     explicit UserConfigBackend(QObject *parent = nullptr);
 
@@ -151,6 +155,13 @@ public:
     Q_INVOKABLE void setCircleDynamicOpacityEnabled(bool enabled);
     int circleDynamicOpacityInactive() const;
     Q_INVOKABLE void setCircleDynamicOpacityInactive(int opacityPct);
+
+    bool barBackgroundOverlayEnabled() const;
+    Q_INVOKABLE void setBarBackgroundOverlayEnabled(bool enabled);
+    int barOverlayHeight() const;
+    Q_INVOKABLE void setBarOverlayHeight(int height);
+    bool barOverlayOnlyWhenMaximized() const;
+    Q_INVOKABLE void setBarOverlayOnlyWhenMaximized(bool onlyWhenMaximized);
 
     int hoverExpandAction() const;
     bool islandShowWorkspaceOnAutoHide() const;
@@ -247,6 +258,9 @@ signals:
     void dynamicResizeMaxPctCircleChanged();
     void circleDynamicOpacityEnabledChanged();
     void circleDynamicOpacityInactiveChanged();
+    void barBackgroundOverlayEnabledChanged();
+    void barOverlayHeightChanged();
+    void barOverlayOnlyWhenMaximizedChanged();
     void islandShowWorkspaceOnAutoHideChanged();
     void hoverExpandActionChanged();
     void islandAutoHideEnabledChanged();
@@ -363,6 +377,9 @@ private:
     int m_titleFontSize = 20;
     int m_iconFontSize = 18;
     int m_claudeCodeScrollSpeed = 17;
+    bool m_barBackgroundOverlayEnabled = false;
+    int m_barOverlayHeight = 40;
+    bool m_barOverlayOnlyWhenMaximized = true;
     QJsonObject m_widgetLayouts;
 
     QFileSystemWatcher m_watcher;

@@ -30,6 +30,7 @@ private slots:
     void dynamicResizeMaxPctDefaultsAndClamping();
     void circleDynamicOpacityDefaultsAndClamping();
     void islandMarginsDefaultsAndClamping();
+    void barOverlayDefaultsAndClamping();
 };
 
 void UserConfigBackendTests::initTestCase()
@@ -495,6 +496,47 @@ void UserConfigBackendTests::islandMarginsDefaultsAndClamping()
     config.reload();
     QCOMPARE(config.islandTopMargin(), 0);
     QCOMPARE(config.islandSideMargin(), 24);
+}
+
+void UserConfigBackendTests::barOverlayDefaultsAndClamping()
+{
+    UserConfigBackend config;
+    QCOMPARE(config.barBackgroundOverlayEnabled(), false);
+    QCOMPARE(config.barOverlayHeight(), 40);
+    QCOMPARE(config.barOverlayOnlyWhenMaximized(), true);
+
+    QSignalSpy spyEnabled(&config, &UserConfigBackend::barBackgroundOverlayEnabledChanged);
+    QSignalSpy spyHeight(&config, &UserConfigBackend::barOverlayHeightChanged);
+    QSignalSpy spyMaximizedOnly(&config, &UserConfigBackend::barOverlayOnlyWhenMaximizedChanged);
+
+    config.setBarBackgroundOverlayEnabled(true);
+    config.setBarOverlayHeight(48);
+    config.setBarOverlayOnlyWhenMaximized(false);
+
+    QCOMPARE(config.barBackgroundOverlayEnabled(), true);
+    QCOMPARE(config.barOverlayHeight(), 48);
+    QCOMPARE(config.barOverlayOnlyWhenMaximized(), false);
+    QCOMPARE(spyEnabled.count(), 1);
+    QCOMPARE(spyHeight.count(), 1);
+    QCOMPARE(spyMaximizedOnly.count(), 1);
+
+    // Bounds clamping
+    config.setBarOverlayHeight(0);
+    QCOMPARE(config.barOverlayHeight(), 1);
+
+    config.setBarOverlayHeight(600);
+    QCOMPARE(config.barOverlayHeight(), 500);
+
+    // Reload persistence
+    UserConfigBackend reloaded;
+    QCOMPARE(reloaded.barBackgroundOverlayEnabled(), true);
+    QCOMPARE(reloaded.barOverlayHeight(), 500);
+    QCOMPARE(reloaded.barOverlayOnlyWhenMaximized(), false);
+
+    // Cleanup
+    reloaded.setBarBackgroundOverlayEnabled(false);
+    reloaded.setBarOverlayHeight(40);
+    reloaded.setBarOverlayOnlyWhenMaximized(true);
 }
 
 QTEST_MAIN(UserConfigBackendTests)

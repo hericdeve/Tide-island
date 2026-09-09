@@ -542,6 +542,52 @@ void UserConfigBackend::setCircleDynamicOpacityInactive(int opacityPct)
     writeConfigJsonField(m_userConfigPath, QStringLiteral("circleDynamicOpacityInactive"), m_circleDynamicOpacityInactive);
 }
 
+bool UserConfigBackend::barBackgroundOverlayEnabled() const
+{
+    return m_barBackgroundOverlayEnabled;
+}
+
+void UserConfigBackend::setBarBackgroundOverlayEnabled(bool enabled)
+{
+    if (m_barBackgroundOverlayEnabled == enabled)
+        return;
+
+    m_barBackgroundOverlayEnabled = enabled;
+    emit barBackgroundOverlayEnabledChanged();
+    writeConfigJsonField(m_userConfigPath, QStringLiteral("barBackgroundOverlayEnabled"), m_barBackgroundOverlayEnabled);
+}
+
+int UserConfigBackend::barOverlayHeight() const
+{
+    return m_barOverlayHeight;
+}
+
+void UserConfigBackend::setBarOverlayHeight(int height)
+{
+    const int bounded = std::clamp(height, 1, 500);
+    if (m_barOverlayHeight == bounded)
+        return;
+
+    m_barOverlayHeight = bounded;
+    emit barOverlayHeightChanged();
+    writeConfigJsonField(m_userConfigPath, QStringLiteral("barOverlayHeight"), m_barOverlayHeight);
+}
+
+bool UserConfigBackend::barOverlayOnlyWhenMaximized() const
+{
+    return m_barOverlayOnlyWhenMaximized;
+}
+
+void UserConfigBackend::setBarOverlayOnlyWhenMaximized(bool onlyWhenMaximized)
+{
+    if (m_barOverlayOnlyWhenMaximized == onlyWhenMaximized)
+        return;
+
+    m_barOverlayOnlyWhenMaximized = onlyWhenMaximized;
+    emit barOverlayOnlyWhenMaximizedChanged();
+    writeConfigJsonField(m_userConfigPath, QStringLiteral("barOverlayOnlyWhenMaximized"), m_barOverlayOnlyWhenMaximized);
+}
+
 int UserConfigBackend::hoverExpandAction() const
 {
     return m_hoverExpandAction;
@@ -1340,6 +1386,9 @@ void UserConfigBackend::loadConfig()
     updateField(this, m_islandTopMargin, jsonBoundedInt(configObject, QLatin1String("islandTopMargin"), 4, 0, 1000), &UserConfigBackend::islandTopMarginChanged);
     updateField(this, m_islandSideMargin, jsonBoundedInt(configObject, QLatin1String("islandSideMargin"), 16, 0, 1000), &UserConfigBackend::islandSideMarginChanged);
     updateField(this, m_islandPositionX, jsonInt(configObject, QLatin1String("islandPositionX"), 50), &UserConfigBackend::islandPositionXChanged);
+    updateField(this, m_barBackgroundOverlayEnabled, jsonBool(configObject, QLatin1String("barBackgroundOverlayEnabled"), false), &UserConfigBackend::barBackgroundOverlayEnabledChanged);
+    updateField(this, m_barOverlayHeight, jsonBoundedInt(configObject, QLatin1String("barOverlayHeight"), 40, 1, 500), &UserConfigBackend::barOverlayHeightChanged);
+    updateField(this, m_barOverlayOnlyWhenMaximized, jsonBool(configObject, QLatin1String("barOverlayOnlyWhenMaximized"), true), &UserConfigBackend::barOverlayOnlyWhenMaximizedChanged);
     updateField(this, m_bodyFontSize, jsonInt(configObject, QLatin1String("bodyFontSize"), 16), &UserConfigBackend::bodyFontSizeChanged);
     updateField(this, m_titleFontSize, jsonInt(configObject, QLatin1String("titleFontSize"), 20), &UserConfigBackend::titleFontSizeChanged);
     updateField(this, m_iconFontSize, jsonInt(configObject, QLatin1String("iconFontSize"), 18), &UserConfigBackend::iconFontSizeChanged);
