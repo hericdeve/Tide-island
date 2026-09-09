@@ -194,7 +194,7 @@ Item {
                 Rectangle {
                     width: 18
                     height: 18
-                    radius: 9
+                    radius: StyleTokens.radiusButton
                     color: spanExpandMouse.containsMouse ? "#48484a" : "#2c2c2e"
                     visible: root.size === "full" && (root.slotSpan + root.slotIndex < root.maxSlots)
 
@@ -219,7 +219,7 @@ Item {
                 Rectangle {
                     width: 18
                     height: 18
-                    radius: 9
+                    radius: StyleTokens.radiusButton
                     color: spanShrinkMouse.containsMouse ? "#48484a" : "#2c2c2e"
                     visible: root.size === "full" && root.slotSpan > 1
 
@@ -244,7 +244,7 @@ Item {
                 Rectangle {
                     width: 18
                     height: 18
-                    radius: 9
+                    radius: StyleTokens.radiusButton
                     color: removeMouse.containsMouse ? "#ff453a" : "#2c2c2e"
 
                     Text {

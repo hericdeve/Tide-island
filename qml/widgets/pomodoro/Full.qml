@@ -293,7 +293,7 @@ Item {
                                     Rectangle {
                                         width: 14
                                         height: 14
-                                        radius: 7
+                                        radius: StyleTokens.radiusButton
                                         color: decMouse.containsMouse ? "#3f3f46" : "transparent"
                                         anchors.verticalCenter: parent.verticalCenter
 
@@ -317,7 +317,7 @@ Item {
                                     Rectangle {
                                         width: 14
                                         height: 14
-                                        radius: 7
+                                        radius: StyleTokens.radiusButton
                                         color: incMouse.containsMouse ? "#3f3f46" : "transparent"
                                         anchors.verticalCenter: parent.verticalCenter
 
@@ -492,7 +492,7 @@ Item {
                         Rectangle {
                             width: 32
                             height: 28
-                            radius: 7
+                            radius: StyleTokens.radiusButton
                             color: btsMouse.pressed ? "#3f3f46" : (btsMouse.containsMouse ? "#27272a" : "#18181b")
                             border.width: 1
                             border.color: "#27272a"
@@ -517,7 +517,7 @@ Item {
                         Rectangle {
                             width: parent.width - 32 - 32 - 32 - 24
                             height: 28
-                            radius: 7
+                            radius: StyleTokens.radiusButton
                             color: playMouse.pressed ? Qt.darker(root.themeColor, 1.2) : (playMouse.containsMouse ? Qt.lighter(root.themeColor, 1.1) : root.themeColor)
 
                             Row {
@@ -555,7 +555,7 @@ Item {
                         Rectangle {
                             width: 32
                             height: 28
-                            radius: 7
+                            radius: StyleTokens.radiusButton
                             color: skipMouse.pressed ? "#3f3f46" : (skipMouse.containsMouse ? "#27272a" : "#18181b")
                             border.width: 1
                             border.color: "#27272a"
@@ -580,7 +580,7 @@ Item {
                         Rectangle {
                             width: 32
                             height: 28
-                            radius: 7
+                            radius: StyleTokens.radiusButton
                             color: resetMouse.pressed ? "#3f3f46" : (resetMouse.containsMouse ? "#27272a" : "#18181b")
                             border.width: 1
                             border.color: "#27272a"

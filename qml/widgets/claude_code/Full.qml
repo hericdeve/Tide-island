@@ -160,7 +160,7 @@ Item {
                 Rectangle {
                     width: (parent.width - 12) / 3
                     height: parent.height
-                    radius: 6
+                    radius: StyleTokens.radiusButton
                     color: allowMouse.pressed ? "#059669" : (allowMouse.containsMouse ? "#10b981" : "#1a10b981")
                     border.width: 1
                     border.color: "#34d399"
@@ -184,7 +184,7 @@ Item {
                 Rectangle {
                     width: (parent.width - 12) / 3
                     height: parent.height
-                    radius: 6
+                    radius: StyleTokens.radiusButton
                     color: alwaysMouse.pressed ? "#2563eb" : (alwaysMouse.containsMouse ? "#3b82f6" : "#1a3b82f6")
                     border.width: 1
                     border.color: "#60a5fa"
@@ -208,7 +208,7 @@ Item {
                 Rectangle {
                     width: (parent.width - 12) / 3
                     height: parent.height
-                    radius: 6
+                    radius: StyleTokens.radiusButton
                     color: denyMouse.pressed ? "#dc2626" : (denyMouse.containsMouse ? "#ef4444" : "#1aef4444")
                     border.width: 1
                     border.color: "#f87171"
@@ -392,7 +392,7 @@ Item {
 
                             width: compact ? 20 : (minModeRow.implicitWidth + 12)
                             height: 20
-                            radius: 10
+                            radius: StyleTokens.radiusButton
                             color: minModeMouse.containsMouse
                                 ? (showsLastMsg ? "#9333ea" : "#3f3f46")
                                 : (showsLastMsg ? "#7e22ce" : "#27272a")
@@ -443,7 +443,7 @@ Item {
                         Rectangle {
                             width: 20
                             height: 20
-                            radius: 10
+                            radius: StyleTokens.radiusButton
                             color: demoBtnMouse.containsMouse ? "#3f3f46" : "#27272a"
                             Text {
                                 anchors.centerIn: parent
@@ -476,7 +476,7 @@ Item {
                         Rectangle {
                             width: 20
                             height: 20
-                            radius: 10
+                            radius: StyleTokens.radiusButton
                             color: termBtnMouse.containsMouse ? "#3f3f46" : "#27272a"
                             Text {
                                 anchors.centerIn: parent

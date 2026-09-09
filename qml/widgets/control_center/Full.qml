@@ -143,7 +143,7 @@ Item {
             Rectangle {
                 width: (parent.width - 8) / 2
                 height: 26
-                radius: 8
+                radius: StyleTokens.radiusButton
                 color: cfgMouse.containsMouse ? "#3a3a3c" : "#2c2c2e"
 
                 Row {
@@ -175,7 +175,7 @@ Item {
             Rectangle {
                 width: (parent.width - 8) / 2
                 height: 26
-                radius: 8
+                radius: StyleTokens.radiusButton
                 color: termMouse.containsMouse ? "#3a3a3c" : "#2c2c2e"
 
                 Row {
