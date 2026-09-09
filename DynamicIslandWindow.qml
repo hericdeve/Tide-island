@@ -141,6 +141,14 @@ PanelWindow {
             height: fileShelfBubble.visible ? Math.ceil(fileShelfBubble.height) : 0
         }
 
+        Region {
+            intersection: Intersection.Combine
+            x: Math.floor(timerBubble.x)
+            y: Math.floor(timerBubble.y)
+            width: timerBubble.visible ? Math.ceil(timerBubble.width) : 0
+            height: timerBubble.visible ? Math.ceil(timerBubble.height) : 0
+        }
+
         // Add existing detail shells
         Region {
             intersection: Intersection.Combine
@@ -328,6 +336,44 @@ PanelWindow {
     readonly property real topGestureInputX: 0
     readonly property real topGestureInputWidth: topGestureInputActive ? root.width : 0
     readonly property real topGestureInputHeight: topGestureInputActive ? root.baseExclusiveZone : 0
+
+    // Dynamic Opacity for Circle Mode
+    readonly property bool circleDynamicOpacityActive: userConfig
+        && !!userConfig.circleDynamicOpacityEnabled
+        && userConfig.notchMode === "circle"
+    readonly property bool isRestingCircle: userConfig
+        && userConfig.notchMode === "circle"
+        && islandContainer.islandState === "normal"
+    readonly property bool circleWidgetFocusedOrHovered: {
+        if (!isRestingCircle)
+            return true;
+        if (capsuleHoverHandler.hovered || capsuleMouseArea.pressed)
+            return true;
+        if (typeof fileShelfBubbleMouseArea !== "undefined" && fileShelfBubbleMouseArea && fileShelfBubbleMouseArea.containsMouse)
+            return true;
+        if (typeof timerBubbleMouseArea !== "undefined" && timerBubbleMouseArea && timerBubbleMouseArea.containsMouse)
+            return true;
+        if (islandContainer.widgetStagingActive || islandContainer.isDraggingWidgetFromLibrary)
+            return true;
+        if (circleClosedLoader && circleClosedLoader.item) {
+            if (circleClosedLoader.item.isHovered
+                    || circleClosedLoader.item.isEditMode
+                    || circleClosedLoader.item.isDropTargetActive)
+                return true;
+        }
+        return false;
+    }
+    readonly property real targetCircleOpacity: (!circleDynamicOpacityActive || !isRestingCircle || circleWidgetFocusedOrHovered)
+        ? 1.0
+        : Math.max(0.02, Math.min(1.0, (userConfig ? userConfig.circleDynamicOpacityInactive : 40) / 100.0))
+    property real animatedCircleOpacity: targetCircleOpacity
+    Behavior on animatedCircleOpacity {
+        NumberAnimation {
+            duration: 220
+            easing.type: Easing.OutCubic
+        }
+    }
+
     readonly property real overviewCapsuleWidth: islandContainer.overviewView ? islandContainer.overviewView.width : 760
     readonly property real overviewCapsuleHeight: islandContainer.overviewView ? islandContainer.overviewView.height : 308
     readonly property real overviewCapsuleRadius: islandContainer.overviewView
@@ -2798,7 +2844,7 @@ PanelWindow {
             width: displayedWidth
             height: targetHeight
             radius: targetRadius
-            opacity: root.autoHideProgress
+            opacity: root.autoHideProgress * root.animatedCircleOpacity
             scale: 0.96 + root.autoHideProgress * 0.04
             transformOrigin: root.isBottom ? Item.Bottom : Item.Top
 
@@ -3826,7 +3872,7 @@ PanelWindow {
             y: mainCapsule.y + mainCapsule.height / 2 - height / 2
             z: 6
             visible: islandContainer.fileShelfBubbleWanted
-            opacity: root.autoHideProgress
+            opacity: root.autoHideProgress * root.animatedCircleOpacity
             scale: 0.96 + root.autoHideProgress * 0.04
             transformOrigin: Item.Center
 
@@ -3876,6 +3922,7 @@ PanelWindow {
             }
 
             MouseArea {
+                id: fileShelfBubbleMouseArea
                 anchors.fill: parent
                 enabled: fileShelfBubble.visible && root.autoHideProgress > 0.5
                 hoverEnabled: true
@@ -3918,7 +3965,7 @@ PanelWindow {
             y: centerY + (1 - reveal) * 10
             z: 6
             visible: mounted
-            opacity: reveal * root.autoHideProgress
+            opacity: reveal * root.autoHideProgress * root.animatedCircleOpacity
             scale: (0.55 + reveal * 0.45) * (0.96 + root.autoHideProgress * 0.04) * (1 + islandContainer.timerCompletionPulse * 0.12)
             transformOrigin: Item.Center
 
@@ -4124,6 +4171,7 @@ PanelWindow {
             }
 
             MouseArea {
+                id: timerBubbleMouseArea
                 anchors.fill: parent
                 enabled: timerBubble.mounted && root.autoHideProgress > 0.5
                 hoverEnabled: true

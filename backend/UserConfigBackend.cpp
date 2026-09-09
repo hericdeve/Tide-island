@@ -502,6 +502,37 @@ void UserConfigBackend::setDynamicResizeMaxPct(const QString &mode, int percenta
     }
 }
 
+bool UserConfigBackend::circleDynamicOpacityEnabled() const
+{
+    return m_circleDynamicOpacityEnabled;
+}
+
+void UserConfigBackend::setCircleDynamicOpacityEnabled(bool enabled)
+{
+    if (m_circleDynamicOpacityEnabled == enabled)
+        return;
+
+    m_circleDynamicOpacityEnabled = enabled;
+    emit circleDynamicOpacityEnabledChanged();
+    writeConfigJsonField(m_userConfigPath, QStringLiteral("circleDynamicOpacityEnabled"), m_circleDynamicOpacityEnabled);
+}
+
+int UserConfigBackend::circleDynamicOpacityInactive() const
+{
+    return m_circleDynamicOpacityInactive;
+}
+
+void UserConfigBackend::setCircleDynamicOpacityInactive(int opacityPct)
+{
+    const int bounded = std::clamp(opacityPct, 0, 100);
+    if (m_circleDynamicOpacityInactive == bounded)
+        return;
+
+    m_circleDynamicOpacityInactive = bounded;
+    emit circleDynamicOpacityInactiveChanged();
+    writeConfigJsonField(m_userConfigPath, QStringLiteral("circleDynamicOpacityInactive"), m_circleDynamicOpacityInactive);
+}
+
 int UserConfigBackend::hoverExpandAction() const
 {
     return m_hoverExpandAction;
@@ -1228,6 +1259,8 @@ void UserConfigBackend::loadConfig()
     updateField(this, m_dynamicResizeMaxPctFull, jsonBoundedInt(configObject, QLatin1String("dynamicResizeMaxPctFull"), 40, 10, 200), &UserConfigBackend::dynamicResizeMaxPctFullChanged);
     updateField(this, m_dynamicResizeMaxPctMinimum, jsonBoundedInt(configObject, QLatin1String("dynamicResizeMaxPctMinimum"), 50, 10, 200), &UserConfigBackend::dynamicResizeMaxPctMinimumChanged);
     updateField(this, m_dynamicResizeMaxPctCircle, jsonBoundedInt(configObject, QLatin1String("dynamicResizeMaxPctCircle"), 60, 10, 200), &UserConfigBackend::dynamicResizeMaxPctCircleChanged);
+    updateField(this, m_circleDynamicOpacityEnabled, jsonBool(configObject, QLatin1String("circleDynamicOpacityEnabled"), false), &UserConfigBackend::circleDynamicOpacityEnabledChanged);
+    updateField(this, m_circleDynamicOpacityInactive, jsonBoundedInt(configObject, QLatin1String("circleDynamicOpacityInactive"), 40, 0, 100), &UserConfigBackend::circleDynamicOpacityInactiveChanged);
     updateField(this, m_hoverExpandAction, jsonInt(configObject, QLatin1String("hoverExpandAction"), 1), &UserConfigBackend::hoverExpandActionChanged);
     updateField(this, m_islandAutoHideEnabled, jsonBool(configObject, QLatin1String("islandAutoHideEnabled"), true), &UserConfigBackend::islandAutoHideEnabledChanged);
     updateField(this, m_islandAutoHideDelayMs, jsonBoundedInt(configObject, QLatin1String("islandAutoHideDelayMs"), 1000, 100, 10000), &UserConfigBackend::islandAutoHideDelayMsChanged);

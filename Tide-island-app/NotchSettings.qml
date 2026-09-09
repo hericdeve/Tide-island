@@ -194,6 +194,29 @@ PagePanel {
                     SplitLine { width: parent.width }
 
                     ToggleRow {
+                        title: "Circle Dynamic Opacity"
+                        description: "Dim the circle widget when unfocused, restoring full opacity on hover"
+                        keyName: "circleDynamicOpacityEnabled"
+                        fallbackState: false
+                        width: parent.width
+                    }
+
+                    SplitLine { width: parent.width }
+
+                    ConfigRow {
+                        title: "Circle Unfocused Opacity (%)"
+                        description: "Opacity of the circle widget when unfocused and not hovered (0-100%, default 40%)"
+                        keyName: "circleDynamicOpacityInactive"
+                        fallbackText: "40"
+                        numeric: true
+                        minimumValue: 0
+                        maximumValue: 100
+                        width: parent.width
+                    }
+
+                    SplitLine { width: parent.width }
+
+                    ToggleRow {
                         title: "Contour Outline Border"
                         description: "Display an outline border around the notch contour"
                         keyName: "notchBorderEnabled"

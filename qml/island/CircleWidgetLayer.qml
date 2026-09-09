@@ -34,6 +34,7 @@ Item {
     property bool isDropTargetActive: false
     property bool dotsVisible: true
     property bool isEditMode: false
+    readonly property bool isHovered: tapArea.containsMouse
 
     Timer {
         id: dotsFadeTimer

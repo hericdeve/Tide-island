@@ -90,6 +90,9 @@ class UserConfigBackend final : public QObject {
     Q_PROPERTY(int dynamicResizeMaxPctMinimum READ dynamicResizeMaxPctMinimum WRITE setDynamicResizeMaxPctMinimum NOTIFY dynamicResizeMaxPctMinimumChanged FINAL)
     Q_PROPERTY(int dynamicResizeMaxPctCircle READ dynamicResizeMaxPctCircle WRITE setDynamicResizeMaxPctCircle NOTIFY dynamicResizeMaxPctCircleChanged FINAL)
 
+    Q_PROPERTY(bool circleDynamicOpacityEnabled READ circleDynamicOpacityEnabled WRITE setCircleDynamicOpacityEnabled NOTIFY circleDynamicOpacityEnabledChanged FINAL)
+    Q_PROPERTY(int circleDynamicOpacityInactive READ circleDynamicOpacityInactive WRITE setCircleDynamicOpacityInactive NOTIFY circleDynamicOpacityInactiveChanged FINAL)
+
 public:
     explicit UserConfigBackend(QObject *parent = nullptr);
 
@@ -142,6 +145,12 @@ public:
     Q_INVOKABLE void setDynamicResizeMaxPctCircle(int pct);
     Q_INVOKABLE void setDynamicResizeEnabled(const QString &mode, bool enabled);
     Q_INVOKABLE void setDynamicResizeMaxPct(const QString &mode, int percentage);
+
+    bool circleDynamicOpacityEnabled() const;
+    Q_INVOKABLE void setCircleDynamicOpacityEnabled(bool enabled);
+    int circleDynamicOpacityInactive() const;
+    Q_INVOKABLE void setCircleDynamicOpacityInactive(int opacityPct);
+
     int hoverExpandAction() const;
     bool islandShowWorkspaceOnAutoHide() const;
     bool islandAutoHideEnabled() const;
@@ -234,6 +243,8 @@ signals:
     void dynamicResizeMaxPctFullChanged();
     void dynamicResizeMaxPctMinimumChanged();
     void dynamicResizeMaxPctCircleChanged();
+    void circleDynamicOpacityEnabledChanged();
+    void circleDynamicOpacityInactiveChanged();
     void islandShowWorkspaceOnAutoHideChanged();
     void hoverExpandActionChanged();
     void islandAutoHideEnabledChanged();
@@ -315,6 +326,8 @@ private:
     int m_dynamicResizeMaxPctFull = 40;
     int m_dynamicResizeMaxPctMinimum = 50;
     int m_dynamicResizeMaxPctCircle = 60;
+    bool m_circleDynamicOpacityEnabled = false;
+    int m_circleDynamicOpacityInactive = 40;
     int m_hoverExpandAction = 1;
     bool m_islandAutoHideEnabled = true;
     int m_islandAutoHideDelayMs = 1000;

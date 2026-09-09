@@ -28,6 +28,7 @@ private slots:
     void claudeMinimumShowsLastMessageDefaultsAndPersists();
     void dynamicResizeEnabledDefaultsAndPersists();
     void dynamicResizeMaxPctDefaultsAndClamping();
+    void circleDynamicOpacityDefaultsAndClamping();
 };
 
 void UserConfigBackendTests::initTestCase()
@@ -436,6 +437,40 @@ void UserConfigBackendTests::dynamicResizeMaxPctDefaultsAndClamping()
     QCOMPARE(reloaded.dynamicResizeMaxPctFull(), 10);
     QCOMPARE(reloaded.dynamicResizeMaxPctMinimum(), 200);
     QCOMPARE(reloaded.dynamicResizeMaxPctCircle(), 120);
+}
+
+void UserConfigBackendTests::circleDynamicOpacityDefaultsAndClamping()
+{
+    UserConfigBackend config;
+    QCOMPARE(config.circleDynamicOpacityEnabled(), false);
+    QCOMPARE(config.circleDynamicOpacityInactive(), 40);
+
+    QSignalSpy spyEnabled(&config, &UserConfigBackend::circleDynamicOpacityEnabledChanged);
+    QSignalSpy spyInactive(&config, &UserConfigBackend::circleDynamicOpacityInactiveChanged);
+
+    config.setCircleDynamicOpacityEnabled(true);
+    config.setCircleDynamicOpacityInactive(25);
+
+    QCOMPARE(config.circleDynamicOpacityEnabled(), true);
+    QCOMPARE(config.circleDynamicOpacityInactive(), 25);
+    QCOMPARE(spyEnabled.count(), 1);
+    QCOMPARE(spyInactive.count(), 1);
+
+    // Clamping [0, 100]
+    config.setCircleDynamicOpacityInactive(-10);
+    QCOMPARE(config.circleDynamicOpacityInactive(), 0);
+
+    config.setCircleDynamicOpacityInactive(150);
+    QCOMPARE(config.circleDynamicOpacityInactive(), 100);
+
+    // Persists across reload
+    UserConfigBackend reloaded;
+    QCOMPARE(reloaded.circleDynamicOpacityEnabled(), true);
+    QCOMPARE(reloaded.circleDynamicOpacityInactive(), 100);
+
+    // Cleanup
+    reloaded.setCircleDynamicOpacityEnabled(false);
+    reloaded.setCircleDynamicOpacityInactive(40);
 }
 
 QTEST_MAIN(UserConfigBackendTests)
