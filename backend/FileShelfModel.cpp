@@ -86,33 +86,73 @@ QString findIconFile(const QString &themeRoot, const QString &iconName)
     if (themeRoot.isEmpty() || iconName.isEmpty())
         return QString();
 
-    static const QStringList directories{
-        QStringLiteral("scalable/mimetypes"),
-        QStringLiteral("scalable/places"),
-        QStringLiteral("symbolic/mimetypes"),
-        QStringLiteral("symbolic/places"),
-        QStringLiteral("256x256/mimetypes"),
-        QStringLiteral("256x256/places"),
-        QStringLiteral("128x128/mimetypes"),
-        QStringLiteral("128x128/places"),
-        QStringLiteral("96x96/mimetypes"),
-        QStringLiteral("96x96/places"),
-        QStringLiteral("64x64/mimetypes"),
-        QStringLiteral("64x64/places"),
-        QStringLiteral("48x48/mimetypes"),
-        QStringLiteral("48x48/places"),
-        QStringLiteral("32x32/mimetypes"),
-        QStringLiteral("32x32/places"),
+    static const QStringList sizeDirectories{
+        QStringLiteral("scalable"),
+        QStringLiteral("512x512"),
+        QStringLiteral("512"),
+        QStringLiteral("256x256"),
+        QStringLiteral("256"),
+        QStringLiteral("128x128"),
+        QStringLiteral("128"),
+        QStringLiteral("96x96"),
+        QStringLiteral("96"),
+        QStringLiteral("64x64"),
+        QStringLiteral("64"),
+        QStringLiteral("48x48"),
+        QStringLiteral("48"),
+        QStringLiteral("32x32"),
+        QStringLiteral("32"),
+        QStringLiteral("24x24"),
+        QStringLiteral("24"),
+        QStringLiteral("22x22"),
+        QStringLiteral("22"),
+        QStringLiteral("16x16"),
+        QStringLiteral("16"),
+        QStringLiteral("symbolic"),
     };
-    static const QStringList extensions{QStringLiteral(".svg"), QStringLiteral(".png"), QStringLiteral(".xpm")};
+    static const QStringList contexts{
+        QStringLiteral("mimetypes"),
+        QStringLiteral("places"),
+        QStringLiteral("apps"),
+        QStringLiteral("categories"),
+        QStringLiteral("devices"),
+        QStringLiteral("actions"),
+        QStringLiteral("emblems"),
+        QStringLiteral("status"),
+    };
+    static const QStringList extensions{
+        QStringLiteral(".svg"),
+        QStringLiteral(".png"),
+        QStringLiteral(".xpm"),
+    };
 
-    for (const QString &directory : directories) {
+    const QDir rootDir(themeRoot);
+
+    for (const QString &sizeDir : sizeDirectories) {
+        for (const QString &context : contexts) {
+            for (const QString &extension : extensions) {
+                // Check layout 1: size/context/icon.ext (e.g., scalable/mimetypes/...)
+                const QString candidate1 = rootDir.filePath(sizeDir + u'/' + context + u'/' + iconName + extension);
+                if (QFileInfo::exists(candidate1))
+                    return QFileInfo(candidate1).absoluteFilePath();
+
+                // Check layout 2: context/size/icon.ext (e.g., mimetypes/64/...)
+                const QString candidate2 = rootDir.filePath(context + u'/' + sizeDir + u'/' + iconName + extension);
+                if (QFileInfo::exists(candidate2))
+                    return QFileInfo(candidate2).absoluteFilePath();
+            }
+        }
+        // Also check size/icon.ext directly
         for (const QString &extension : extensions) {
-            const QString candidate = QDir(themeRoot).filePath(directory + u'/' + iconName + extension);
-            if (QFileInfo::exists(candidate))
-                return QFileInfo(candidate).absoluteFilePath();
+            const QString candidate3 = rootDir.filePath(sizeDir + u'/' + iconName + extension);
+            if (QFileInfo::exists(candidate3))
+                return QFileInfo(candidate3).absoluteFilePath();
         }
     }
+
+    // Fallback search: scan subdirectories and select the highest-scoring candidate
+    QString bestCandidate;
+    int bestScore = -1;
 
     QDirIterator iterator(themeRoot, QDir::Files, QDirIterator::Subdirectories);
     while (iterator.hasNext()) {
@@ -120,10 +160,46 @@ QString findIconFile(const QString &themeRoot, const QString &iconName)
         const QFileInfo candidateInfo(candidate);
         if (candidateInfo.completeBaseName() == iconName
             && extensions.contains(u'.' + candidateInfo.suffix().toLower())) {
-            return candidateInfo.absoluteFilePath();
+            const QString filePath = candidateInfo.absoluteFilePath();
+            int score = 10;
+            if (filePath.contains(QStringLiteral("scalable")) && !filePath.contains(QStringLiteral("symbolic"))) {
+                score = 10000;
+            } else if (filePath.contains(QStringLiteral("512"))) {
+                score = 512;
+            } else if (filePath.contains(QStringLiteral("256"))) {
+                score = 256;
+            } else if (filePath.contains(QStringLiteral("128"))) {
+                score = 128;
+            } else if (filePath.contains(QStringLiteral("96"))) {
+                score = 96;
+            } else if (filePath.contains(QStringLiteral("64"))) {
+                score = 64;
+            } else if (filePath.contains(QStringLiteral("48"))) {
+                score = 48;
+            } else if (filePath.contains(QStringLiteral("32"))) {
+                score = 32;
+            } else if (filePath.contains(QStringLiteral("24"))) {
+                score = 24;
+            } else if (filePath.contains(QStringLiteral("22"))) {
+                score = 22;
+            } else if (filePath.contains(QStringLiteral("16"))) {
+                score = 16;
+            } else if (filePath.contains(QStringLiteral("symbolic"))) {
+                score = 1;
+            }
+
+            if (filePath.endsWith(QStringLiteral(".svg"), Qt::CaseInsensitive))
+                score += 2;
+
+            if (score > bestScore) {
+                bestScore = score;
+                bestCandidate = filePath;
+                if (bestScore >= 10000)
+                    break;
+            }
         }
     }
-    return QString();
+    return bestCandidate;
 }
 }
 

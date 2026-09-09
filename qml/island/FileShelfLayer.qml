@@ -501,6 +501,8 @@ FocusScope {
                             anchors.centerIn: parent
                             width: 108
                             height: 108
+                            sourceSize.width: 256
+                            sourceSize.height: 256
                             source: fileDelegate.iconSource !== ""
                                 ? fileDelegate.iconSource
                                 : Quickshell.iconPath(fileDelegate.fallbackIconName, true)
