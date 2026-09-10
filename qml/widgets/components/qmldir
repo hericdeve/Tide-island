@@ -1,0 +1,14 @@
+WidgetSearchInput 1.0 WidgetSearchInput.qml
+WidgetTextView 1.0 WidgetTextView.qml
+WidgetTimerClock 1.0 WidgetTimerClock.qml
+WidgetProgressBar 1.0 WidgetProgressBar.qml
+WidgetProgressRing 1.0 WidgetProgressRing.qml
+WidgetIconGlyph 1.0 WidgetIconGlyph.qml
+WidgetActionButton 1.0 WidgetActionButton.qml
+WidgetToggleSwitch 1.0 WidgetToggleSwitch.qml
+WidgetScrubberSlider 1.0 WidgetScrubberSlider.qml
+WidgetListRow 1.0 WidgetListRow.qml
+WidgetStatusCard 1.0 WidgetStatusCard.qml
+WidgetDropTarget 1.0 WidgetDropTarget.qml
+WidgetCanvasSlot 1.0 WidgetCanvasSlot.qml
+WidgetNoctaliaBridge 1.0 WidgetNoctaliaBridge.qml
