@@ -10,13 +10,12 @@ Item {
     property bool isEditMode: false
 
     property string mode: "stopwatch"
-    property bool running: true
+    property bool running: false
     property int elapsedSeconds: 0
     property int totalSeconds: 300
 
     readonly property int remainingSeconds: Math.max(0, totalSeconds - elapsedSeconds)
     readonly property real progress: totalSeconds > 0 ? Math.min(1.0, elapsedSeconds / totalSeconds) : 0
-    readonly property real cycleProgress: mode === "stopwatch" ? (elapsedSeconds % 60) / 60.0 : progress
     readonly property int bodyFontSize: widgetContext ? widgetContext.bodyFontSize : 16
 
     function reset() {
@@ -127,27 +126,6 @@ Item {
                     totalSeconds: root.totalSeconds
                     colorOverride: root.running ? StyleTokens.accent : StyleTokens.textPrimaryBright
                     widgetContext: root.widgetContext
-                }
-            }
-
-            Row {
-                width: parent.width
-                spacing: 6
-
-                WidgetTextView {
-                    text: root.mode === "stopwatch" ? "Elapsed" : (root.running ? "Remaining" : "Ready")
-                    role: "caption"
-                    colorOverride: StyleTokens.textSecondary
-                    widgetContext: root.widgetContext
-                    anchors.verticalCenter: parent.verticalCenter
-                }
-
-                WidgetProgressBar {
-                    width: Math.max(70, parent.width - 80)
-                    anchors.verticalCenter: parent.verticalCenter
-                    value: root.cycleProgress
-                    fillColor: root.running ? StyleTokens.accent : StyleTokens.textSecondary
-                    trackColor: StyleTokens.track
                 }
             }
 

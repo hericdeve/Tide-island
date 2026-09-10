@@ -7,7 +7,6 @@
   "defaultSlotSpan": 1,
   "elements": [
     "timer_clock",
-    "progress_bar",
     "progress_ring",
     "action_control",
     "text_view",
