@@ -343,6 +343,7 @@ install(DIRECTORY qml
         PATTERN "*.js"
         PATTERN "*.svg"
         PATTERN "*.json"
+        PATTERN "qmldir"
 )
 
 # Install IslandBackend backing library to /usr/lib

@@ -11,7 +11,6 @@ Item {
     property color trackColor: StyleTokens.track
     property color fillColor: StyleTokens.accent
 
-    signal valueChanged(real newValue)
     signal sliderMoved(real newValue)
 
     readonly property real clampedValue: Math.max(0.0, Math.min(1.0, value))
@@ -73,7 +72,6 @@ Item {
             const nextVal = Math.max(0.0, Math.min(1.0, mouseX / root.width));
             root.value = nextVal;
             root.sliderMoved(nextVal);
-            root.valueChanged(nextVal);
         }
 
         onPressed: event => updateFromPos(event.x)
@@ -91,7 +89,6 @@ Item {
             const nextVal = Math.max(0.0, Math.min(1.0, root.value + delta));
             root.value = nextVal;
             root.sliderMoved(nextVal);
-            root.valueChanged(nextVal);
         }
     }
 }

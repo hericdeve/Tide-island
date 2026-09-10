@@ -79,6 +79,8 @@ Item {
 
     implicitWidth: measuredWidth
     implicitHeight: measuredHeight
+    width: implicitWidth
+    height: implicitHeight
     clip: overflowMode === "marquee" || overflowMode === "clip"
 
     // Hidden probe for measurement

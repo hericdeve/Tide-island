@@ -26,10 +26,12 @@ Item {
     readonly property int remainingSeconds: Math.max(0, totalSeconds - elapsedSeconds)
     readonly property real progress: totalSeconds > 0 ? Math.min(1.0, Math.max(0.0, elapsedSeconds / Number(totalSeconds))) : 0.0
 
+    property string currentClockTime: Qt.formatTime(new Date(), clockFormat)
+
     // Formatted time string
     readonly property string formattedTime: {
         if (mode === "clock") {
-            return Qt.formatTime(new Date(), clockFormat);
+            return root.currentClockTime;
         }
 
         const sec = (mode === "countdown" || mode === "pomodoro") ? remainingSeconds : elapsedSeconds;
@@ -61,7 +63,9 @@ Item {
         repeat: true
         triggeredOnStart: true
         onTriggered: {
-            if (root.mode === "countdown" || root.mode === "pomodoro") {
+            if (root.mode === "clock") {
+                root.currentClockTime = Qt.formatTime(new Date(), root.clockFormat);
+            } else if (root.mode === "countdown" || root.mode === "pomodoro") {
                 if (root.elapsedSeconds < root.totalSeconds) {
                     root.elapsedSeconds += 1;
                     root.tick(root.elapsedSeconds, root.remainingSeconds);
@@ -107,19 +111,23 @@ Item {
 
     implicitWidth: timeText.implicitWidth
     implicitHeight: timeText.implicitHeight
+    width: implicitWidth
+    height: implicitHeight
 
     // Digital representation
     Text {
         id: timeText
         anchors.centerIn: parent
         text: root.formattedTime
-        font.family: root.representation === "compact" ? root.textFont : root.heroFont
+        font.family: root.heroFont
         font.pixelSize: {
             if (root.representation === "compact")
-                return Math.round(13 * root.bodyFontSize / 16.0);
-            return Math.round(22 * root.bodyFontSize / 16.0);
+                return Math.max(18, Math.min(24, Math.round(20 * root.bodyFontSize / 16.0)));
+            if (root.representation === "circle")
+                return Math.max(10, Math.min(16, Math.round(12 * root.bodyFontSize / 16.0)));
+            return Math.round(30 * root.bodyFontSize / 16.0);
         }
-        font.weight: root.representation === "compact" ? Font.DemiBold : Font.Bold
+        font.weight: Font.Bold
         color: root.phaseColor
         font.features: { "tnum": 1 }
     }

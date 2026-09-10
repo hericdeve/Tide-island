@@ -13,6 +13,9 @@ Item {
     readonly property bool isMultiRing: rings && rings.length > 0
     readonly property real clampedValue: Math.max(0.0, Math.min(1.0, value))
 
+    implicitWidth: 44
+    implicitHeight: 44
+
     function requestPaint() {
         if (canvas) canvas.requestPaint();
     }
