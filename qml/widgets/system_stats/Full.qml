@@ -1,5 +1,6 @@
 import QtQuick
 import IslandBackend
+import "../components"
 
 Item {
     id: root
@@ -7,11 +8,6 @@ Item {
     property var widgetContext: null
     property int slotSpan: 1
     property bool isEditMode: false
-
-    readonly property string iconFontFamily: widgetContext ? widgetContext.iconFontFamily : "Sans Serif"
-    readonly property string textFontFamily: widgetContext ? widgetContext.textFontFamily : "Sans Serif"
-    readonly property int bodyFontSize: widgetContext ? widgetContext.bodyFontSize : 16
-    readonly property int iconFontSize: widgetContext ? widgetContext.iconFontSize : 18
 
     readonly property real cpuUsage: widgetContext ? widgetContext.currentCpuUsage : 15
     readonly property real ramUsage: widgetContext ? widgetContext.currentRamUsage : 45
@@ -34,39 +30,31 @@ Item {
                 anchors.fill: parent
                 spacing: 8
 
-                Text {
+                WidgetIconGlyph {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: "󰻠"
-                    font.family: root.iconFontFamily
-                    font.pixelSize: Math.round(14 * root.iconFontSize / 18.0)
-                    color: "#ff2d55"
+                    glyph: "󰻠"
+                    size: 14
+                    color: StyleTokens.danger
+                    widgetContext: root.widgetContext
                     width: 18
                 }
 
-                Rectangle {
+                WidgetProgressBar {
                     anchors.verticalCenter: parent.verticalCenter
                     width: parent.width - 18 - 46
-                    height: 10
-                    radius: 5
-                    color: "#2c2c2e"
-
-                    Rectangle {
-                        height: parent.height
-                        radius: 5
-                        color: "#ff2d55"
-                        width: parent.width * Math.max(0, Math.min(1, root.cpuUsage / 100.0))
-                    }
+                    barHeight: 8
+                    fillColor: StyleTokens.danger
+                    trackColor: StyleTokens.track
+                    value: root.cpuUsage / 100.0
                 }
 
-                Text {
+                WidgetTextView {
                     anchors.verticalCenter: parent.verticalCenter
                     text: Math.round(root.cpuUsage) + "%"
-                    font.family: root.textFontFamily
-                    font.pixelSize: Math.round(11 * root.bodyFontSize / 16.0)
-                    font.weight: Font.DemiBold
-                    color: StyleTokens.textPrimary
+                    role: "metric"
+                    colorOverride: StyleTokens.textPrimary
                     width: 36
-                    horizontalAlignment: Text.AlignRight
+                    widgetContext: root.widgetContext
                 }
             }
         }
@@ -80,39 +68,31 @@ Item {
                 anchors.fill: parent
                 spacing: 8
 
-                Text {
+                WidgetIconGlyph {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: "󰍛"
-                    font.family: root.iconFontFamily
-                    font.pixelSize: Math.round(14 * root.iconFontSize / 18.0)
-                    color: "#007aff"
+                    glyph: "󰍛"
+                    size: 14
+                    color: StyleTokens.accent
+                    widgetContext: root.widgetContext
                     width: 18
                 }
 
-                Rectangle {
+                WidgetProgressBar {
                     anchors.verticalCenter: parent.verticalCenter
                     width: parent.width - 18 - 46
-                    height: 10
-                    radius: 5
-                    color: StyleTokens.track
-
-                    Rectangle {
-                        height: parent.height
-                        radius: 5
-                        color: "#007aff"
-                        width: parent.width * Math.max(0, Math.min(1, root.ramUsage / 100.0))
-                    }
+                    barHeight: 8
+                    fillColor: StyleTokens.accent
+                    trackColor: StyleTokens.track
+                    value: root.ramUsage / 100.0
                 }
 
-                Text {
+                WidgetTextView {
                     anchors.verticalCenter: parent.verticalCenter
                     text: Math.round(root.ramUsage) + "%"
-                    font.family: root.textFontFamily
-                    font.pixelSize: Math.round(11 * root.bodyFontSize / 16.0)
-                    font.weight: Font.DemiBold
-                    color: StyleTokens.textPrimary
+                    role: "metric"
+                    colorOverride: StyleTokens.textPrimary
                     width: 36
-                    horizontalAlignment: Text.AlignRight
+                    widgetContext: root.widgetContext
                 }
             }
         }
@@ -126,39 +106,31 @@ Item {
                 anchors.fill: parent
                 spacing: 8
 
-                Text {
+                WidgetIconGlyph {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: root.isCharging ? "󰂄" : "󰁹"
-                    font.family: root.iconFontFamily
-                    font.pixelSize: Math.round(14 * root.iconFontSize / 18.0)
-                    color: "#30d158"
+                    glyph: root.isCharging ? "󰂄" : "󰁹"
+                    size: 14
+                    color: StyleTokens.success
+                    widgetContext: root.widgetContext
                     width: 18
                 }
 
-                Rectangle {
+                WidgetProgressBar {
                     anchors.verticalCenter: parent.verticalCenter
                     width: parent.width - 18 - 46
-                    height: 10
-                    radius: 5
-                    color: StyleTokens.track
-
-                    Rectangle {
-                        height: parent.height
-                        radius: 5
-                        color: "#30d158"
-                        width: parent.width * Math.max(0, Math.min(1, root.batteryPct / 100.0))
-                    }
+                    barHeight: 8
+                    fillColor: StyleTokens.success
+                    trackColor: StyleTokens.track
+                    value: Math.max(0, Math.min(1, root.batteryPct / 100.0))
                 }
 
-                Text {
+                WidgetTextView {
                     anchors.verticalCenter: parent.verticalCenter
                     text: (root.batteryPct >= 0 ? root.batteryPct : 100) + "%"
-                    font.family: root.textFontFamily
-                    font.pixelSize: Math.round(11 * root.bodyFontSize / 16.0)
-                    font.weight: Font.DemiBold
-                    color: StyleTokens.textPrimary
+                    role: "metric"
+                    colorOverride: StyleTokens.textPrimary
                     width: 36
-                    horizontalAlignment: Text.AlignRight
+                    widgetContext: root.widgetContext
                 }
             }
         }

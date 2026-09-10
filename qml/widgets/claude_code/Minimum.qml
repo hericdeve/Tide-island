@@ -1,5 +1,6 @@
 import QtQuick
 import IslandBackend
+import "../components"
 
 Item {
     id: root
@@ -23,14 +24,14 @@ Item {
     readonly property bool showsLastMessage: UserConfig.claudeMinimumShowsLastMessage || ClaudeCodeBackend.minimumShowsLastMessage
 
     function stateColor() {
-        if (!ClaudeCodeBackend.connected && !ClaudeCodeBackend.demoMode) return "#6b7280";
+        if (!ClaudeCodeBackend.connected && !ClaudeCodeBackend.demoMode) return StyleTokens.textDisabled;
         switch (root.state) {
-        case "waiting_consent": return "#f59e0b";
-        case "thinking": return "#a855f7";
-        case "running_tool": return "#3b82f6";
-        case "error": return "#ef4444";
-        case "done": return "#10b981";
-        case "idle": default: return "#10b981";
+        case "waiting_consent": return StyleTokens.warning;
+        case "thinking": return StyleTokens.accentSoft;
+        case "running_tool": return StyleTokens.accent;
+        case "error": return StyleTokens.danger;
+        case "done": return StyleTokens.success;
+        case "idle": default: return StyleTokens.success;
         }
     }
 
@@ -149,7 +150,7 @@ Item {
                 font.family: root.textFontFamily
                 font.pixelSize: Math.round(14 * root.bodyFontSize / 16.0)
                 font.weight: root.isWaitingConsent ? Font.Bold : Font.DemiBold
-                color: root.isWaitingConsent ? "#f59e0b" : (root.state === "error" ? "#fca5a5" : StyleTokens.textPrimary)
+                color: root.isWaitingConsent ? StyleTokens.warning : (root.state === "error" ? StyleTokens.danger : StyleTokens.textPrimary)
 
                 onImplicitWidthChanged: {
                     statusViewport.contentX = 0;

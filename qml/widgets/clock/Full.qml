@@ -1,5 +1,6 @@
 import QtQuick
 import IslandBackend
+import "../components"
 
 Item {
     id: root
@@ -10,12 +11,9 @@ Item {
 
     readonly property string heroFontFamily: widgetContext ? widgetContext.heroFontFamily : "Sans Serif"
     readonly property string textFontFamily: widgetContext ? widgetContext.textFontFamily : "Sans Serif"
-    readonly property string iconFontFamily: widgetContext ? widgetContext.iconFontFamily : "Sans Serif"
     readonly property int bodyFontSize: widgetContext ? widgetContext.bodyFontSize : 16
     readonly property int titleFontSize: widgetContext ? widgetContext.titleFontSize : 20
-    readonly property int iconFontSize: widgetContext ? widgetContext.iconFontSize : 18
 
-    property string currentTime: "00:00"
     property string currentSeconds: "00"
     property string currentDate: ""
 
@@ -26,7 +24,6 @@ Item {
         triggeredOnStart: true
         onTriggered: {
             const now = new Date();
-            root.currentTime = Qt.formatTime(now, "hh:mm");
             root.currentSeconds = Qt.formatTime(now, "ss");
             root.currentDate = Qt.formatDate(now, "dddd, MMMM d");
         }
@@ -42,13 +39,11 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             spacing: 4
 
-            Text {
-                text: root.currentTime
-                font.family: root.heroFontFamily
-                font.pixelSize: Math.round(32 * root.titleFontSize / 20.0)
-                font.weight: Font.Bold
-                font.letterSpacing: -0.5
-                color: StyleTokens.textPrimary
+            WidgetTimerClock {
+                mode: "clock"
+                clockFormat: "hh:mm"
+                representation: "digital"
+                widgetContext: root.widgetContext
             }
 
             Text {
@@ -59,16 +54,16 @@ Item {
                 color: StyleTokens.textSecondary
                 anchors.bottom: parent.bottom
                 anchors.bottomMargin: 5
+                font.features: { "tnum": 1 }
             }
         }
 
-        Text {
+        WidgetTextView {
             anchors.horizontalCenter: parent.horizontalCenter
+            role: "body"
             text: root.currentDate
-            font.family: root.textFontFamily
-            font.pixelSize: Math.round(12 * root.bodyFontSize / 16.0)
-            font.weight: Font.Medium
-            color: StyleTokens.textSecondary
+            colorOverride: StyleTokens.textSecondary
+            widgetContext: root.widgetContext
         }
     }
 }

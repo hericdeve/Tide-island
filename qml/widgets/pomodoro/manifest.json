@@ -4,5 +4,14 @@
   "description": "Pomotroid desktop integration with timer controls, sequence progress, and session tags",
   "icon": "󰄉",
   "supportedSizes": ["full", "minimum", "circle"],
-  "defaultSlotSpan": 2
+  "defaultSlotSpan": 2,
+  "elements": [
+    "timer_clock",
+    "progress_ring",
+    "progress_bar",
+    "action_control",
+    "text_view",
+    "icon_glyph"
+  ],
+  "capabilities": []
 }

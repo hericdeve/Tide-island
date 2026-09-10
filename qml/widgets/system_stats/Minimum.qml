@@ -1,5 +1,6 @@
 import QtQuick
 import IslandBackend
+import "../components"
 
 Item {
     id: root
@@ -7,11 +8,6 @@ Item {
     property var widgetContext: null
     property int slotSpan: 1
     property bool isEditMode: false
-
-    readonly property string iconFontFamily: widgetContext ? widgetContext.iconFontFamily : "Sans Serif"
-    readonly property string textFontFamily: widgetContext ? widgetContext.textFontFamily : "Sans Serif"
-    readonly property int bodyFontSize: widgetContext ? widgetContext.bodyFontSize : 16
-    readonly property int iconFontSize: widgetContext ? widgetContext.iconFontSize : 18
 
     readonly property real cpuUsage: widgetContext ? widgetContext.currentCpuUsage : 15
     readonly property real ramUsage: widgetContext ? widgetContext.currentRamUsage : 45
@@ -28,18 +24,17 @@ Item {
         Row {
             spacing: 4
             anchors.verticalCenter: parent.verticalCenter
-            Text {
-                text: "󰻠"
-                font.family: root.iconFontFamily
-                font.pixelSize: Math.round(13 * root.iconFontSize / 18.0)
-                color: "#ff2d55"
+            WidgetIconGlyph {
+                glyph: "󰻠"
+                size: 13
+                color: StyleTokens.danger
+                widgetContext: root.widgetContext
             }
-            Text {
+            WidgetTextView {
                 text: Math.round(root.cpuUsage) + "%"
-                font.family: root.textFontFamily
-                font.pixelSize: Math.round(13 * root.bodyFontSize / 16.0)
-                font.weight: Font.DemiBold
-                color: StyleTokens.textPrimary
+                role: "metric"
+                colorOverride: StyleTokens.textPrimary
+                widgetContext: root.widgetContext
             }
         }
 
@@ -47,18 +42,17 @@ Item {
         Row {
             spacing: 4
             anchors.verticalCenter: parent.verticalCenter
-            Text {
-                text: "󰍛"
-                font.family: root.iconFontFamily
-                font.pixelSize: Math.round(13 * root.iconFontSize / 18.0)
-                color: "#007aff"
+            WidgetIconGlyph {
+                glyph: "󰍛"
+                size: 13
+                color: StyleTokens.accent
+                widgetContext: root.widgetContext
             }
-            Text {
+            WidgetTextView {
                 text: Math.round(root.ramUsage) + "%"
-                font.family: root.textFontFamily
-                font.pixelSize: Math.round(13 * root.bodyFontSize / 16.0)
-                font.weight: Font.DemiBold
-                color: StyleTokens.textPrimary
+                role: "metric"
+                colorOverride: StyleTokens.textPrimary
+                widgetContext: root.widgetContext
             }
         }
 
@@ -66,18 +60,17 @@ Item {
         Row {
             spacing: 4
             anchors.verticalCenter: parent.verticalCenter
-            Text {
-                text: root.isCharging ? "󰂄" : "󰁹"
-                font.family: root.iconFontFamily
-                font.pixelSize: Math.round(13 * root.iconFontSize / 18.0)
-                color: "#30d158"
+            WidgetIconGlyph {
+                glyph: root.isCharging ? "󰂄" : "󰁹"
+                size: 13
+                color: StyleTokens.success
+                widgetContext: root.widgetContext
             }
-            Text {
+            WidgetTextView {
                 text: (root.batteryPct >= 0 ? root.batteryPct : 100) + "%"
-                font.family: root.textFontFamily
-                font.pixelSize: Math.round(13 * root.bodyFontSize / 16.0)
-                font.weight: Font.DemiBold
-                color: StyleTokens.textPrimary
+                role: "metric"
+                colorOverride: StyleTokens.textPrimary
+                widgetContext: root.widgetContext
             }
         }
     }

@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import IslandBackend
+import "../components"
 
 Item {
     id: root
@@ -68,14 +69,14 @@ Item {
     }
 
     function stateColor() {
-        if (!ClaudeCodeBackend.connected && !ClaudeCodeBackend.demoMode) return "#6b7280";
+        if (!ClaudeCodeBackend.connected && !ClaudeCodeBackend.demoMode) return StyleTokens.textDisabled;
         switch (root.state) {
-        case "waiting_consent": return "#f59e0b";
-        case "thinking": return "#a855f7";
-        case "running_tool": return "#3b82f6";
-        case "error": return "#ef4444";
-        case "done": return "#10b981";
-        case "idle": default: return "#10b981";
+        case "waiting_consent": return StyleTokens.warning;
+        case "thinking": return StyleTokens.accentSoft;
+        case "running_tool": return StyleTokens.accent;
+        case "error": return StyleTokens.danger;
+        case "done": return StyleTokens.success;
+        case "idle": default: return StyleTokens.success;
         }
     }
 
@@ -157,76 +158,34 @@ Item {
                 height: 24
                 spacing: 6
 
-                Rectangle {
+                WidgetActionButton {
                     width: (parent.width - 12) / 3
                     height: parent.height
-                    radius: StyleTokens.radiusButton
-                    color: allowMouse.pressed ? "#059669" : (allowMouse.containsMouse ? "#10b981" : "#1a10b981")
-                    border.width: 1
-                    border.color: "#34d399"
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: "Allow"
-                        font.family: root.textFontFamily
-                        font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
-                        font.weight: Font.DemiBold
-                        color: "white"
-                    }
-                    MouseArea {
-                        id: allowMouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        onClicked: ClaudeCodeBackend.allowConsent(false)
-                    }
+                    variant: "pill"
+                    buttonStyle: "secondary"
+                    label: "Allow"
+                    widgetContext: root.widgetContext
+                    onClicked: ClaudeCodeBackend.allowConsent(false)
                 }
 
-                Rectangle {
+                WidgetActionButton {
                     width: (parent.width - 12) / 3
                     height: parent.height
-                    radius: StyleTokens.radiusButton
-                    color: alwaysMouse.pressed ? "#2563eb" : (alwaysMouse.containsMouse ? "#3b82f6" : "#1a3b82f6")
-                    border.width: 1
-                    border.color: "#60a5fa"
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: "Always"
-                        font.family: root.textFontFamily
-                        font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
-                        font.weight: Font.DemiBold
-                        color: "white"
-                    }
-                    MouseArea {
-                        id: alwaysMouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        onClicked: ClaudeCodeBackend.allowConsent(true)
-                    }
+                    variant: "pill"
+                    buttonStyle: "primary"
+                    label: "Always"
+                    widgetContext: root.widgetContext
+                    onClicked: ClaudeCodeBackend.allowConsent(true)
                 }
 
-                Rectangle {
+                WidgetActionButton {
                     width: (parent.width - 12) / 3
                     height: parent.height
-                    radius: StyleTokens.radiusButton
-                    color: denyMouse.pressed ? "#dc2626" : (denyMouse.containsMouse ? "#ef4444" : "#1aef4444")
-                    border.width: 1
-                    border.color: "#f87171"
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: "Deny"
-                        font.family: root.textFontFamily
-                        font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
-                        font.weight: Font.DemiBold
-                        color: "white"
-                    }
-                    MouseArea {
-                        id: denyMouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        onClicked: ClaudeCodeBackend.denyConsent()
-                    }
+                    variant: "pill"
+                    buttonStyle: "danger"
+                    label: "Deny"
+                    widgetContext: root.widgetContext
+                    onClicked: ClaudeCodeBackend.denyConsent()
                 }
             }
 
@@ -596,102 +555,35 @@ Item {
                     }
 
                     // Progress bar
-                    Rectangle {
+                    WidgetProgressBar {
                         width: parent.width
-                        height: 4
-                        radius: 2
-                        color: "#27272a"
-
-                        Rectangle {
-                            height: parent.height
-                            radius: 2
-                            width: Math.max(4, parent.width * Math.min(1.0, Math.max(0.0, ClaudeCodeBackend.contextUsagePercent)))
-                            color: {
-                                const p = ClaudeCodeBackend.contextUsagePercent;
-                                if (p > 0.85) return "#ef4444";
-                                if (p > 0.65) return "#f59e0b";
-                                return "#a855f7";
-                            }
+                        barHeight: 4
+                        value: ClaudeCodeBackend.contextUsagePercent
+                        fillColor: {
+                            const p = ClaudeCodeBackend.contextUsagePercent;
+                            if (p > 0.85) return StyleTokens.danger;
+                            if (p > 0.65) return StyleTokens.warning;
+                            return StyleTokens.accent;
                         }
+                        trackColor: StyleTokens.track
                     }
                 }
 
                 // Bottom: Quick Prompt Bar
-                Rectangle {
+                WidgetSearchInput {
                     id: promptBar
                     anchors.bottom: parent.bottom
                     anchors.left: parent.left
                     anchors.right: parent.right
-                    height: 26
-                    radius: 13
-                    color: "#27272a"
-                    border.width: 1
-                    border.color: promptInput.activeFocus ? "#a855f7" : "#1affffff"
-
-                    Row {
-                        anchors.fill: parent
-                        anchors.leftMargin: 8
-                        anchors.rightMargin: 6
-                        spacing: 6
-
-                        Text {
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: "󰍉"
-                            font.family: root.iconFontFamily
-                            font.pixelSize: Math.round(11 * root.iconFontSize / 18.0)
-                            color: "#9ca3af"
-                        }
-
-                        TextInput {
-                            id: promptInput
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: parent.width - 44
-                            font.family: root.textFontFamily
-                            font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
-                            color: StyleTokens.textPrimary
-                            clip: true
-                            onAccepted: {
-                                if (text.trim() !== "") {
-                                    ClaudeCodeBackend.sendQuickPrompt(text.trim());
-                                    text = "";
-                                }
-                            }
-
-                            Text {
-                                text: "Ask Claude Code..."
-                                font.family: root.textFontFamily
-                                font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
-                                color: "#71717a"
-                                visible: !promptInput.text && !promptInput.activeFocus
-                                anchors.verticalCenter: parent.verticalCenter
-                            }
-                        }
-
-                        Rectangle {
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: 18
-                            height: 18
-                            radius: 9
-                            color: sendMouse.containsMouse ? "#a855f7" : "#3f3f46"
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: "󰅂"
-                                font.family: root.iconFontFamily
-                                font.pixelSize: Math.round(9 * root.iconFontSize / 18.0)
-                                color: "white"
-                            }
-                            MouseArea {
-                                id: sendMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                onClicked: {
-                                    if (promptInput.text.trim() !== "") {
-                                        ClaudeCodeBackend.sendQuickPrompt(promptInput.text.trim());
-                                        promptInput.text = "";
-                                    }
-                                }
-                            }
+                    inputHeight: 26
+                    placeholder: "Ask Claude Code..."
+                    icon: "󰍉"
+                    showClearButton: false
+                    widgetContext: root.widgetContext
+                    onAccepted: query => {
+                        if (query.trim() !== "") {
+                            ClaudeCodeBackend.sendQuickPrompt(query.trim());
+                            text = "";
                         }
                     }
                 }

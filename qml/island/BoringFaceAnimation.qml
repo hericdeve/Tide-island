@@ -1,4 +1,5 @@
 import QtQuick
+import IslandBackend
 
 Item {
     id: root
@@ -10,6 +11,14 @@ Item {
 
     width: Math.round(32 * faceScale)
     height: Math.round(20 * faceScale)
+
+    Connections {
+        target: StyleTokens
+        function onThemeChanged() {
+            if (smileCanvas)
+                smileCanvas.requestPaint();
+        }
+    }
 
     Timer {
         id: blinkTimer
@@ -53,7 +62,7 @@ Item {
                 width: eyeSize
                 height: root.isBlinking ? 1 : eyeSize
                 radius: eyeSize / 2
-                color: "white"
+                color: StyleTokens.textPrimary
                 anchors.verticalCenter: parent.verticalCenter
 
                 Behavior on height {
@@ -66,7 +75,7 @@ Item {
                 width: eyeSize
                 height: root.isBlinking ? 1 : eyeSize
                 radius: eyeSize / 2
-                color: "white"
+                color: StyleTokens.textPrimary
                 anchors.verticalCenter: parent.verticalCenter
 
                 Behavior on height {
@@ -81,7 +90,7 @@ Item {
             width: Math.max(2, Math.round(2.5 * root.faceScale))
             height: Math.max(2.5, Math.round(3 * root.faceScale))
             radius: width / 2
-            color: "white"
+            color: StyleTokens.textPrimary
         }
 
         // Smile
@@ -100,7 +109,7 @@ Item {
                 ctx.quadraticCurveTo(width / 2, height, width - 1, 2);
                 ctx.lineWidth = Math.max(1.2, 1.6 * root.faceScale);
                 ctx.lineCap = "round";
-                ctx.strokeStyle = "white";
+                ctx.strokeStyle = StyleTokens.textPrimary;
                 ctx.stroke();
             }
         }

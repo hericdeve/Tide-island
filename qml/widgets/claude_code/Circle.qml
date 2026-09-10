@@ -25,21 +25,21 @@ Item {
     readonly property bool isPillMode: root.width > (root.height + 8)
 
     function stateColor() {
-        if (!ClaudeCodeBackend.connected && !ClaudeCodeBackend.demoMode) return "#6b7280";
+        if (!ClaudeCodeBackend.connected && !ClaudeCodeBackend.demoMode) return StyleTokens.textDisabled;
         switch (root.state) {
-        case "waiting_consent": return "#f59e0b";
-        case "thinking": return "#a855f7";
-        case "running_tool": return "#3b82f6";
-        case "error": return "#ef4444";
-        case "done": return "#10b981";
-        case "idle": default: return "#10b981";
+        case "waiting_consent": return StyleTokens.warning;
+        case "thinking": return StyleTokens.accentSoft;
+        case "running_tool": return StyleTokens.accent;
+        case "error": return StyleTokens.danger;
+        case "done": return StyleTokens.success;
+        case "idle": default: return StyleTokens.success;
         }
     }
 
     function arcColor() {
-        if (root.contextPercent > 0.85) return "#ef4444";
-        if (root.contextPercent > 0.65) return "#f59e0b";
-        return "#a855f7";
+        if (root.contextPercent > 0.85) return StyleTokens.danger;
+        if (root.contextPercent > 0.65) return StyleTokens.warning;
+        return StyleTokens.accent;
     }
 
     function displayStatusText() {
@@ -110,7 +110,7 @@ Item {
                 if (radius <= 0) return;
 
                 // Background track
-                ctx.strokeStyle = "#27272a";
+                ctx.strokeStyle = StyleTokens.track;
                 ctx.lineWidth = 2.5;
                 ctx.beginPath();
                 ctx.arc(cx, cy, radius, 0, Math.PI * 2);
@@ -189,7 +189,7 @@ Item {
                 font.family: root.textFontFamily
                 font.pixelSize: Math.round(8 * root.bodyFontSize / 16.0)
                 font.weight: Font.DemiBold
-                color: "#9ca3af"
+                color: StyleTokens.textSecondary
             }
         }
     }
@@ -228,7 +228,7 @@ Item {
             font.family: root.textFontFamily
             font.pixelSize: Math.round(11 * root.bodyFontSize / 16.0)
             font.weight: Font.Medium
-            color: root.isWaitingConsent ? "#f59e0b" : (root.state === "error" ? "#fca5a5" : "white")
+            color: root.isWaitingConsent ? StyleTokens.warning : (root.state === "error" ? StyleTokens.danger : StyleTokens.textPrimary)
 
             onImplicitWidthChanged: {
                 pillStatusViewport.contentX = 0;

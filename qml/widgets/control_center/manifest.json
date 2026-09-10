@@ -4,5 +4,13 @@
   "description": "Quick system controls for volume, brightness, network, and power",
   "icon": "󰒓",
   "supportedSizes": ["full", "minimum", "circle"],
-  "defaultSlotSpan": 1
+  "defaultSlotSpan": 1,
+  "elements": [
+    "action_control",
+    "scrubber_slider",
+    "progress_ring",
+    "icon_glyph",
+    "text_view"
+  ],
+  "capabilities": []
 }

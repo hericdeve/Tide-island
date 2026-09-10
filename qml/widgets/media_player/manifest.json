@@ -4,5 +4,13 @@
   "description": "Now playing track with album art, scrubber, lyrics, and controls",
   "icon": "󰎆",
   "supportedSizes": ["full", "minimum", "circle"],
-  "defaultSlotSpan": 2
+  "defaultSlotSpan": 2,
+  "elements": [
+    "scrubber_slider",
+    "action_control",
+    "text_view",
+    "icon_glyph",
+    "progress_ring"
+  ],
+  "capabilities": []
 }

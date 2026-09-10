@@ -1,5 +1,6 @@
 import QtQuick
 import IslandBackend
+import "../components"
 
 Item {
     id: root
@@ -8,21 +9,16 @@ Item {
     property int slotSpan: 1
     property bool isEditMode: false
 
-    readonly property string textFontFamily: widgetContext ? widgetContext.textFontFamily : "Sans Serif"
-    readonly property int bodyFontSize: widgetContext ? widgetContext.bodyFontSize : 16
-    readonly property int titleFontSize: widgetContext ? widgetContext.titleFontSize : 20
-    property string currentTime: widgetContext ? widgetContext.currentTime : "00:00"
-    property string currentDateLabel: widgetContext ? widgetContext.currentDateLabel : ""
+    readonly property string currentDateLabel: widgetContext ? widgetContext.currentDateLabel : ""
+    property string fallbackDateLabel: ""
 
     Timer {
         interval: 1000
-        running: !widgetContext || !widgetContext.currentTime
+        running: !widgetContext || !widgetContext.currentDateLabel
         repeat: true
         triggeredOnStart: true
         onTriggered: {
-            const now = new Date();
-            root.currentTime = Qt.formatTime(now, "hh:mm");
-            root.currentDateLabel = Qt.formatDate(now, "ddd, d");
+            root.fallbackDateLabel = Qt.formatDate(new Date(), "ddd, d");
         }
     }
 
@@ -35,7 +31,7 @@ Item {
         width: root.diameter - 2
         height: width
         radius: width / 2
-        color: "transparent"
+        color: StyleTokens.transparent
         border.width: 1
         border.color: StyleTokens.track
     }
@@ -44,25 +40,20 @@ Item {
         anchors.centerIn: parent
         spacing: 0
 
-        Text {
+        WidgetTimerClock {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: root.currentTime
-            color: StyleTokens.textPrimary
-            font.family: root.textFontFamily
-            font.pixelSize: Math.max(9, Math.min(14, Math.round(10 + (root.diameter - 44) * 0.08))) * root.titleFontSize / 20.0
-            font.weight: Font.Bold
-            font.letterSpacing: -0.2
+            mode: "clock"
+            clockFormat: "hh:mm"
+            representation: "compact"
+            widgetContext: root.widgetContext
         }
 
-        Text {
+        WidgetTextView {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: root.currentDateLabel !== "" ? root.currentDateLabel : Qt.formatDate(new Date(), "ddd, d")
-            color: StyleTokens.textSecondary
-            font.family: root.textFontFamily
-            font.pixelSize: Math.max(7, Math.min(10, Math.round(7.5 + (root.diameter - 44) * 0.05))) * root.bodyFontSize / 16.0
-            font.weight: Font.Medium
-            elide: Text.ElideRight
-            maximumLineCount: 1
+            role: "caption"
+            text: root.currentDateLabel !== "" ? root.currentDateLabel : root.fallbackDateLabel
+            colorOverride: StyleTokens.textSecondary
+            widgetContext: root.widgetContext
         }
     }
 }

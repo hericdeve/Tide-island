@@ -1,5 +1,6 @@
 import QtQuick
 import IslandBackend
+import "../components"
 
 Item {
     id: root
@@ -22,24 +23,22 @@ Item {
         anchors.centerIn: parent
         spacing: 7
 
-        Text {
-            id: iconText
-            text: "󰸗"
-            font.family: root.iconFontFamily
-            font.pixelSize: Math.round(16 * root.iconFontSize / 18.0)
-            color: "#ff3b30"
+        WidgetIconGlyph {
+            glyph: "󰸗"
+            size: 16
+            color: StyleTokens.danger
+            widgetContext: root.widgetContext
             anchors.verticalCenter: parent.verticalCenter
         }
 
-        Text {
+        WidgetTextView {
             text: root.eventSummary !== "" ? root.eventSummary : Qt.formatDate(new Date(), "ddd, MMM d")
-            font.family: root.textFontFamily
-            font.pixelSize: Math.round(14 * root.bodyFontSize / 16.0)
-            font.weight: Font.DemiBold
-            color: StyleTokens.textPrimary
-            elide: Text.ElideRight
+            role: "title"
+            overflowMode: "elide"
             maximumLineCount: 1
-            width: Math.min(implicitWidth, Math.max(0, root.width - iconText.width - contentRow.spacing - 8))
+            colorOverride: StyleTokens.textPrimary
+            width: Math.min(measuredWidth, Math.max(0, root.width - 24 - contentRow.spacing - 8))
+            widgetContext: root.widgetContext
             anchors.verticalCenter: parent.verticalCenter
         }
     }

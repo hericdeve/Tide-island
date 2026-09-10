@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import IslandBackend
+import "../components"
 
 Item {
     id: root
@@ -32,8 +33,8 @@ Item {
     readonly property bool isLongBreak: roundType === "long-break"
     readonly property bool isShortBreak: roundType === "short-break" || (!isWork && !isLongBreak)
 
-    readonly property color themeColor: isWork ? "#ff453a" : (isLongBreak ? "#0a84ff" : "#30d158")
-    readonly property color themeColorBg: isWork ? "#26ff453a" : (isLongBreak ? "#260a84ff" : "#2630d158")
+    readonly property color themeColor: isWork ? StyleTokens.danger : (isLongBreak ? StyleTokens.accent : StyleTokens.success)
+    readonly property color themeColorBg: Qt.rgba(themeColor.r, themeColor.g, themeColor.b, 0.15)
     readonly property string roundLabel: isWork ? "Focus" : (isLongBreak ? "Long Break" : "Short Break")
 
     // Local tag inputs bound to backend state
@@ -408,38 +409,12 @@ Item {
                                 height: 50
                                 anchors.verticalCenter: parent.verticalCenter
 
-                                Canvas {
-                                    id: miniDial
+                                WidgetProgressRing {
                                     anchors.fill: parent
-                                    antialiasing: true
-                                    renderTarget: Canvas.FramebufferObject
-                                    onPaint: {
-                                        const ctx = getContext("2d");
-                                        ctx.reset();
-                                        const center = width / 2;
-                                        const radius = center - 3;
-
-                                        ctx.strokeStyle = "#27272a";
-                                        ctx.lineWidth = 4;
-                                        ctx.beginPath();
-                                        ctx.arc(center, center, radius, 0, Math.PI * 2);
-                                        ctx.stroke();
-
-                                        ctx.strokeStyle = root.themeColor;
-                                        ctx.lineWidth = 4;
-                                        ctx.lineCap = "round";
-                                        ctx.beginPath();
-                                        const startAngle = -Math.PI / 2;
-                                        const endAngle = startAngle + Math.PI * 2 * (1.0 - root.progress);
-                                        ctx.arc(center, center, radius, startAngle, endAngle);
-                                        ctx.stroke();
-                                    }
-                                }
-
-                                Connections {
-                                    target: PomotroidBackend
-                                    function onTickChanged() { miniDial.requestPaint(); }
-                                    function onTimerStateChanged() { miniDial.requestPaint(); }
+                                    value: 1.0 - root.progress
+                                    strokeWidth: 4
+                                    fillColor: root.themeColor
+                                    trackColor: StyleTokens.track
                                 }
 
                                 Text {
@@ -461,11 +436,12 @@ Item {
                                 Text {
                                     width: parent.width
                                     text: PomotroidBackend.formatTime(root.remainingSeconds)
-                                    font.family: "monospace"
-                                        font.pixelSize: Math.round(28 * root.titleFontSize / 20.0)
+                                    font.family: root.heroFontFamily
+                                    font.pixelSize: Math.round(28 * root.titleFontSize / 20.0)
                                     font.weight: Font.Bold
                                     horizontalAlignment: Text.AlignHCenter
-                                    color: "white"
+                                    color: StyleTokens.textPrimaryBright
+                                    font.features: { "tnum": 1 }
                                 }
 
                                 Text {
@@ -489,116 +465,48 @@ Item {
                         anchors.horizontalCenter: parent.horizontalCenter
 
                         // Back to Start (restartRound)
-                        Rectangle {
+                        WidgetActionButton {
                             width: 32
                             height: 28
-                            radius: StyleTokens.radiusButton
-                            color: btsMouse.pressed ? "#3f3f46" : (btsMouse.containsMouse ? "#27272a" : "#18181b")
-                            border.width: 1
-                            border.color: "#27272a"
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: "󰑐"
-                                font.family: root.iconFontFamily
-                                font.pixelSize: Math.round(13 * root.iconFontSize / 18.0)
-                                color: btsMouse.containsMouse ? "white" : "#d4d4d8"
-                            }
-                            MouseArea {
-                                id: btsMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: PomotroidBackend.restartRound()
-                            }
+                            variant: "icon"
+                            buttonStyle: "secondary"
+                            icon: "󰑐"
+                            widgetContext: root.widgetContext
+                            onClicked: PomotroidBackend.restartRound()
                         }
 
                         // Play / Pause / Resume
-                        Rectangle {
+                        WidgetActionButton {
                             width: parent.width - 32 - 32 - 32 - 24
                             height: 28
-                            radius: StyleTokens.radiusButton
-                            color: playMouse.pressed ? Qt.darker(root.themeColor, 1.2) : (playMouse.containsMouse ? Qt.lighter(root.themeColor, 1.1) : root.themeColor)
-
-                            Row {
-                                anchors.centerIn: parent
-                                spacing: 6
-
-                                Text {
-                                    text: root.isRunning ? "󰏤" : "󰐊"
-                                    font.family: root.iconFontFamily
-                                    font.pixelSize: Math.round(12 * root.iconFontSize / 18.0)
-                                    color: "white"
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-
-                                Text {
-                                    text: root.isRunning ? "Pause" : (root.isPaused ? "Resume" : "Start")
-                                    font.family: root.textFontFamily
-                                    font.pixelSize: Math.round(11 * root.bodyFontSize / 16.0)
-                                    font.weight: Font.Bold
-                                    color: "white"
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-                            }
-
-                            MouseArea {
-                                id: playMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: PomotroidBackend.toggleTimer()
-                            }
+                            variant: "capsule"
+                            buttonStyle: "primary"
+                            icon: root.isRunning ? "󰏤" : "󰐊"
+                            label: root.isRunning ? "Pause" : (root.isPaused ? "Resume" : "Start")
+                            widgetContext: root.widgetContext
+                            onClicked: PomotroidBackend.toggleTimer()
                         }
 
                         // Skip Round
-                        Rectangle {
+                        WidgetActionButton {
                             width: 32
                             height: 28
-                            radius: StyleTokens.radiusButton
-                            color: skipMouse.pressed ? "#3f3f46" : (skipMouse.containsMouse ? "#27272a" : "#18181b")
-                            border.width: 1
-                            border.color: "#27272a"
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: "󰒭"
-                                font.family: root.iconFontFamily
-                                font.pixelSize: Math.round(13 * root.iconFontSize / 18.0)
-                                color: skipMouse.containsMouse ? "white" : "#d4d4d8"
-                            }
-                            MouseArea {
-                                id: skipMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: PomotroidBackend.skipRound()
-                            }
+                            variant: "icon"
+                            buttonStyle: "secondary"
+                            icon: "󰒭"
+                            widgetContext: root.widgetContext
+                            onClicked: PomotroidBackend.skipRound()
                         }
 
                         // Reset
-                        Rectangle {
+                        WidgetActionButton {
                             width: 32
                             height: 28
-                            radius: StyleTokens.radiusButton
-                            color: resetMouse.pressed ? "#3f3f46" : (resetMouse.containsMouse ? "#27272a" : "#18181b")
-                            border.width: 1
-                            border.color: "#27272a"
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: "󰦛"
-                                font.family: root.iconFontFamily
-                                font.pixelSize: Math.round(13 * root.iconFontSize / 18.0)
-                                color: resetMouse.containsMouse ? "#ef4444" : "#d4d4d8"
-                            }
-                            MouseArea {
-                                id: resetMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: PomotroidBackend.resetTimer()
-                            }
+                            variant: "icon"
+                            buttonStyle: "danger"
+                            icon: "󰦛"
+                            widgetContext: root.widgetContext
+                            onClicked: PomotroidBackend.resetTimer()
                         }
                     }
                 }

@@ -4,5 +4,9 @@
   "description": "Animated expressive smartwatch face with blinking eyes and smile",
   "icon": "󰄛",
   "supportedSizes": ["circle"],
-  "defaultSlotSpan": 1
+  "defaultSlotSpan": 1,
+  "elements": [
+    "freeform_slot"
+  ],
+  "capabilities": []
 }

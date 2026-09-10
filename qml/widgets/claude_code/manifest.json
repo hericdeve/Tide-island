@@ -4,5 +4,16 @@
   "description": "AI assistant companion monitoring active sessions, tools, tokens, and consent requests",
   "icon": "󰚩",
   "supportedSizes": ["full", "minimum", "circle"],
-  "defaultSlotSpan": 1
+  "defaultSlotSpan": 1,
+  "elements": [
+    "text_view",
+    "progress_bar",
+    "progress_ring",
+    "action_control",
+    "icon_glyph",
+    "search_bar"
+  ],
+  "capabilities": [
+    "dynamic_resize"
+  ]
 }

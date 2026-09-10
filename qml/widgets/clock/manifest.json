@@ -4,5 +4,10 @@
   "description": "Digital time display with current date and timezone",
   "icon": "󰥔",
   "supportedSizes": ["full", "minimum", "circle"],
-  "defaultSlotSpan": 1
+  "defaultSlotSpan": 1,
+  "elements": [
+    "timer_clock",
+    "text_view"
+  ],
+  "capabilities": []
 }

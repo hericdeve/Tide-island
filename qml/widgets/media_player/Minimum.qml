@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell.Services.Mpris
 import IslandBackend
+import "../components"
 
 Item {
     id: root
@@ -13,10 +14,6 @@ Item {
     readonly property string currentTrack: widgetContext ? widgetContext.currentTrack : ""
     readonly property string currentArtist: widgetContext ? widgetContext.currentArtist : ""
     readonly property bool isPlaying: widgetContext ? widgetContext.isPlaying : (activePlayer && activePlayer.playbackState === MprisPlaybackState.Playing)
-    readonly property string iconFontFamily: widgetContext ? widgetContext.iconFontFamily : "Sans Serif"
-    readonly property string textFontFamily: widgetContext ? widgetContext.textFontFamily : "Sans Serif"
-    readonly property int bodyFontSize: widgetContext ? widgetContext.bodyFontSize : 16
-    readonly property int iconFontSize: widgetContext ? widgetContext.iconFontSize : 18
 
     anchors.fill: parent
 
@@ -25,25 +22,22 @@ Item {
         anchors.centerIn: parent
         spacing: 7
 
-        Text {
-            id: iconText
-            text: root.isPlaying ? "󰎆" : "󰐊"
-            font.family: root.iconFontFamily
-            font.pixelSize: 16
+        WidgetIconGlyph {
+            glyph: root.isPlaying ? "󰎆" : "󰐊"
+            size: 16
             color: root.isPlaying ? StyleTokens.textPrimary : StyleTokens.textSecondary
+            widgetContext: root.widgetContext
             anchors.verticalCenter: parent.verticalCenter
         }
 
-        Text {
-            id: titleText
+        WidgetTextView {
             text: root.currentTrack !== "" ? (root.currentArtist !== "" ? root.currentTrack + " • " + root.currentArtist : root.currentTrack) : "Music"
-            font.family: root.textFontFamily
-            font.pixelSize: 14
-            font.weight: Font.DemiBold
-            color: StyleTokens.textPrimary
-            elide: Text.ElideRight
+            role: "title"
+            overflowMode: "elide"
             maximumLineCount: 1
-            width: Math.min(implicitWidth, Math.max(0, root.width - iconText.width - contentRow.spacing - 8))
+            colorOverride: StyleTokens.textPrimary
+            width: Math.min(measuredWidth, Math.max(0, root.width - 24 - contentRow.spacing - 8))
+            widgetContext: root.widgetContext
             anchors.verticalCenter: parent.verticalCenter
         }
     }

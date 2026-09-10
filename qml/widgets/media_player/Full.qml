@@ -3,6 +3,7 @@ import QtQuick.Effects
 import Quickshell.Services.Mpris
 import Quickshell.Widgets
 import IslandBackend
+import "../components"
 
 Item {
     id: root
@@ -43,18 +44,6 @@ Item {
         if (activePlayer.canPlay) activePlayer.play();
     }
 
-    function seekOffset(seconds) {
-        if (!activePlayer || !activePlayer.canControl) return;
-        if (activePlayer.position !== undefined) {
-            const nextPos = Math.max(0, activePlayer.position + seconds);
-            if (activePlayer.canSeek && typeof activePlayer.seek === "function") {
-                activePlayer.seek(seconds * 1000000);
-            } else {
-                activePlayer.position = nextPos;
-            }
-        }
-    }
-
     anchors.fill: parent
 
     Row {
@@ -88,7 +77,7 @@ Item {
             ClippingRectangle {
                 anchors.fill: parent
                 radius: Math.min(width / 2, Math.max(0, userConfig ? userConfig.notchBottomCornerRadius * 2 : 28))
-                color: "#2c2c2e"
+                color: StyleTokens.track
 
                 Image {
                     id: albumArtImage
@@ -100,12 +89,12 @@ Item {
                     visible: root.currentArtUrl !== ""
                 }
 
-                Text {
+                WidgetIconGlyph {
                     anchors.centerIn: parent
-                    text: "󰎆"
-                    color: "#8e8e93"
-                    font.family: root.iconFontFamily
-                    font.pixelSize: compactMode ? 24 : 40
+                    glyph: "󰎆"
+                    color: StyleTokens.textMuted
+                    size: compactMode ? 24 : 36
+                    widgetContext: root.widgetContext
                     visible: !root.currentArtUrl || root.currentArtUrl === ""
                 }
             }
@@ -125,40 +114,34 @@ Item {
                 anchors.right: parent.right
                 spacing: 2
 
-                Text {
+                WidgetTextView {
+                    width: parent.width
                     text: root.currentTrack !== "" ? root.currentTrack : "No Media Playing"
-                    color: StyleTokens.textPrimary
-                    font.pixelSize: Math.round((compactMode ? 12 : 13) * root.uiScale)
-                    font.family: root.textFontFamily
-                    font.weight: Font.Bold
-                    width: parent.width
-                    elide: Text.ElideRight
-                    maximumLineCount: 1
+                    role: "title"
+                    overflowMode: "marquee"
+                    marqueeSpeed: 28
+                    widgetContext: root.widgetContext
                 }
 
-                Text {
+                WidgetTextView {
+                    width: parent.width
                     text: root.currentArtist
-                    color: StyleTokens.textSecondary
-                    font.pixelSize: Math.round((compactMode ? 10 : 11) * root.uiScale)
-                    font.family: root.textFontFamily
-                    font.weight: Font.Medium
-                    width: parent.width
-                    elide: Text.ElideRight
-                    maximumLineCount: 1
+                    role: "body"
+                    overflowMode: "elide"
+                    colorOverride: StyleTokens.textSecondary
                     visible: root.currentArtist !== ""
+                    widgetContext: root.widgetContext
                 }
 
-                Text {
-                    text: root.lyricsText
-                    color: StyleTokens.textPrimary
-                    opacity: root.isPlaying ? 0.9 : 0.6
-                    font.pixelSize: Math.round(10 * root.uiScale)
-                    font.family: root.textFontFamily
-                    font.weight: Font.Medium
+                WidgetTextView {
                     width: parent.width
-                    elide: Text.ElideRight
-                    maximumLineCount: 1
+                    text: root.lyricsText
+                    role: "caption"
+                    overflowMode: "elide"
+                    colorOverride: StyleTokens.textPrimary
+                    opacity: root.isPlaying ? 0.9 : 0.6
                     visible: !compactMode && root.lyricsText !== "" && root.lyricsText !== "No music playing"
+                    widgetContext: root.widgetContext
                 }
             }
 
@@ -171,31 +154,15 @@ Item {
                 anchors.bottomMargin: compactMode ? 2 : 4
                 height: 16
 
-                Rectangle {
-                    anchors.centerIn: parent
-                    width: parent.width
-                    height: 3
-                    radius: 1.5
-                    color: StyleTokens.track
-
-                    Rectangle {
-                        height: parent.height
-                        radius: 1.5
-                        color: StyleTokens.accent
-                        width: parent.width * Math.max(0, Math.min(1, root.trackProgress))
-                    }
-                }
-
-                MouseArea {
+                WidgetScrubberSlider {
                     anchors.fill: parent
-                    cursorShape: Qt.PointingHandCursor
-                    preventStealing: true
-                    onPressed: (mouse) => seekFromMouse(mouse.x)
-                    onPositionChanged: (mouse) => { if (pressed) seekFromMouse(mouse.x); }
+                    baseTrackHeight: 3
+                    value: root.trackProgress
+                    fillColor: StyleTokens.accent
+                    trackColor: StyleTokens.track
 
-                    function seekFromMouse(mouseX) {
+                    onSliderMoved: ratio => {
                         if (!root.activePlayer || !root.activePlayer.canSeek) return;
-                        const ratio = Math.max(0, Math.min(1, mouseX / width));
                         let total = Number(root.activePlayer.length) || 0;
                         if (total <= 0 && root.activePlayer.metadata && root.activePlayer.metadata["mpris:length"])
                             total = Number(root.activePlayer.metadata["mpris:length"]);
@@ -214,115 +181,62 @@ Item {
                 anchors.bottom: parent.bottom
                 anchors.bottomMargin: 2
                 height: 24
-                spacing: compactMode ? 6 : 12
+                spacing: compactMode ? 4 : 8
 
-                // Previous
-                Item {
-                    width: 22
-                    height: parent.height
-                    Text {
-                        anchors.centerIn: parent
-                        text: "󰒮"
-                        color: prevMouse.pressed ? "#888" : "#8e8e93"
-                        font.family: root.iconFontFamily
-                        font.pixelSize: 14
-                    }
-                    MouseArea {
-                        id: prevMouse
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            if (root.activePlayer && root.activePlayer.canGoPrevious)
-                                root.activePlayer.previous();
-                        }
+                WidgetActionButton {
+                    variant: "icon"
+                    buttonStyle: "ghost"
+                    icon: "󰒮"
+                    widgetContext: root.widgetContext
+                    onClicked: {
+                        if (root.activePlayer && root.activePlayer.canGoPrevious)
+                            root.activePlayer.previous();
                     }
                 }
 
-                // Play / Pause
-                Item {
-                    width: 26
-                    height: parent.height
-                    Text {
-                        anchors.centerIn: parent
-                        text: root.isPlaying ? "󰏤" : "󰐊"
-                        color: playMouse.pressed ? StyleTokens.textSecondary : StyleTokens.textPrimary
-                        font.family: root.iconFontFamily
-                        font.pixelSize: 18
-                    }
-                    MouseArea {
-                        id: playMouse
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: root.togglePlayback()
+                WidgetActionButton {
+                    variant: "icon"
+                    buttonStyle: "primary"
+                    icon: root.isPlaying ? "󰏤" : "󰐊"
+                    widgetContext: root.widgetContext
+                    onClicked: root.togglePlayback()
+                }
+
+                WidgetActionButton {
+                    variant: "icon"
+                    buttonStyle: "ghost"
+                    icon: "󰒭"
+                    widgetContext: root.widgetContext
+                    onClicked: {
+                        if (root.activePlayer && root.activePlayer.canGoNext)
+                            root.activePlayer.next();
                     }
                 }
 
-                // Next
-                Item {
-                    width: 22
-                    height: parent.height
-                    Text {
-                        anchors.centerIn: parent
-                        text: "󰒭"
-                        color: nextMouse.pressed ? StyleTokens.textDim : StyleTokens.textSecondary
-                        font.family: root.iconFontFamily
-                        font.pixelSize: 14
-                    }
-                    MouseArea {
-                        id: nextMouse
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            if (root.activePlayer && root.activePlayer.canGoNext)
-                                root.activePlayer.next();
-                        }
-                    }
-                }
-
-                // Shuffle (non-compact)
-                Item {
-                    width: 22
-                    height: parent.height
+                WidgetActionButton {
+                    variant: "icon"
+                    buttonStyle: (activePlayer && activePlayer.shuffle) ? "primary" : "ghost"
+                    icon: "󰒝"
                     visible: !compactMode
-                    Text {
-                        anchors.centerIn: parent
-                        text: "󰒝"
-                        color: (activePlayer && activePlayer.shuffle) ? StyleTokens.accent : StyleTokens.textSecondary
-                        font.family: root.iconFontFamily
-                        font.pixelSize: 13
-                    }
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            if (activePlayer && activePlayer.shuffle !== undefined)
-                                activePlayer.shuffle = !activePlayer.shuffle;
-                        }
+                    widgetContext: root.widgetContext
+                    onClicked: {
+                        if (activePlayer && activePlayer.shuffle !== undefined)
+                            activePlayer.shuffle = !activePlayer.shuffle;
                     }
                 }
 
-                // Loop / Repeat (non-compact)
-                Item {
-                    width: 22
-                    height: parent.height
+                WidgetActionButton {
+                    variant: "icon"
+                    buttonStyle: (activePlayer && String(activePlayer.loopStatus).toLowerCase() !== "none") ? "primary" : "ghost"
+                    icon: (activePlayer && String(activePlayer.loopStatus).toLowerCase().indexOf("track") !== -1) ? "󰑘" : "󰑖"
                     visible: !compactMode
-                    Text {
-                        anchors.centerIn: parent
-                        text: (activePlayer && String(activePlayer.loopStatus).toLowerCase().indexOf("track") !== -1) ? "󰑘" : "󰑖"
-                        color: (activePlayer && String(activePlayer.loopStatus).toLowerCase() !== "none") ? "#ffffff" : "#8e8e93"
-                        font.family: root.iconFontFamily
-                        font.pixelSize: 13
-                    }
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            if (activePlayer && activePlayer.loopStatus !== undefined) {
-                                const s = String(activePlayer.loopStatus).toLowerCase();
-                                if (s === "none") activePlayer.loopStatus = "Playlist";
-                                else if (s === "playlist") activePlayer.loopStatus = "Track";
-                                else activePlayer.loopStatus = "None";
-                            }
+                    widgetContext: root.widgetContext
+                    onClicked: {
+                        if (activePlayer && activePlayer.loopStatus !== undefined) {
+                            const s = String(activePlayer.loopStatus).toLowerCase();
+                            if (s === "none") activePlayer.loopStatus = "Playlist";
+                            else if (s === "playlist") activePlayer.loopStatus = "Track";
+                            else activePlayer.loopStatus = "None";
                         }
                     }
                 }

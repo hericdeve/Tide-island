@@ -4,5 +4,10 @@
   "description": "Month date strip with synced Google Calendar events",
   "icon": "󰸗",
   "supportedSizes": ["full", "minimum", "circle"],
-  "defaultSlotSpan": 1
+  "defaultSlotSpan": 1,
+  "elements": [
+    "text_view",
+    "icon_glyph"
+  ],
+  "capabilities": []
 }

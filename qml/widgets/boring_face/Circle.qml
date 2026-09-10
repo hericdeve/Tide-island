@@ -1,4 +1,5 @@
 import QtQuick
+import IslandBackend
 import "../../island"
 
 Item {
@@ -19,9 +20,9 @@ Item {
         width: root.diameter - 2
         height: width
         radius: width / 2
-        color: "transparent"
+        color: StyleTokens.transparent
         border.width: 1
-        border.color: "#2c2c2e"
+        border.color: StyleTokens.track
     }
 
     BoringFaceAnimation {

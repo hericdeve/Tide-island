@@ -94,7 +94,7 @@ Item {
                         Rectangle {
                             anchors.fill: parent
                             radius: 6
-                            color: isToday || isSelected ? "#142850" : "transparent"
+                            color: isToday || isSelected ? StyleTokens.cardFillActive : StyleTokens.transparent
 
                             Column {
                                 anchors.centerIn: parent
@@ -103,7 +103,7 @@ Item {
                                 Text {
                                     anchors.horizontalCenter: parent.horizontalCenter
                                     text: root.dayShortNames[dateObj.getDay()]
-                                    color: isToday || isSelected ? "#8ec5fc" : "#8e8e93"
+                                    color: isToday || isSelected ? StyleTokens.accentSoft : StyleTokens.textSecondary
                                     font.pixelSize: Math.round(9 * root.fontScale)
                                     font.family: root.textFontFamily
                                     font.weight: isToday || isSelected ? Font.Bold : Font.Normal
@@ -114,12 +114,12 @@ Item {
                                     width: 17
                                     height: 17
                                     radius: 8.5
-                                    color: isToday ? "#007aff" : (isSelected ? "#2a4d8c" : "transparent")
+                                    color: isToday ? StyleTokens.accent : (isSelected ? StyleTokens.accentPressed : StyleTokens.transparent)
 
                                     Text {
                                         anchors.centerIn: parent
                                         text: root.padZero(dateObj.getDate())
-                                        color: isToday ? "white" : (isSelected ? "white" : "#c7c7cc")
+                                        color: isToday || isSelected ? StyleTokens.white : StyleTokens.textTertiary
                                         font.pixelSize: Math.round(10 * root.fontScale)
                                         font.family: root.textFontFamily
                                         font.weight: isToday || isSelected ? Font.Bold : Font.Medium
@@ -148,7 +148,7 @@ Item {
                 width: 3
                 height: 14
                 radius: 1.5
-                color: (root.currentEvent && root.currentEvent.color) ? root.currentEvent.color : "#af52de"
+                color: (root.currentEvent && root.currentEvent.color) ? root.currentEvent.color : StyleTokens.accent
                 anchors.left: parent.left
                 anchors.verticalCenter: parent.verticalCenter
                 visible: root.hasEvents
@@ -159,7 +159,7 @@ Item {
                 anchors.left: parent.left
                 anchors.verticalCenter: parent.verticalCenter
                 text: "󰄬"
-                color: "#30d158"
+                color: StyleTokens.success
                 font.pixelSize: Math.round(13 * root.fontScale)
                 font.family: root.iconFontFamily
                 visible: !root.hasEvents

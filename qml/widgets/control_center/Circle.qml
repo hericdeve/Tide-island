@@ -1,5 +1,6 @@
 import QtQuick
 import IslandBackend
+import "../components"
 
 Item {
     id: root
@@ -9,11 +10,6 @@ Item {
     property bool isEditMode: false
 
     property real currentVolume: 0.65
-
-    readonly property string iconFontFamily: widgetContext ? widgetContext.iconFontFamily : "Sans Serif"
-    readonly property string textFontFamily: widgetContext ? widgetContext.textFontFamily : "Sans Serif"
-    readonly property int bodyFontSize: widgetContext ? widgetContext.bodyFontSize : 16
-    readonly property int iconFontSize: widgetContext ? widgetContext.iconFontSize : 18
 
     Component.onCompleted: SystemServices.requestVolume()
 
@@ -28,69 +24,32 @@ Item {
 
     readonly property real diameter: Math.min(width, height)
 
-    function requestPaint() {
-        if (volArc) volArc.requestPaint();
-    }
-
-    Canvas {
-        id: volArc
+    WidgetProgressRing {
         anchors.fill: parent
-        antialiasing: true
-
-        onPaint: {
-            const ctx = getContext("2d");
-            ctx.reset();
-            const cx = width / 2;
-            const cy = height / 2;
-            const strokeWidth = Math.max(2.5, Math.min(4.5, 3.0 + (root.diameter - 44) * 0.04));
-            const radius = Math.min(cx, cy) - strokeWidth / 2 - 1.0;
-            if (radius <= 0) return;
-
-            // Background track
-            ctx.strokeStyle = "#3a3a3c";
-            ctx.lineWidth = strokeWidth;
-            ctx.beginPath();
-            ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-            ctx.stroke();
-
-            // Active volume arc
-            if (root.currentVolume > 0.005) {
-                ctx.strokeStyle = "#0a84ff";
-                ctx.lineWidth = strokeWidth;
-                ctx.lineCap = "round";
-                ctx.beginPath();
-                const startAngle = -Math.PI / 2;
-                const endAngle = startAngle + Math.PI * 2 * Math.min(1.0, root.currentVolume);
-                ctx.arc(cx, cy, radius, startAngle, endAngle);
-                ctx.stroke();
-            }
-        }
+        strokeWidth: Math.max(2.5, Math.min(4.5, 3.0 + (root.diameter - 44) * 0.04))
+        value: root.currentVolume
+        fillColor: StyleTokens.accent
+        trackColor: StyleTokens.track
     }
-
-    onCurrentVolumeChanged: volArc.requestPaint()
-    onWidthChanged: volArc.requestPaint()
-    onHeightChanged: volArc.requestPaint()
-    onVisibleChanged: if (visible) volArc.requestPaint()
 
     Column {
         anchors.centerIn: parent
         spacing: Math.max(0, Math.round((root.diameter - 44) * 0.04))
 
-        Text {
+        WidgetIconGlyph {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: root.currentVolume === 0 ? "󰖁" : "󰕾"
-            font.family: root.iconFontFamily
-            font.pixelSize: Math.max(12, Math.min(22, Math.round(14 + (root.diameter - 44) * 0.2))) * root.iconFontSize / 18.0
+            glyph: root.currentVolume === 0 ? "󰖁" : "󰕾"
+            size: 14
             color: StyleTokens.accent
+            widgetContext: root.widgetContext
         }
 
-        Text {
+        WidgetTextView {
             anchors.horizontalCenter: parent.horizontalCenter
             text: Math.round(root.currentVolume * 100) + "%"
-            font.family: root.textFontFamily
-            font.pixelSize: Math.max(9, Math.min(15, Math.round(10 + (root.diameter - 44) * 0.12))) * root.bodyFontSize / 16.0
-            font.weight: Font.Bold
-            color: StyleTokens.textPrimary
+            role: "caption"
+            colorOverride: StyleTokens.textPrimary
+            widgetContext: root.widgetContext
         }
     }
 }

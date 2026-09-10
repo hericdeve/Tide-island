@@ -4,5 +4,12 @@
   "description": "Live CPU, RAM, storage, and battery resource monitors",
   "icon": "󰍛",
   "supportedSizes": ["full", "minimum", "circle"],
-  "defaultSlotSpan": 1
+  "defaultSlotSpan": 1,
+  "elements": [
+    "progress_bar",
+    "progress_ring",
+    "text_view",
+    "icon_glyph"
+  ],
+  "capabilities": []
 }
