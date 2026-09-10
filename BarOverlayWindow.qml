@@ -62,7 +62,7 @@ PanelWindow {
     Rectangle {
         id: backdropRect
         anchors.fill: parent
-        color: Qt.rgba(0, 0, 0, userConfig.islandBackgroundOpacity / 100.0)
+        color: Qt.rgba(StyleTokens.panel.r, StyleTokens.panel.g, StyleTokens.panel.b, userConfig.islandBackgroundOpacity / 100.0)
         opacity: root.shouldShow ? 1 : 0
         visible: opacity > 0
 
@@ -77,7 +77,7 @@ PanelWindow {
             anchors.bottom: !root.isBottom ? parent.bottom : undefined
             anchors.top: root.isBottom ? parent.top : undefined
             height: userConfig.notchBorderEnabled ? userConfig.notchBorderWidth : 0
-            color: Qt.rgba(1, 1, 1, 0.12)
+            color: StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(0, 0, 0, 0.12)
             visible: userConfig.notchBorderEnabled && height > 0
         }
     }

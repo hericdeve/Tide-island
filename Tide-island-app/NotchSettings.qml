@@ -193,6 +193,12 @@ PagePanel {
                     anchors.rightMargin: 18
                     spacing: 16
 
+                    ThemeStyleSelectionRow {
+                        width: parent.width
+                    }
+
+                    SplitLine { width: parent.width }
+
                     ConfigRow {
                         title: "Background Opacity (%)"
                         description: "Opacity of the island background (0% = transparent, 100% = solid)"
@@ -702,6 +708,95 @@ PagePanel {
                     toggleRow.checkedState = next
                     ConfigStore.setValue(toggleRow.keyName, toggleRow.invert ? !next : next)
                     ConfigStore.save()
+                }
+            }
+        }
+    }
+
+    component ThemeStyleSelectionRow: Item {
+        id: themeRow
+
+        property string selectedTheme: {
+            const raw = String(ConfigStore.value("themeStyle", "black")).toLowerCase()
+            if (raw === "white" || raw === "noctalia")
+                return raw
+            return "black"
+        }
+
+        height: 49
+
+        Text {
+            id: themeTitle
+            text: "Theme Style"
+            font.family: Theme.textFontFamily
+            font.pixelSize: 18
+            color: Theme.textColor
+            anchors.top: parent.top
+            anchors.left: parent.left
+        }
+
+        Text {
+            text: "Choose Black, clean White, or synchronize with Noctalia Shell"
+            font.family: Theme.textFontFamily
+            font.pixelSize: 14
+            anchors.top: themeTitle.bottom
+            anchors.topMargin: 5
+            anchors.left: themeTitle.left
+            width: Math.max(80, parent.width - themeButtonGroup.width - 28)
+            elide: Text.ElideRight
+            color: Theme.subtleTextColor
+        }
+
+        Row {
+            id: themeButtonGroup
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 6
+
+            Repeater {
+                model: [
+                    { label: "Black", value: "black" },
+                    { label: "White", value: "white" },
+                    { label: "Noctalia", value: "noctalia" }
+                ]
+
+                Rectangle {
+                    id: themeBtn
+                    readonly property bool selected: themeRow.selectedTheme === modelData.value
+
+                    width: Math.max(76, themeBtnText.implicitWidth + 20)
+                    height: 36
+                    radius: 7
+                    color: selected ? Theme.cardBgColor
+                                    : themeBtnMouse.pressed ? Theme.controlPressedColor
+                                                           : Theme.componentBgColor
+                    border.width: 1
+                    border.color: Theme.inputBorderColor
+
+                    Behavior on color { ColorAnimation { duration: Theme.animationDuration } }
+                    Behavior on border.color { ColorAnimation { duration: Theme.animationDuration } }
+
+                    Text {
+                        id: themeBtnText
+                        anchors.centerIn: parent
+                        text: modelData.label
+                        color: themeBtn.selected ? Theme.textColor : Theme.secondaryTextColor
+                        font.family: Theme.textFontFamily
+                        font.pixelSize: 14
+                        font.weight: themeBtn.selected ? Font.DemiBold : Font.Normal
+                    }
+
+                    MouseArea {
+                        id: themeBtnMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            themeRow.selectedTheme = modelData.value
+                            ConfigStore.setValue("themeStyle", modelData.value)
+                            ConfigStore.save()
+                        }
+                    }
                 }
             }
         }

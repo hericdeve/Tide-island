@@ -2668,7 +2668,9 @@ PanelWindow {
                 : (borderEnabled ? Math.max(1, userConfig.notchBorderWidth) : 0)
             property color outlineColor: root.overviewContentVisible
                 ? root.overviewCapsuleBorderColor
-                : (notificationHistorySurface ? "#1affffff" : (borderEnabled ? "#33ffffff" : StyleTokens.clearBlack))
+                : (notificationHistorySurface
+                    ? (StyleTokens.isDark ? "#1affffff" : "#1a000000")
+                    : (borderEnabled ? (StyleTokens.isDark ? "#33ffffff" : "#26000000") : StyleTokens.clearBlack))
             property real displayedWidth: baseTargetWidth
             readonly property real baseTargetWidth: {
                 if (root.overviewVisible) return root.overviewCapsuleWidth;
@@ -2828,7 +2830,9 @@ PanelWindow {
                 ? root.overviewCapsuleColor
                 : ((userConfig.notchMode === "notch")
                     ? StyleTokens.transparent
-                    : (notificationHistorySurface ? "#080808" : Qt.rgba(0, 0, 0, userConfig.islandBackgroundOpacity / 100.0)))
+                    : (notificationHistorySurface
+                        ? (StyleTokens.isDark ? "#080808" : "#f0f0f0")
+                        : Qt.rgba(StyleTokens.panel.r, StyleTokens.panel.g, StyleTokens.panel.b, userConfig.islandBackgroundOpacity / 100.0)))
             y: root.isBottom
                 ? (parent ? parent.height - height - root.capsuleBottomMargin + (1 - root.autoHideProgress) * (targetHeight + root.capsuleBottomMargin + 8) : 0)
                 : (root.capsuleTopMargin - (1 - root.autoHideProgress) * (targetHeight + root.capsuleTopMargin + 8))
@@ -2884,7 +2888,9 @@ PanelWindow {
                 z: -2
                 visible: (userConfig.notchMode === "notch") && !root.overviewContentVisible
                 transform: Scale { yScale: root.isBottom ? -1 : 1; origin.y: notchSurfaceItem.height / 2 }
-                color: mainCapsule.notificationHistorySurface ? "#080808" : Qt.rgba(0, 0, 0, userConfig.islandBackgroundOpacity / 100.0)
+                color: mainCapsule.notificationHistorySurface
+                    ? (StyleTokens.isDark ? "#080808" : "#f0f0f0")
+                    : Qt.rgba(StyleTokens.panel.r, StyleTokens.panel.g, StyleTokens.panel.b, userConfig.islandBackgroundOpacity / 100.0)
                 borderColor: mainCapsule.outlineColor
                 borderWidth: mainCapsule.outlineWidth
                 topCornerRadius: userConfig.notchTopCornerRadius

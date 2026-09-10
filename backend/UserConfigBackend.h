@@ -97,6 +97,7 @@ class UserConfigBackend final : public QObject {
     Q_PROPERTY(bool barBackgroundOverlayEnabled READ barBackgroundOverlayEnabled WRITE setBarBackgroundOverlayEnabled NOTIFY barBackgroundOverlayEnabledChanged FINAL)
     Q_PROPERTY(int barOverlayHeight READ barOverlayHeight WRITE setBarOverlayHeight NOTIFY barOverlayHeightChanged FINAL)
     Q_PROPERTY(bool barOverlayOnlyWhenMaximized READ barOverlayOnlyWhenMaximized WRITE setBarOverlayOnlyWhenMaximized NOTIFY barOverlayOnlyWhenMaximizedChanged FINAL)
+    Q_PROPERTY(QString themeStyle READ themeStyle WRITE setThemeStyle NOTIFY themeStyleChanged FINAL)
 
 public:
     explicit UserConfigBackend(QObject *parent = nullptr);
@@ -162,6 +163,8 @@ public:
     Q_INVOKABLE void setBarOverlayHeight(int height);
     bool barOverlayOnlyWhenMaximized() const;
     Q_INVOKABLE void setBarOverlayOnlyWhenMaximized(bool onlyWhenMaximized);
+    QString themeStyle() const;
+    Q_INVOKABLE void setThemeStyle(const QString &style);
 
     int hoverExpandAction() const;
     bool islandShowWorkspaceOnAutoHide() const;
@@ -261,6 +264,7 @@ signals:
     void barBackgroundOverlayEnabledChanged();
     void barOverlayHeightChanged();
     void barOverlayOnlyWhenMaximizedChanged();
+    void themeStyleChanged();
     void islandShowWorkspaceOnAutoHideChanged();
     void hoverExpandActionChanged();
     void islandAutoHideEnabledChanged();
@@ -380,6 +384,7 @@ private:
     bool m_barBackgroundOverlayEnabled = false;
     int m_barOverlayHeight = 40;
     bool m_barOverlayOnlyWhenMaximized = true;
+    QString m_themeStyle = QStringLiteral("black");
     QJsonObject m_widgetLayouts;
 
     QFileSystemWatcher m_watcher;

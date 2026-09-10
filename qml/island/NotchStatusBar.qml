@@ -153,7 +153,7 @@ Item {
                                 text: "−"
                                 font.pixelSize: 11
                                 font.weight: Font.Bold
-                                color: "white"
+                                color: StyleTokens.textPrimary
                             }
 
                             MouseArea {
@@ -170,7 +170,7 @@ Item {
                             font.family: root.textFontFamily
                             font.pixelSize: 10
                             font.weight: Font.Medium
-                            color: "#c4c4c8"
+                            color: StyleTokens.textSecondary
                             anchors.verticalCenter: parent.verticalCenter
                         }
 
@@ -189,7 +189,7 @@ Item {
                                 text: "+"
                                 font.pixelSize: 11
                                 font.weight: Font.Bold
-                                color: "white"
+                                color: StyleTokens.textPrimary
                             }
 
                             MouseArea {

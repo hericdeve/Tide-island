@@ -33,7 +33,7 @@ Item {
         Text {
             anchors.centerIn: parent
             text: currentTime
-            color: "white"
+            color: StyleTokens.textPrimary
             font.pixelSize: textPixelSize
             font.family: heroFontFamily
             font.weight: Font.Bold

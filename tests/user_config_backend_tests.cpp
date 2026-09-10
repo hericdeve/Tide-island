@@ -31,6 +31,7 @@ private slots:
     void circleDynamicOpacityDefaultsAndClamping();
     void islandMarginsDefaultsAndClamping();
     void barOverlayDefaultsAndClamping();
+    void themeStyleDefaultsAndAssignment();
 };
 
 void UserConfigBackendTests::initTestCase()
@@ -537,6 +538,35 @@ void UserConfigBackendTests::barOverlayDefaultsAndClamping()
     reloaded.setBarBackgroundOverlayEnabled(false);
     reloaded.setBarOverlayHeight(40);
     reloaded.setBarOverlayOnlyWhenMaximized(true);
+}
+
+void UserConfigBackendTests::themeStyleDefaultsAndAssignment()
+{
+    UserConfigBackend config;
+    QCOMPARE(config.themeStyle(), QStringLiteral("black"));
+
+    QSignalSpy spy(&config, &UserConfigBackend::themeStyleChanged);
+
+    config.setThemeStyle(QStringLiteral("white"));
+    QCOMPARE(config.themeStyle(), QStringLiteral("white"));
+    QCOMPARE(spy.count(), 1);
+
+    config.setThemeStyle(QStringLiteral("noctalia"));
+    QCOMPARE(config.themeStyle(), QStringLiteral("noctalia"));
+    QCOMPARE(spy.count(), 2);
+
+    // Fallback on invalid value
+    config.setThemeStyle(QStringLiteral("invalid_custom_theme"));
+    QCOMPARE(config.themeStyle(), QStringLiteral("black"));
+    QCOMPARE(spy.count(), 3);
+
+    // Reload persistence
+    config.setThemeStyle(QStringLiteral("white"));
+    UserConfigBackend reloaded;
+    QCOMPARE(reloaded.themeStyle(), QStringLiteral("white"));
+
+    // Cleanup
+    reloaded.setThemeStyle(QStringLiteral("black"));
 }
 
 QTEST_MAIN(UserConfigBackendTests)

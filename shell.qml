@@ -284,6 +284,18 @@ Scope {
                 CalendarBackend.refreshGoogleCalendars();
             }
         }
+
+        function reloadTheme() {
+            StyleTokens.reload();
+        }
+    }
+
+    IpcHandler {
+        target: "tide-island"
+
+        function reloadTheme() {
+            StyleTokens.reload();
+        }
     }
 
     IpcHandler {

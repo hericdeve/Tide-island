@@ -588,6 +588,25 @@ void UserConfigBackend::setBarOverlayOnlyWhenMaximized(bool onlyWhenMaximized)
     writeConfigJsonField(m_userConfigPath, QStringLiteral("barOverlayOnlyWhenMaximized"), m_barOverlayOnlyWhenMaximized);
 }
 
+QString UserConfigBackend::themeStyle() const
+{
+    return m_themeStyle;
+}
+
+void UserConfigBackend::setThemeStyle(const QString &style)
+{
+    QString nextStyle = style.trimmed().toLower();
+    if (nextStyle != QLatin1String("black") && nextStyle != QLatin1String("white") && nextStyle != QLatin1String("noctalia")) {
+        nextStyle = QStringLiteral("black");
+    }
+    if (m_themeStyle == nextStyle)
+        return;
+
+    m_themeStyle = nextStyle;
+    emit themeStyleChanged();
+    writeConfigJsonField(m_userConfigPath, QStringLiteral("themeStyle"), m_themeStyle);
+}
+
 int UserConfigBackend::hoverExpandAction() const
 {
     return m_hoverExpandAction;
@@ -1389,6 +1408,10 @@ void UserConfigBackend::loadConfig()
     updateField(this, m_barBackgroundOverlayEnabled, jsonBool(configObject, QLatin1String("barBackgroundOverlayEnabled"), false), &UserConfigBackend::barBackgroundOverlayEnabledChanged);
     updateField(this, m_barOverlayHeight, jsonBoundedInt(configObject, QLatin1String("barOverlayHeight"), 40, 1, 500), &UserConfigBackend::barOverlayHeightChanged);
     updateField(this, m_barOverlayOnlyWhenMaximized, jsonBool(configObject, QLatin1String("barOverlayOnlyWhenMaximized"), true), &UserConfigBackend::barOverlayOnlyWhenMaximizedChanged);
+    const QString configuredThemeStyle = jsonString(configObject, QLatin1String("themeStyle"), QStringLiteral("black")).trimmed().toLower();
+    const QString normalizedThemeStyle = (configuredThemeStyle == QLatin1String("white") || configuredThemeStyle == QLatin1String("noctalia"))
+        ? configuredThemeStyle : QStringLiteral("black");
+    updateField(this, m_themeStyle, normalizedThemeStyle, &UserConfigBackend::themeStyleChanged);
     updateField(this, m_bodyFontSize, jsonInt(configObject, QLatin1String("bodyFontSize"), 16), &UserConfigBackend::bodyFontSizeChanged);
     updateField(this, m_titleFontSize, jsonInt(configObject, QLatin1String("titleFontSize"), 20), &UserConfigBackend::titleFontSizeChanged);
     updateField(this, m_iconFontSize, jsonInt(configObject, QLatin1String("iconFontSize"), 18), &UserConfigBackend::iconFontSizeChanged);
