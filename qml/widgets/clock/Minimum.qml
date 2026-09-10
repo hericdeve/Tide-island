@@ -32,6 +32,6 @@ Item {
         font.pixelSize: Math.max(20, Math.min(24, Math.round(root.height * 0.65))) * root.titleFontSize / 20.0
         font.weight: Font.Bold
         font.letterSpacing: -0.35
-        color: "white"
+        color: StyleTokens.textPrimary
     }
 }

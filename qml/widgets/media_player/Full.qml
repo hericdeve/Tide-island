@@ -127,7 +127,7 @@ Item {
 
                 Text {
                     text: root.currentTrack !== "" ? root.currentTrack : "No Media Playing"
-                    color: "white"
+                    color: StyleTokens.textPrimary
                     font.pixelSize: Math.round((compactMode ? 12 : 13) * root.uiScale)
                     font.family: root.textFontFamily
                     font.weight: Font.Bold
@@ -138,7 +138,7 @@ Item {
 
                 Text {
                     text: root.currentArtist
-                    color: "#8e8e93"
+                    color: StyleTokens.textSecondary
                     font.pixelSize: Math.round((compactMode ? 10 : 11) * root.uiScale)
                     font.family: root.textFontFamily
                     font.weight: Font.Medium
@@ -150,7 +150,7 @@ Item {
 
                 Text {
                     text: root.lyricsText
-                    color: "#ffffff"
+                    color: StyleTokens.textPrimary
                     opacity: root.isPlaying ? 0.9 : 0.6
                     font.pixelSize: Math.round(10 * root.uiScale)
                     font.family: root.textFontFamily
@@ -176,12 +176,12 @@ Item {
                     width: parent.width
                     height: 3
                     radius: 1.5
-                    color: "#3a3a3c"
+                    color: StyleTokens.track
 
                     Rectangle {
                         height: parent.height
                         radius: 1.5
-                        color: "#ffffff"
+                        color: StyleTokens.accent
                         width: parent.width * Math.max(0, Math.min(1, root.trackProgress))
                     }
                 }
@@ -245,7 +245,7 @@ Item {
                     Text {
                         anchors.centerIn: parent
                         text: root.isPlaying ? "󰏤" : "󰐊"
-                        color: playMouse.pressed ? "#888" : "white"
+                        color: playMouse.pressed ? StyleTokens.textSecondary : StyleTokens.textPrimary
                         font.family: root.iconFontFamily
                         font.pixelSize: 18
                     }
@@ -264,7 +264,7 @@ Item {
                     Text {
                         anchors.centerIn: parent
                         text: "󰒭"
-                        color: nextMouse.pressed ? "#888" : "#8e8e93"
+                        color: nextMouse.pressed ? StyleTokens.textDim : StyleTokens.textSecondary
                         font.family: root.iconFontFamily
                         font.pixelSize: 14
                     }
@@ -287,7 +287,7 @@ Item {
                     Text {
                         anchors.centerIn: parent
                         text: "󰒝"
-                        color: (activePlayer && activePlayer.shuffle) ? "#ffffff" : "#8e8e93"
+                        color: (activePlayer && activePlayer.shuffle) ? StyleTokens.accent : StyleTokens.textSecondary
                         font.family: root.iconFontFamily
                         font.pixelSize: 13
                     }

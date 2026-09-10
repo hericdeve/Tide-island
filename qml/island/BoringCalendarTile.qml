@@ -59,7 +59,7 @@ Item {
 
                 Text {
                     text: root.monthNames[root.today.getMonth()]
-                    color: "white"
+                    color: StyleTokens.textPrimary
                     font.pixelSize: Math.round(13 * root.fontScale)
                     font.family: root.textFontFamily
                     font.weight: Font.Bold
@@ -67,7 +67,7 @@ Item {
 
                 Text {
                     text: String(root.today.getFullYear())
-                    color: "#8e8e93"
+                    color: StyleTokens.textSecondary
                     font.pixelSize: Math.round(11 * root.fontScale)
                     font.family: root.textFontFamily
                     font.weight: Font.Medium
@@ -177,7 +177,7 @@ Item {
                         return root.currentEvent.title;
                     return root.isSameDay(root.selectedDate, root.today) ? "No events today" : "No events";
                 }
-                color: root.hasEvents ? "white" : "#8e8e93"
+                color: root.hasEvents ? StyleTokens.textPrimary : StyleTokens.textSecondary
                 font.pixelSize: Math.round(12 * root.fontScale)
                 font.family: root.textFontFamily
                 font.weight: root.hasEvents ? Font.DemiBold : Font.Medium
@@ -197,7 +197,7 @@ Item {
                     }
                     return "Enjoy your free time!";
                 }
-                color: root.hasEvents ? "#8e8e93" : "#636366"
+                color: root.hasEvents ? StyleTokens.textSecondary : StyleTokens.textTertiary
                 font.pixelSize: Math.round(11 * root.fontScale)
                 font.family: root.textFontFamily
                 font.weight: Font.Medium

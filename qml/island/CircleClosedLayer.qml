@@ -208,7 +208,7 @@ Item {
             radius: width / 2
             color: "transparent"
             border.width: 1
-            border.color: "#2c2c2e"
+            border.color: StyleTokens.track
         }
 
         Column {
@@ -219,7 +219,7 @@ Item {
                 id: timeLabel
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: root.currentTime
-                color: "white"
+                color: StyleTokens.textPrimary
                 font.family: root.textFontFamily
                 font.pixelSize: Math.max(9, Math.min(14, Math.round(10 + (root.circleDiameter - 44) * 0.08)))
                 font.weight: Font.Bold
@@ -230,7 +230,7 @@ Item {
                 id: dateLabel
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: root.currentDateLabel !== "" ? root.currentDateLabel : "Today"
-                color: "#8e8e93"
+                color: StyleTokens.textSecondary
                 font.family: root.textFontFamily
                 font.pixelSize: Math.max(7, Math.min(10, Math.round(7.5 + (root.circleDiameter - 44) * 0.05)))
                 font.weight: Font.Medium
@@ -330,7 +330,7 @@ Item {
                 anchors.centerIn: parent
                 visible: !root.isCharging
                 text: root.batteryCapacity >= 0 ? root.batteryCapacity + "%" : "--"
-                color: "white"
+                color: StyleTokens.textPrimary
                 font.family: root.textFontFamily
                 font.pixelSize: Math.max(7.5, Math.min(11, Math.round(8.5 + (root.circleDiameter - 44) * 0.05)))
                 font.weight: Font.Bold

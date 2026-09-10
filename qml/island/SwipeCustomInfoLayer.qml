@@ -190,7 +190,7 @@ Item {
                         anchors.verticalCenterOffset: root.iconVerticalOffset
                         visible: parent.parent.hasIcon && !parent.parent.isBattery
                         text: modelData.icon || ""
-                        color: "white"
+                        color: StyleTokens.textPrimary
                         font.pixelSize: root.iconPixelSize
                         font.family: root.iconFontFamily
                     }
@@ -207,10 +207,10 @@ Item {
                         readonly property bool roundedEnd: level >= 85
                         readonly property color bodyColor: {
                             if (charging)
-                                return "white";
+                                return StyleTokens.textPrimary;
                             if (level <= 20)
                                 return "#ff3b30";
-                            return "white";
+                            return StyleTokens.textPrimary;
                         }
                         readonly property color emptyColor: Qt.rgba(1, 1, 1, 0.56)
 
@@ -315,7 +315,7 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     width: parent.boundedTextWidth
                     text: modelData.text || ""
-                    color: "white"
+                    color: StyleTokens.textPrimary
                     font.pixelSize: root.textPixelSize
                     font.family: root.textFontFamily
                     font.weight: Font.Bold
@@ -344,7 +344,7 @@ Item {
         width: textWidth
         anchors.verticalCenter: parent.verticalCenter
         text: timeText
-        color: "white"
+        color: StyleTokens.textPrimary
         opacity: 1 - clampedProgress
         font.pixelSize: root.textPixelSize + 1
         font.family: timeFontFamily

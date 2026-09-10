@@ -48,7 +48,7 @@ Item {
                 font.pixelSize: Math.round(32 * root.titleFontSize / 20.0)
                 font.weight: Font.Bold
                 font.letterSpacing: -0.5
-                color: "white"
+                color: StyleTokens.textPrimary
             }
 
             Text {
@@ -56,7 +56,7 @@ Item {
                 font.family: root.heroFontFamily
                 font.pixelSize: Math.round(14 * root.bodyFontSize / 16.0)
                 font.weight: Font.DemiBold
-                color: "#8e8e93"
+                color: StyleTokens.textSecondary
                 anchors.bottom: parent.bottom
                 anchors.bottomMargin: 5
             }
@@ -68,7 +68,7 @@ Item {
             font.family: root.textFontFamily
             font.pixelSize: Math.round(12 * root.bodyFontSize / 16.0)
             font.weight: Font.Medium
-            color: "#8e8e93"
+            color: StyleTokens.textSecondary
         }
     }
 }

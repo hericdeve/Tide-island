@@ -71,7 +71,7 @@ Item {
         width: Math.max(20, root.diameter - Math.round(root.ringStrokeWidth * 2 + 8))
         height: width
         radius: width / 2
-        color: "#2c2c2e"
+        color: StyleTokens.track
 
         Image {
             anchors.fill: parent
@@ -85,7 +85,7 @@ Item {
             text: root.isPlaying ? "󰎆" : "󰐊"
             font.family: root.iconFontFamily
             font.pixelSize: Math.round(parent.width * 0.45)
-            color: "#ffffff"
+            color: StyleTokens.textPrimary
             visible: !root.currentArtUrl || root.currentArtUrl === ""
         }
     }

@@ -64,7 +64,7 @@ Item {
                     font.family: root.textFontFamily
                     font.pixelSize: Math.round(11 * root.bodyFontSize / 16.0)
                     font.weight: Font.DemiBold
-                    color: "white"
+                    color: StyleTokens.textPrimary
                     width: 36
                     horizontalAlignment: Text.AlignRight
                 }
@@ -94,7 +94,7 @@ Item {
                     width: parent.width - 18 - 46
                     height: 10
                     radius: 5
-                    color: "#2c2c2e"
+                    color: StyleTokens.track
 
                     Rectangle {
                         height: parent.height
@@ -110,7 +110,7 @@ Item {
                     font.family: root.textFontFamily
                     font.pixelSize: Math.round(11 * root.bodyFontSize / 16.0)
                     font.weight: Font.DemiBold
-                    color: "white"
+                    color: StyleTokens.textPrimary
                     width: 36
                     horizontalAlignment: Text.AlignRight
                 }
@@ -140,7 +140,7 @@ Item {
                     width: parent.width - 18 - 46
                     height: 10
                     radius: 5
-                    color: "#2c2c2e"
+                    color: StyleTokens.track
 
                     Rectangle {
                         height: parent.height
@@ -156,7 +156,7 @@ Item {
                     font.family: root.textFontFamily
                     font.pixelSize: Math.round(11 * root.bodyFontSize / 16.0)
                     font.weight: Font.DemiBold
-                    color: "white"
+                    color: StyleTokens.textPrimary
                     width: 36
                     horizontalAlignment: Text.AlignRight
                 }

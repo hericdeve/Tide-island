@@ -135,7 +135,7 @@ Item {
                         font.family: root.textFontFamily
                         font.pixelSize: Math.round(11 * root.bodyFontSize / 16.0)
                         font.weight: Font.DemiBold
-                        color: "white"
+                        color: StyleTokens.textPrimary
                     }
                     Text {
                         text: "Tool: " + (ClaudeCodeBackend.pendingConsentTool || ClaudeCodeBackend.currentTool || "Action")
@@ -337,7 +337,7 @@ Item {
                                 font.family: root.textFontFamily
                                 font.pixelSize: Math.round(11 * root.bodyFontSize / 16.0)
                                 font.weight: Font.Bold
-                                color: "white"
+                                color: StyleTokens.textPrimary
                                 elide: Text.ElideRight
                                 maximumLineCount: 1
                             }
@@ -648,7 +648,7 @@ Item {
                             width: parent.width - 44
                             font.family: root.textFontFamily
                             font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
-                            color: "white"
+                            color: StyleTokens.textPrimary
                             clip: true
                             onAccepted: {
                                 if (text.trim() !== "") {

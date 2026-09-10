@@ -105,7 +105,7 @@ Item {
             anchors.centerIn: parent
             visible: !root.isCharging
             text: root.batteryCapacity >= 0 ? root.batteryCapacity + "%" : "--"
-            color: "white"
+            color: StyleTokens.textPrimary
             font.family: root.textFontFamily
             font.pixelSize: Math.max(7.5, Math.min(11, Math.round(8.5 + (parent.width - 44) * 0.05))) * root.bodyFontSize / 16.0
             font.weight: Font.Bold

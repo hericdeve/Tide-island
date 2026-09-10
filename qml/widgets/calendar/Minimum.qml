@@ -36,7 +36,7 @@ Item {
             font.family: root.textFontFamily
             font.pixelSize: Math.round(14 * root.bodyFontSize / 16.0)
             font.weight: Font.DemiBold
-            color: "white"
+            color: StyleTokens.textPrimary
             elide: Text.ElideRight
             maximumLineCount: 1
             width: Math.min(implicitWidth, Math.max(0, root.width - iconText.width - contentRow.spacing - 8))

@@ -35,7 +35,7 @@ Item {
             font.family: root.textFontFamily
             font.pixelSize: Math.round(18 * root.titleFontSize / 20.0)
             font.weight: Font.Bold
-            color: "white"
+            color: StyleTokens.textPrimary
         }
 
         Rectangle {

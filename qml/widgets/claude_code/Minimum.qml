@@ -149,7 +149,7 @@ Item {
                 font.family: root.textFontFamily
                 font.pixelSize: Math.round(14 * root.bodyFontSize / 16.0)
                 font.weight: root.isWaitingConsent ? Font.Bold : Font.DemiBold
-                color: root.isWaitingConsent ? "#f59e0b" : (root.state === "error" ? "#fca5a5" : "white")
+                color: root.isWaitingConsent ? "#f59e0b" : (root.state === "error" ? "#fca5a5" : StyleTokens.textPrimary)
 
                 onImplicitWidthChanged: {
                     statusViewport.contentX = 0;

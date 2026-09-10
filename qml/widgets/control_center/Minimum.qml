@@ -34,7 +34,7 @@ Item {
             text: root.currentVolume === 0 ? "󰖁" : "󰕾"
             font.family: root.iconFontFamily
             font.pixelSize: Math.round(16 * root.iconFontSize / 18.0)
-            color: "#0a84ff"
+            color: StyleTokens.accent
             anchors.verticalCenter: parent.verticalCenter
         }
 
@@ -43,7 +43,7 @@ Item {
             font.family: root.textFontFamily
             font.pixelSize: Math.round(14 * root.bodyFontSize / 16.0)
             font.weight: Font.DemiBold
-            color: "white"
+            color: StyleTokens.textPrimary
             anchors.verticalCenter: parent.verticalCenter
         }
     }

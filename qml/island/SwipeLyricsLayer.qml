@@ -226,7 +226,7 @@ Item {
                 y: root.lyricBaselineY - baselineOffset - 14 * root.lyricChangeProgress
                 width: parent.width
                 text: root.previousLyricText
-                color: "white"
+                color: StyleTokens.textPrimary
                 opacity: 1 - root.lyricChangeProgress
                 font.pixelSize: root.textPixelSize
                 font.family: root.textFontFamily
@@ -243,7 +243,7 @@ Item {
                     + (root.previousLyricText !== "" ? 12 * (1 - root.lyricChangeProgress) : 0)
                 width: parent.width
                 text: root.activeLyricText
-                color: "white"
+                color: StyleTokens.textPrimary
                 opacity: root.previousLyricText !== "" ? root.lyricChangeProgress : 1
                 font.pixelSize: root.textPixelSize
                 font.family: root.textFontFamily
@@ -265,7 +265,7 @@ Item {
             barWidth: 3
             barSpacing: 3
             minimumBarHeight: 4
-            barColor: "white"
+            barColor: StyleTokens.textPrimary
         }
     }
 
@@ -275,7 +275,7 @@ Item {
         y: timeBaselineY - baselineOffset
         width: textWidth
         text: timeText
-        color: "white"
+        color: StyleTokens.textPrimary
         opacity: 1 - clampedProgress
         font.pixelSize: textPixelSize + 1
         font.family: timeFontFamily

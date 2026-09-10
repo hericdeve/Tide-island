@@ -54,7 +54,7 @@ Item {
         width: textWidth
         anchors.verticalCenter: parent.verticalCenter
         text: displayText
-        color: "white"
+        color: StyleTokens.textPrimary
         opacity: revealProgress
         font.pixelSize: textPixelSize
         font.family: textFontFamily

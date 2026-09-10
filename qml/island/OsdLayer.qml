@@ -60,7 +60,7 @@ Item {
 
             Text {
                 text: iconText
-                color: "white"
+                color: StyleTokens.textPrimary
                 font.pixelSize: userConfig.iconFontSize
                 font.family: iconFontFamily
                 anchors.verticalCenter: parent.verticalCenter
@@ -68,7 +68,7 @@ Item {
 
             Text {
                 text: Math.round(progress * 100) + "%"
-                color: "white"
+                color: StyleTokens.textPrimary
                 font.pixelSize: userConfig.titleFontSize
                 font.family: heroFontFamily
                 font.weight: Font.Bold
@@ -142,7 +142,7 @@ Item {
 
             Text {
                 text: iconText
-                color: "white"
+                color: StyleTokens.textPrimary
                 font.pixelSize: userConfig.iconFontSize
                 font.family: iconFontFamily
                 anchors.verticalCenter: parent.verticalCenter
@@ -150,7 +150,7 @@ Item {
 
             Text {
                 text: customText
-                color: "white"
+                color: StyleTokens.textPrimary
                 font.pixelSize: userConfig.bodyFontSize
                 font.family: textFontFamily
                 font.weight: Font.DemiBold

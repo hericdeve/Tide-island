@@ -4,7 +4,12 @@ import QtQuick
 QtObject {
     // Dark values follow the current Claude web palette: bg-100/bg-200/bg-000,
     // gray-20/gray-200/gray-350, and the clay brand token.
-    readonly property bool darkMode: backend.colorScheme === "dark"
+    readonly property string configuredThemeStyle: String(ConfigStore.value("themeStyle", "")).toLowerCase()
+    readonly property bool darkMode: {
+        if (configuredThemeStyle === "white") return false;
+        if (configuredThemeStyle === "black") return true;
+        return backend.colorScheme === "dark";
+    }
 
     readonly property color totalBgColor: darkMode ? "#20201f" : "#faf9f5"
     readonly property color componentBgColor: darkMode ? "#181817" : "#f0efe9"

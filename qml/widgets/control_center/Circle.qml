@@ -81,7 +81,7 @@ Item {
             text: root.currentVolume === 0 ? "󰖁" : "󰕾"
             font.family: root.iconFontFamily
             font.pixelSize: Math.max(12, Math.min(22, Math.round(14 + (root.diameter - 44) * 0.2))) * root.iconFontSize / 18.0
-            color: "#0a84ff"
+            color: StyleTokens.accent
         }
 
         Text {
@@ -90,7 +90,7 @@ Item {
             font.family: root.textFontFamily
             font.pixelSize: Math.max(9, Math.min(15, Math.round(10 + (root.diameter - 44) * 0.12))) * root.bodyFontSize / 16.0
             font.weight: Font.Bold
-            color: "white"
+            color: StyleTokens.textPrimary
         }
     }
 }

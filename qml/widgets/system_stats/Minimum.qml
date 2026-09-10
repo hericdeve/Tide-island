@@ -39,7 +39,7 @@ Item {
                 font.family: root.textFontFamily
                 font.pixelSize: Math.round(13 * root.bodyFontSize / 16.0)
                 font.weight: Font.DemiBold
-                color: "white"
+                color: StyleTokens.textPrimary
             }
         }
 
@@ -58,7 +58,7 @@ Item {
                 font.family: root.textFontFamily
                 font.pixelSize: Math.round(13 * root.bodyFontSize / 16.0)
                 font.weight: Font.DemiBold
-                color: "white"
+                color: StyleTokens.textPrimary
             }
         }
 
@@ -77,7 +77,7 @@ Item {
                 font.family: root.textFontFamily
                 font.pixelSize: Math.round(13 * root.bodyFontSize / 16.0)
                 font.weight: Font.DemiBold
-                color: "white"
+                color: StyleTokens.textPrimary
             }
         }
     }

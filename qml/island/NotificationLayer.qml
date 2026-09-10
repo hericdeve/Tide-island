@@ -141,7 +141,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 text: contentText
                 textFormat: Text.PlainText
-                color: "white"
+                color: StyleTokens.textPrimary
                 font.pixelSize: userConfig.bodyFontSize
                 font.family: textFontFamily
                 font.weight: Font.DemiBold
@@ -168,7 +168,7 @@ Item {
                     width: expandedFlickable.width
                     text: contentText
                     textFormat: Text.PlainText
-                    color: "white"
+                    color: StyleTokens.textPrimary
                     font.pixelSize: userConfig.bodyFontSize
                     font.family: textFontFamily
                     font.weight: Font.DemiBold

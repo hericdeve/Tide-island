@@ -30,7 +30,7 @@ Item {
             text: root.isPlaying ? "󰎆" : "󰐊"
             font.family: root.iconFontFamily
             font.pixelSize: 16
-            color: root.isPlaying ? "#ffffff" : "#8e8e93"
+            color: root.isPlaying ? StyleTokens.textPrimary : StyleTokens.textSecondary
             anchors.verticalCenter: parent.verticalCenter
         }
 
@@ -40,7 +40,7 @@ Item {
             font.family: root.textFontFamily
             font.pixelSize: 14
             font.weight: Font.DemiBold
-            color: "white"
+            color: StyleTokens.textPrimary
             elide: Text.ElideRight
             maximumLineCount: 1
             width: Math.min(implicitWidth, Math.max(0, root.width - iconText.width - contentRow.spacing - 8))
