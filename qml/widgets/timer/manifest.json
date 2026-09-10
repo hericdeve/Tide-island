@@ -1,0 +1,17 @@
+{
+  "id": "timer",
+  "name": "Timer & Stopwatch",
+  "description": "A focused countdown timer and stopwatch with ambient progress views.",
+  "icon": "󰔛",
+  "supportedSizes": ["full", "minimum", "circle"],
+  "defaultSlotSpan": 1,
+  "elements": [
+    "timer_clock",
+    "progress_bar",
+    "progress_ring",
+    "action_control",
+    "text_view",
+    "icon_glyph"
+  ],
+  "capabilities": ["dynamic_resize"]
+}

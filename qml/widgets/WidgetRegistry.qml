@@ -63,6 +63,17 @@ QtObject {
             circleComponent: Qt.resolvedUrl("clock/Circle.qml")
         },
         {
+            id: "timer",
+            name: "Timer & Stopwatch",
+            description: "A focused countdown timer and stopwatch with ambient progress views",
+            icon: "󰔛",
+            supportedSizes: ["full", "minimum", "circle"],
+            defaultSlotSpan: 1,
+            fullComponent: Qt.resolvedUrl("timer/Full.qml"),
+            minimumComponent: Qt.resolvedUrl("timer/Minimum.qml"),
+            circleComponent: Qt.resolvedUrl("timer/Circle.qml")
+        },
+        {
             id: "boring_face",
             name: "Boring Face",
             description: "Animated expressive smartwatch face with blinking eyes and smile",
