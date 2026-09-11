@@ -36,6 +36,10 @@ INTERACTIVE_PATTERNS = [
     r"\bButton\b",
     r"\bTextInput\b",
     r"\bTextField\b",
+    r"\bWidgetActionButton\b",
+    r"\bWidgetToggleSwitch\b",
+    r"\bWidgetScrubberSlider\b",
+    r"\bWidgetSearchInput\b",
 ]
 
 def find_repo_root() -> Path:
@@ -157,6 +161,36 @@ def audit_widget(widget_dir: Path) -> list:
             for pat in INTERACTIVE_PATTERNS:
                 if re.search(pat, content):
                     issues.append(f"{non_interactive_file} contains forbidden interactive element: {pat}")
+
+    # Check usable space boundaries: prevent negative margins from leaking outside slot
+    for qml_file in widget_dir.glob("*.qml"):
+        content = qml_file.read_text(encoding="utf-8", errors="ignore")
+        if re.search(r"anchors\.(?:top|bottom|left|right|margins)Margin\s*:\s*-\s*\d+", content):
+            issues.append(f"{qml_file.name} contains negative margin violating usable space boundary")
+
+    # Check dynamic resizing protocol: if widget implements non-zero requestedContentHeight or Width, capability must be declared
+    implements_dynamic_resize = False
+    for qml_file in widget_dir.glob("*.qml"):
+        content = qml_file.read_text(encoding="utf-8", errors="ignore")
+        # Match property assignments with non-zero values or dynamic expressions
+        if re.search(r"\brequestedContent(?:Height|Width)\b\s*:\s*(?!0\b)", content):
+            implements_dynamic_resize = True
+            break
+    capabilities = manifest.get("capabilities", [])
+    if implements_dynamic_resize and "dynamic_resize" not in capabilities:
+        issues.append("Implements dynamic requestedContentHeight/Width but missing 'dynamic_resize' in manifest.json capabilities")
+
+    # Check element taxonomy: ensure all standardized components used in QML are declared in manifest
+    declared_elements = set(manifest.get("elements", []))
+    used_elements = set()
+    for qml_file in widget_dir.glob("*.qml"):
+        content = qml_file.read_text(encoding="utf-8", errors="ignore")
+        for elem_tag, comp_name in STANDARD_ELEMENTS.items():
+            if re.search(r"\b" + comp_name + r"\b", content):
+                used_elements.add(elem_tag)
+    undeclared = used_elements - declared_elements
+    if undeclared:
+        issues.append(f"Uses standardized component(s) without declaring in manifest.json elements: {', '.join(sorted(undeclared))}")
 
     # Check context safety in all files
     for qml_file in widget_dir.glob("*.qml"):
