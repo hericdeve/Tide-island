@@ -23,20 +23,23 @@ Item {
         spacing: 7
 
         WidgetIconGlyph {
+            id: mediaIcon
             glyph: root.isPlaying ? "󰎆" : "󰐊"
-            size: 16
+            size: 14
             color: root.isPlaying ? StyleTokens.textPrimary : StyleTokens.textSecondary
             widgetContext: root.widgetContext
             anchors.verticalCenter: parent.verticalCenter
         }
 
         WidgetTextView {
+            id: trackTextView
             text: root.currentTrack !== "" ? (root.currentArtist !== "" ? root.currentTrack + " • " + root.currentArtist : root.currentTrack) : "Music"
-            role: "title"
-            overflowMode: "elide"
+            role: "body"
+            overflowMode: "marquee"
+            marqueeSpeed: 25
             maximumLineCount: 1
             colorOverride: StyleTokens.textPrimary
-            width: Math.min(measuredWidth, Math.max(0, root.width - 24 - contentRow.spacing - 8))
+            width: Math.min(measuredWidth, Math.max(0, root.width - mediaIcon.width - contentRow.spacing - 12))
             widgetContext: root.widgetContext
             anchors.verticalCenter: parent.verticalCenter
         }

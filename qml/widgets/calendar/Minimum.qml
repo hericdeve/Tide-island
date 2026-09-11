@@ -24,8 +24,9 @@ Item {
         spacing: 7
 
         WidgetIconGlyph {
+            id: calIcon
             glyph: "󰸗"
-            size: 16
+            size: 14
             color: StyleTokens.danger
             widgetContext: root.widgetContext
             anchors.verticalCenter: parent.verticalCenter
@@ -33,11 +34,12 @@ Item {
 
         WidgetTextView {
             text: root.eventSummary !== "" ? root.eventSummary : Qt.formatDate(new Date(), "ddd, MMM d")
-            role: "title"
-            overflowMode: "elide"
+            role: "body"
+            overflowMode: "marquee"
+            marqueeSpeed: 25
             maximumLineCount: 1
             colorOverride: StyleTokens.textPrimary
-            width: Math.min(measuredWidth, Math.max(0, root.width - 24 - contentRow.spacing - 8))
+            width: Math.min(measuredWidth, Math.max(0, root.width - calIcon.width - contentRow.spacing - 12))
             widgetContext: root.widgetContext
             anchors.verticalCenter: parent.verticalCenter
         }

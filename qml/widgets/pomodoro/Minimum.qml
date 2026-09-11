@@ -33,7 +33,7 @@ Item {
 
         WidgetTextView {
             text: root.connected ? root.timeDisplay : "Pomotroid"
-            role: "title"
+            role: "metric"
             colorOverride: root.connected ? StyleTokens.textPrimaryBright : StyleTokens.textSecondary
             widgetContext: root.widgetContext
             anchors.verticalCenter: parent.verticalCenter
