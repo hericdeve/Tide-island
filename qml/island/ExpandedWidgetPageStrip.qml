@@ -48,6 +48,7 @@ Item {
     readonly property real pageSlideDistance: Math.max(1, width + 24)
 
     readonly property bool isReorderingShelf: fileShelfItem && fileShelfItem.reorderActive
+    readonly property int shelfExtraHeight: fileShelfItem ? fileShelfItem.extraHeight : 0
 
     property real requestedContentWidth: 0
     property real requestedContentHeight: 0

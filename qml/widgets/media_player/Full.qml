@@ -29,7 +29,19 @@ Item {
     readonly property int iconFontSize: widgetContext ? widgetContext.iconFontSize : 18
     readonly property real uiScale: widgetContext ? widgetContext.uiScale : 1.0
 
-    readonly property bool compactMode: width < 260 || (slotSpan === 1 && width < 340)
+    readonly property bool ultraCompactMode: controlsArea.width < 72
+    readonly property bool compactMode: width < 320 || controlsArea.width < 190
+
+    readonly property real buttonSpacing: ultraCompactMode ? 0 : (compactMode ? (controlsArea.width < 120 ? 3 : 6) : (controlsArea.width > 260 ? 10 : 6))
+    readonly property real buttonSize: {
+        if (ultraCompactMode)
+            return Math.max(18, Math.min(28, Math.floor(Math.min(controlsArea.width - 4, controlsArea.height - 40))));
+        const count = compactMode ? 3 : 5;
+        const totalSpacing = (count - 1) * buttonSpacing;
+        const maxByWidth = (controlsArea.width - totalSpacing) / count;
+        const maxByHeight = Math.max(18, controlsArea.height - 50);
+        return Math.max(18, Math.min(28, Math.floor(Math.min(maxByWidth, maxByHeight))));
+    }
 
     function togglePlayback() {
         if (!activePlayer || !activePlayer.canControl) return;
@@ -54,7 +66,9 @@ Item {
         // Left: Album Art
         Item {
             id: albumArtWrapper
-            width: Math.max(48, Math.min(parent.height - 4, compactMode ? 56 : parent.height - 4))
+            width: compactMode
+                ? Math.max(40, Math.min(64, Math.min(parent.height - 4, Math.floor(parent.width * 0.3))))
+                : Math.max(48, Math.min(parent.height - 4, Math.floor(parent.width * 0.38)))
             height: width
             anchors.verticalCenter: parent.verticalCenter
 
@@ -108,40 +122,49 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             clip: true
 
-            Column {
+            Item {
+                id: textContainer
                 anchors.top: parent.top
                 anchors.left: parent.left
                 anchors.right: parent.right
-                spacing: 2
+                anchors.bottom: scrubberArea.top
+                anchors.bottomMargin: compactMode ? 2 : 4
+                clip: true
 
-                WidgetTextView {
+                Column {
                     width: parent.width
-                    text: root.currentTrack !== "" ? root.currentTrack : "No Media Playing"
-                    role: "title"
-                    overflowMode: "marquee"
-                    marqueeSpeed: 28
-                    widgetContext: root.widgetContext
-                }
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 2
 
-                WidgetTextView {
-                    width: parent.width
-                    text: root.currentArtist
-                    role: "body"
-                    overflowMode: "elide"
-                    colorOverride: StyleTokens.textSecondary
-                    visible: root.currentArtist !== ""
-                    widgetContext: root.widgetContext
-                }
+                    WidgetTextView {
+                        width: parent.width
+                        text: root.currentTrack !== "" ? root.currentTrack : "No Media Playing"
+                        role: "title"
+                        overflowMode: "marquee"
+                        marqueeSpeed: 28
+                        widgetContext: root.widgetContext
+                    }
 
-                WidgetTextView {
-                    width: parent.width
-                    text: root.lyricsText
-                    role: "caption"
-                    overflowMode: "elide"
-                    colorOverride: StyleTokens.textPrimary
-                    opacity: root.isPlaying ? 0.9 : 0.6
-                    visible: !compactMode && root.lyricsText !== "" && root.lyricsText !== "No music playing"
-                    widgetContext: root.widgetContext
+                    WidgetTextView {
+                        width: parent.width
+                        text: root.currentArtist
+                        role: "body"
+                        overflowMode: "elide"
+                        colorOverride: StyleTokens.textSecondary
+                        visible: root.currentArtist !== ""
+                        widgetContext: root.widgetContext
+                    }
+
+                    WidgetTextView {
+                        width: parent.width
+                        text: root.lyricsText
+                        role: "caption"
+                        overflowMode: "elide"
+                        colorOverride: StyleTokens.textPrimary
+                        opacity: root.isPlaying ? 0.9 : 0.6
+                        visible: !compactMode && textContainer.height >= 55 && root.lyricsText !== "" && root.lyricsText !== "No music playing"
+                        widgetContext: root.widgetContext
+                    }
                 }
             }
 
@@ -152,7 +175,7 @@ Item {
                 anchors.right: parent.right
                 anchors.bottom: playbackToolbar.top
                 anchors.bottomMargin: compactMode ? 2 : 4
-                height: 16
+                height: compactMode && controlsArea.height < 90 ? 12 : 16
 
                 WidgetScrubberSlider {
                     anchors.fill: parent
@@ -176,17 +199,19 @@ Item {
             // Playback controls row
             Row {
                 id: playbackToolbar
-                anchors.left: parent.left
-                anchors.right: parent.right
+                anchors.horizontalCenter: parent.horizontalCenter
                 anchors.bottom: parent.bottom
-                anchors.bottomMargin: 2
-                height: 24
-                spacing: compactMode ? 4 : 8
+                anchors.bottomMargin: compactMode ? 2 : 4
+                height: root.buttonSize
+                spacing: root.buttonSpacing
 
                 WidgetActionButton {
+                    width: root.buttonSize
+                    height: root.buttonSize
                     variant: "icon"
                     buttonStyle: "ghost"
                     icon: "󰒮"
+                    visible: !root.ultraCompactMode
                     widgetContext: root.widgetContext
                     onClicked: {
                         if (root.activePlayer && root.activePlayer.canGoPrevious)
@@ -195,6 +220,8 @@ Item {
                 }
 
                 WidgetActionButton {
+                    width: root.buttonSize
+                    height: root.buttonSize
                     variant: "icon"
                     buttonStyle: "primary"
                     icon: root.isPlaying ? "󰏤" : "󰐊"
@@ -203,9 +230,12 @@ Item {
                 }
 
                 WidgetActionButton {
+                    width: root.buttonSize
+                    height: root.buttonSize
                     variant: "icon"
                     buttonStyle: "ghost"
                     icon: "󰒭"
+                    visible: !root.ultraCompactMode
                     widgetContext: root.widgetContext
                     onClicked: {
                         if (root.activePlayer && root.activePlayer.canGoNext)
@@ -214,10 +244,12 @@ Item {
                 }
 
                 WidgetActionButton {
+                    width: root.buttonSize
+                    height: root.buttonSize
                     variant: "icon"
                     buttonStyle: (activePlayer && activePlayer.shuffle) ? "primary" : "ghost"
                     icon: "󰒝"
-                    visible: !compactMode
+                    visible: !root.compactMode
                     widgetContext: root.widgetContext
                     onClicked: {
                         if (activePlayer && activePlayer.shuffle !== undefined)
@@ -226,10 +258,12 @@ Item {
                 }
 
                 WidgetActionButton {
+                    width: root.buttonSize
+                    height: root.buttonSize
                     variant: "icon"
                     buttonStyle: (activePlayer && String(activePlayer.loopStatus).toLowerCase() !== "none") ? "primary" : "ghost"
                     icon: (activePlayer && String(activePlayer.loopStatus).toLowerCase().indexOf("track") !== -1) ? "󰑘" : "󰑖"
-                    visible: !compactMode
+                    visible: !root.compactMode
                     widgetContext: root.widgetContext
                     onClicked: {
                         if (activePlayer && activePlayer.loopStatus !== undefined) {

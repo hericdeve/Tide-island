@@ -60,7 +60,7 @@ Rectangle {
         return StyleTokens.textPrimary;
     }
 
-    radius: radiusOverride
+    radius: Math.min(height / 2, radiusOverride)
     color: computedBackground
     border.width: buttonStyle === "secondary" && !isHovered ? 1 : 0
     border.color: StyleTokens.track
@@ -94,7 +94,7 @@ Rectangle {
             anchors.verticalCenter: parent.verticalCenter
             text: root.icon
             font.family: root.iconFont
-            font.pixelSize: Math.round(13 * root.bodyFontSize / 16.0)
+            font.pixelSize: Math.min(Math.round(root.height * 0.52), Math.round(13 * root.bodyFontSize / 16.0))
             color: root.computedForeground
         }
 

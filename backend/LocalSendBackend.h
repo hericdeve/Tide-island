@@ -63,6 +63,7 @@ signals:
     void fileSent(const QString &filePath);
 
 private:
+    friend class LocalSendBackendTests;
     struct Device {
         int number = 0;
         QString name;

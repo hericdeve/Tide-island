@@ -34,13 +34,14 @@ Item {
     readonly property bool onShelfPage: currentPage === 0
     readonly property int currentPage: internalCurrentPage
     property int internalCurrentPage: initialPage
+    readonly property int shelfExtraHeight: expandedPageStrip ? expandedPageStrip.shelfExtraHeight : 0
 
     readonly property real requestedContentWidth: {
         if (onShelfPage) return 0;
         if (!expandedPageStrip) return 0;
         const stripReqW = expandedPageStrip.requestedContentWidth;
         const horizPadding = (userConfig && userConfig.notchExpandedPaddingHorizontal !== undefined)
-            ? userConfig.notchExpandedPaddingHorizontal * 2 + 16 : 32;
+            ? userConfig.notchExpandedPaddingHorizontal * 2 : 16;
         return stripReqW > 0 ? (stripReqW + horizPadding) : 0;
     }
 
@@ -49,8 +50,8 @@ Item {
         if (!expandedPageStrip) return 0;
         const stripReqH = expandedPageStrip.requestedContentHeight;
         const vertPadding = (userConfig && userConfig.notchExpandedPaddingVertical !== undefined)
-            ? userConfig.notchExpandedPaddingVertical * 2 + 16 : 28;
-        return stripReqH > 0 ? (stripReqH + (statusBar ? statusBar.height : 28) + vertPadding) : 0;
+            ? userConfig.notchExpandedPaddingVertical * 2 : 12;
+        return stripReqH > 0 ? (stripReqH + (statusBar ? statusBar.height : 24) + vertPadding + 5) : 0;
     }
 
     function grabKeyboardFocus() {

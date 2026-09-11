@@ -13,6 +13,7 @@ private slots:
     void cancelResetsState();
     void emptyFileSendSetsError();
     void fileSentSignalDeclared();
+    void parseOutputDeduplicationAndStability();
 };
 
 void LocalSendBackendTests::initialProperties()
@@ -67,6 +68,33 @@ void LocalSendBackendTests::fileSentSignalDeclared()
     LocalSendBackend backend;
     QSignalSpy fileSentSpy(&backend, &LocalSendBackend::fileSent);
     QVERIFY(fileSentSpy.isValid());
+}
+
+void LocalSendBackendTests::parseOutputDeduplicationAndStability()
+{
+    LocalSendBackend backend;
+    QSignalSpy devicesSpy(&backend, &LocalSendBackend::devicesChanged);
+
+    // Frame 1: initial device discovery
+    backend.parseOutput("[1] Secret Onion (192.168.1.50)\r\n");
+    QCOMPARE(backend.count(), 1);
+    QCOMPARE(devicesSpy.count(), 1);
+    QCOMPARE(backend.data(backend.index(0), LocalSendBackend::DeviceNameRole).toString(), QStringLiteral("Secret Onion"));
+    QCOMPARE(backend.data(backend.index(0), LocalSendBackend::DeviceAddressRole).toString(), QStringLiteral("192.168.1.50"));
+    QCOMPARE(backend.data(backend.index(0), LocalSendBackend::DeviceTypeRole).toString(), QStringLiteral("phone"));
+
+    // Frame 2: terminal cursor/highlight prefix "> " added, should strip prefix and NOT change name or emit
+    devicesSpy.clear();
+    backend.parseOutput("\x1b[H\x1b[2K[1] > Secret Onion (192.168.1.50)\r\n");
+    QCOMPARE(backend.count(), 1);
+    QCOMPARE(devicesSpy.count(), 0);
+    QCOMPARE(backend.data(backend.index(0), LocalSendBackend::DeviceNameRole).toString(), QStringLiteral("Secret Onion"));
+
+    // Frame 3: link-local IPv6 address arrives; existing stable IPv4 address is preserved, no emit
+    backend.parseOutput("[1] Secret Onion (::4588%3)\r\n");
+    QCOMPARE(backend.count(), 1);
+    QCOMPARE(devicesSpy.count(), 0);
+    QCOMPARE(backend.data(backend.index(0), LocalSendBackend::DeviceAddressRole).toString(), QStringLiteral("192.168.1.50"));
 }
 
 QTEST_GUILESS_MAIN(LocalSendBackendTests)

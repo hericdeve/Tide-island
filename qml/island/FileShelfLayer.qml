@@ -29,7 +29,7 @@ FocusScope {
     property bool cameraMirrorActive: false
     property int batteryCapacity: -1
     property bool isCharging: false
-    readonly property int extraHeight: LocalSend.waitingForAcceptance ? 36 : 0
+    readonly property int extraHeight: LocalSend.waitingForAcceptance ? 38 : 0
 
     property bool reorderActive: false
     property bool reorderCommitting: false
@@ -42,7 +42,7 @@ FocusScope {
     property string externalDropZone: ""
 
     readonly property int visibleCapacity: 5
-    readonly property real horizontalPadding: 18
+    readonly property real horizontalPadding: 0
     readonly property real cardWidth: shelfContentArea.height < 200 ? Math.max(80, Math.round(shelfContentArea.height - 16)) : 176
     readonly property real cardHeight: cardWidth
     readonly property real overflowCellWidth: cardWidth + 20
@@ -494,11 +494,11 @@ FocusScope {
         visible: root.showStatusBar
         height: root.showStatusBar ? 24 : 0
         anchors.top: parent.top
-        anchors.topMargin: root.showStatusBar ? 10 : 0
+        anchors.topMargin: 0
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.leftMargin: 16
-        anchors.rightMargin: 16
+        anchors.leftMargin: 0
+        anchors.rightMargin: 0
         pages: (userConfig && userConfig.widgetLayouts && userConfig.widgetLayouts.expanded) ? userConfig.widgetLayouts.expanded.pages : []
         currentPage: root.currentPage
         isEditMode: root.isEditMode
@@ -532,9 +532,9 @@ FocusScope {
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         anchors.right: localSendPanel.left
-        anchors.topMargin: root.showStatusBar ? 6 : 0
-        anchors.rightMargin: 12
-        anchors.bottomMargin: 8
+        anchors.topMargin: root.showStatusBar ? 5 : 0
+        anchors.rightMargin: 8
+        anchors.bottomMargin: 0
 
         Column {
             z: 2
@@ -831,7 +831,7 @@ FocusScope {
         anchors.right: parent.right
         anchors.bottom: shelfContentArea.bottom
         width: Math.max(250, parent.width * 0.42)
-        anchors.rightMargin: 14
+        anchors.rightMargin: 0
 
         function deviceAtPoint(x, y) {
             if (!deviceListView) return null;
@@ -850,17 +850,15 @@ FocusScope {
         Rectangle {
             anchors.fill: parent
             radius: StyleTokens.radiusModule
-            color: StyleTokens.module
-            border.width: 1
-            border.color: StyleTokens.track
-            opacity: 0.94
+            color: StyleTokens.transparent
+            border.width: 0
         }
 
         Column {
             z: 2
             anchors.fill: parent
-            anchors.margins: 12
-            spacing: 8
+            anchors.margins: 0
+            spacing: 6
 
             Row {
                 width: parent.width
@@ -870,7 +868,7 @@ FocusScope {
                     text: "󰀄"
                     color: StyleTokens.accent
                     font.family: root.iconFontFamily
-                    font.pixelSize: 20
+                    font.pixelSize: 15
                     anchors.verticalCenter: parent.verticalCenter
                 }
 
@@ -904,7 +902,7 @@ FocusScope {
                 Text {
                     text: "󰑐"
                     font.family: root.iconFontFamily
-                    font.pixelSize: 14
+                    font.pixelSize: 12
                     color: refreshMouse.containsMouse ? StyleTokens.textPrimary : StyleTokens.textSecondary
                     anchors.verticalCenter: parent.verticalCenter
 
@@ -944,7 +942,7 @@ FocusScope {
                         text: "󰄜"
                         color: StyleTokens.accent
                         font.family: root.iconFontFamily
-                        font.pixelSize: 15
+                        font.pixelSize: 12
                         anchors.verticalCenter: parent.verticalCenter
                     }
 
@@ -1019,25 +1017,28 @@ FocusScope {
                         visible: LocalSend.count > 0
                         width: parent.width
                         height: Math.max(0, parent.height - 22)
-                        model: LocalSend.devices
+                        model: LocalSend
                         clip: true
                         spacing: 4
 
                         delegate: Rectangle {
                             id: devDelegate
-                            required property var modelData
-
-                            readonly property int deviceNumber: modelData.deviceNumber
-                            readonly property string deviceName: modelData.deviceName
-                            readonly property string deviceAddress: modelData.deviceAddress
-                            readonly property string deviceType: modelData.deviceType || "desktop"
+                            required property int deviceNumber
+                            required property string deviceName
+                            required property string deviceAddress
+                            required property string deviceType
+                            readonly property bool isHighlighted: devMouse.containsMouse || devDrop.containsDrag
 
                             width: ListView.view.width
                             height: 38
                             radius: StyleTokens.radiusButton
-                            color: devDrop.containsDrag ? StyleTokens.accentSoft : (devMouse.containsMouse ? StyleTokens.moduleHover : StyleTokens.buttonFill)
+                            color: devDrop.containsDrag ? StyleTokens.accentSoft : (devMouse.containsMouse ? StyleTokens.buttonFill : StyleTokens.moduleHover)
                             border.width: devDrop.containsDrag ? 1 : 0
                             border.color: StyleTokens.accent
+
+                            Behavior on color {
+                                ColorAnimation { duration: StyleTokens.durationFast }
+                            }
 
                             Row {
                                 anchors.fill: parent
@@ -1047,9 +1048,9 @@ FocusScope {
 
                                 Text {
                                     text: devDelegate.deviceType === "phone" ? "󰄜" : (devDelegate.deviceType === "tablet" ? "󰓹" : "󰌢")
-                                    color: StyleTokens.accent
+                                    color: devDelegate.isHighlighted ? StyleTokens.panel : StyleTokens.accent
                                     font.family: root.iconFontFamily
-                                    font.pixelSize: 16
+                                    font.pixelSize: 13
                                     anchors.verticalCenter: parent.verticalCenter
                                 }
 
@@ -1059,7 +1060,7 @@ FocusScope {
 
                                     Text {
                                         text: devDelegate.deviceName
-                                        color: StyleTokens.textPrimary
+                                        color: devDelegate.isHighlighted ? StyleTokens.panel : StyleTokens.textPrimary
                                         font.family: root.textFontFamily
                                         font.pixelSize: 11
                                         elide: Text.ElideRight
@@ -1068,7 +1069,7 @@ FocusScope {
 
                                     Text {
                                         text: devDelegate.deviceAddress
-                                        color: StyleTokens.textTertiary
+                                        color: devDelegate.isHighlighted ? StyleTokens.panel : StyleTokens.textTertiary
                                         font.family: root.textFontFamily
                                         font.pixelSize: 9
                                     }
@@ -1094,6 +1095,7 @@ FocusScope {
                             DropArea {
                                 id: devDrop
                                 anchors.fill: parent
+                                z: 1
                                 keys: ["text/uri-list", "application/x-tide-file"]
                                 onDropped: drop => {
                                     if (drop.hasUrls && drop.urls.length > 0) {
@@ -1115,7 +1117,7 @@ FocusScope {
             id: sendDropArea
             anchors.fill: parent
             keys: ["text/uri-list", "application/x-tide-file"]
-            z: 100
+            z: 0
 
             onDropped: drop => {
                 if (!drop.hasUrls || drop.urls.length === 0)

@@ -310,15 +310,31 @@ void LocalSendBackend::parseOutput(const QByteArray &output)
 {
     const QString chunk = QString::fromUtf8(output);
     m_outputBuffer += chunk;
+    if (m_outputBuffer.size() > 8192) {
+        m_outputBuffer = m_outputBuffer.right(4096);
+    }
     QString normalizedOutput = m_outputBuffer;
     normalizedOutput.remove(QRegularExpression(QStringLiteral("\\x1b\\[[0-9;?]*[ -/]*[@-~]")));
+    normalizedOutput.remove(QRegularExpression(QStringLiteral("\\x1b\\([A-Za-z0-9]")));
 
     static const QRegularExpression deviceExpression(
         QStringLiteral("\\[(\\d+)\\]\\s+(.+?)\\s+\\(([^)]+)\\)"));
     auto match = deviceExpression.globalMatch(normalizedOutput);
+    QMap<int, QPair<QString, QString>> latestDevices;
     while (match.hasNext()) {
         const auto current = match.next();
-        updateDevice(current.captured(1).toInt(), current.captured(2).trimmed(), current.captured(3).trimmed());
+        const int num = current.captured(1).toInt();
+        QString name = current.captured(2).trimmed();
+        name.remove(QRegularExpression(QStringLiteral("^[>\\*\\s\\-]+")));
+        name = name.trimmed();
+        const QString addr = current.captured(3).trimmed();
+        if (num > 0 && !name.isEmpty()) {
+            latestDevices[num] = qMakePair(name, addr);
+        }
+    }
+
+    for (auto it = latestDevices.constBegin(); it != latestDevices.constEnd(); ++it) {
+        updateDevice(it.key(), it.value().first, it.value().second);
         setAvailable(true);
         if (m_status == QStringLiteral("Discovering devices") || m_status.isEmpty()) {
             setStatus(m_pendingFile.isEmpty() ? QStringLiteral("Choose a device")
@@ -400,9 +416,16 @@ void LocalSendBackend::updateDevice(int number, const QString &name, const QStri
     for (int i = 0; i < m_devices.size(); ++i) {
         if (m_devices.at(i).number != number)
             continue;
-        if (m_devices[i].name == name && m_devices[i].address == address && m_devices[i].deviceType == type)
+
+        QString resolvedAddress = address;
+        if (!m_devices[i].address.isEmpty() && address.startsWith(QLatin1String("::")) && !m_devices[i].address.startsWith(QLatin1String("::"))) {
+            resolvedAddress = m_devices[i].address;
+        }
+
+        if (m_devices[i].name == name && m_devices[i].address == resolvedAddress && m_devices[i].deviceType == type)
             return;
-        m_devices[i] = {number, name, address, type};
+
+        m_devices[i] = {number, name, resolvedAddress, type};
         emit dataChanged(index(i), index(i));
         emit devicesChanged();
         return;

@@ -2782,8 +2782,11 @@ PanelWindow {
                 case "file_shelf":
                     return userConfig.notchOpenHeight + (fileShelfLoader.item ? fileShelfLoader.item.extraHeight : 0);
                 case "expanded":
-                case "bluetooth_expanded":
-                    return userConfig.notchOpenHeight + dynamicResizeEngine.activeExtraHeight;
+                case "bluetooth_expanded": {
+                    const shelfExtra = (expandedPlayerLoader.item && expandedPlayerLoader.item.currentPage === 0 && expandedPlayerLoader.item.shelfExtraHeight)
+                        ? expandedPlayerLoader.item.shelfExtraHeight : 0;
+                    return userConfig.notchOpenHeight + dynamicResizeEngine.activeExtraHeight + shelfExtra;
+                }
                 case "notification":
                     return notificationLoader.item
                         ? Math.max(56, notificationLoader.item.preferredHeight)
@@ -3750,6 +3753,10 @@ PanelWindow {
             Loader {
                 id: fileShelfLoader
                 anchors.fill: parent
+                anchors.topMargin: (userConfig && userConfig.notchExpandedPaddingVertical !== undefined) ? userConfig.notchExpandedPaddingVertical : 6
+                anchors.bottomMargin: (userConfig && userConfig.notchExpandedPaddingVertical !== undefined) ? userConfig.notchExpandedPaddingVertical : 6
+                anchors.leftMargin: (userConfig && userConfig.notchExpandedPaddingHorizontal !== undefined) ? userConfig.notchExpandedPaddingHorizontal : 8
+                anchors.rightMargin: (userConfig && userConfig.notchExpandedPaddingHorizontal !== undefined) ? userConfig.notchExpandedPaddingHorizontal : 8
                 active: islandContainer.fileShelfLayerVisible
                 asynchronous: false
                 visible: islandContainer.fileShelfLayerVisible
