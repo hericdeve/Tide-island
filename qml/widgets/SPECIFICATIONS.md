@@ -19,10 +19,23 @@ Tide Island widgets are modular QML components rendered within notch slots of th
    - **`Minimum.qml` (Closed Pill)**: Strictly non-interactive. Displays ambient, glanceable status. Must not include `MouseArea`, `TapHandler`, or clickable elements.
    - **`Circle.qml` (Smartwatch Face)**: Strictly non-interactive. Displays circular dial complications. Must not include mouse or click handlers.
 
-4. **Dynamic Resizing Protocol**:
-   Widgets can morph the island window dynamically by reporting `requestedContentWidth` and `requestedContentHeight`.
+4. **Respect for User Paddings & Grid Margins**:
+   The Dynamic Island host reserves configurable outer margins (`userConfig.notchExpandedPaddingHorizontal`, `userConfig.notchExpandedPaddingVertical`, `userConfig.notchClosedPaddingHorizontal`) and 8px slot separation (`WidgetSlotGrid.spacing`). A widget is strictly confined to its assigned slot area (`width` and `height`) and must respect internal margins (typically `4px` to `8px`) without bleeding outside its container bounds.
 
-5. **Auditable Metadata**:
+5. **The Invariant of Usable Space**:
+   *Usable Space* is defined as the net bounding box (`width` and `height`) allocated to a widget inside its slot, minus internal container margins and spacing.
+   - **Strict Invariant**: All visual elements of all widgets (including buttons, text rows, cards, icons, sliders, headers, and footers) must fit strictly within this usable space across all slot counts (`slotSpan: 1..6`), screen heights, and font scaling configurations.
+   - **Zero-Clipping / Zero-Overlap**: No element may poke past the bottom margin, overflow the horizontal edges, or collide with adjacent controls.
+   - **Adaptive Sizing & Multi-Tier Compacting**: Action controls (`WidgetActionButton`, etc.), toolbars, and spacing must dynamically adapt (e.g. `buttonSize`, `compactMode`, `ultraCompactMode`, `Math.min`) to guarantee they never overflow narrow slot spans (e.g. 1-slot in a 3- to 6-slot grid) or reduced notch heights.
+
+6. **Dynamic Resizing Protocol (Notch Expansion for Content)**:
+   - Adhering strictly to usable space **must never break dynamic resizing**.
+   - When content naturally requires more space—specifically multi-line text boxes, consent prompts, transcript views, or dynamic lists that need to show all their lines—widgets must NOT force-clip or awkwardly truncate the content.
+   - Instead, widgets declare `"capabilities": ["dynamic_resize"]` in `manifest.json` and expose `requestedContentHeight` (and/or `requestedContentWidth`).
+   - By measuring wrapped text (e.g. via `WidgetTextView.measuredHeight` or hidden probe) and requesting `baseSlotHeight + extraHeight`, the widget triggers the host Dynamic Island window to smoothly expand its height (`notchOpenHeight + activeExtraHeight`), dynamically enlarging the slot container and expanding the widget's usable space so that all text lines are displayed completely without scrollbars or clipping.
+   - Within this newly expanded space, all elements still strictly remain within the updated usable space bounds.
+
+7. **Auditable Metadata**:
    Every widget declares its element tags in `manifest.json` under `"elements": [...]` to enable repository-wide indexing via `scripts/audit_widgets.py`.
 
 ---
@@ -86,9 +99,10 @@ import "../components"
   - `"caption"`: 11px regular captions, uses `StyleTokens.textTertiary`.
   - `"metric"`: 15px bold tabular figures (`tnum: 1`), uses `StyleTokens.textPrimaryBright`.
   - `"code"`: 11px monospace code, uses `iconFontFamily` and `StyleTokens.textSoft`.
-- **Measurement Helpers**:
+- **Measurement Helpers & Multi-Line Expansion**:
   - `measuredWidth`: Exposes natural unclipped text width.
   - `measuredHeight`: Exposes wrapped text height for dynamic notch expansion.
+  - **Showing All Text Lines Dynamically**: When a text field (such as a consent message, transcript, note body, or multi-line status) needs to display all its lines without truncation, set `overflowMode: "wrap"` and bind `width` to the container width. The internal probe automatically computes the exact wrapped height (`measuredHeight`). The widget then reports `requestedContentHeight: baseSlotHeight + Math.max(0, textView.measuredHeight - restingTextHeight)`, prompting the Dynamic Island to smoothly expand its vertical dimension so every line is visible without scrollbars, clipping, or breaking padding bounds.
 
 ---
 
@@ -154,6 +168,11 @@ import "../components"
   - Variants: `"capsule"` (pill with icon + label), `"icon"` (28x28px square), `"pill"` (compact text).
   - Styles: `"primary"` (`StyleTokens.accent`), `"secondary"` (`StyleTokens.buttonFill`), `"ghost"`, `"danger"`.
   - Press feedback: Micro-interaction scale shrink to 0.94 with `StyleTokens.durationFast` (120ms).
+  - **Usable Space & Geometry Rules**:
+    - When placed in `Full.qml` toolbars or rows, buttons must declare explicit `width: buttonSize` and `height: buttonSize` matching the toolbar's height.
+    - Corner radius automatically clamps to `Math.min(height / 2, radiusOverride)` to prevent distortion when scaled down.
+    - Icon font size automatically scales to button height (`Math.min(Math.round(root.height * 0.52), ...)`).
+    - Rows of action buttons must center or space within the usable space, using responsive tiered modes (`compactMode`, `ultraCompactMode`) and dynamic spacing to ensure they never overflow available width or clip against container edges.
 - **Toggle (`WidgetToggleSwitch`)**:
   - 38x22px capsule, 18px sliding circular white knob, `StyleTokens.success` when checked.
   - Signal: `toggled(bool checked)`.
@@ -190,7 +209,100 @@ import "../components"
 
 ---
 
-## 3. Noctalia IPC Integration (`WidgetNoctaliaBridge.qml`)
+## 3. Usable Space & Dynamic Notch Expansion Architecture
+
+### 3.1 The Usable Space Hierarchy
+Tide Island enforces a strict box model from the Wayland surface down to individual widget components:
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│ Dynamic Island Window (Hyprland/Niri Layer Surface)                    │
+│   Height = notchOpenHeight + dynamicResizeEngine.activeExtraHeight     │
+│  ┌──────────────────────────────────────────────────────────────────┐  │
+│  │ Notch Padding: top/bottom (default 6-10px), left/right (8px)     │  │
+│  │  ┌────────────────────────────────────────────────────────────┐  │  │
+│  │  │ NotchStatusBar (Persistent top bar, 24px)                  │  │  │
+│  │  ├────────────────────────────────────────────────────────────┤  │  │
+│  │  │ WidgetSlotGrid: 1 to 6 slots, 8px spacing between columns  │  │  │
+│  │  │  ┌─────────────────────────┐  ┌─────────────────────────┐  │  │  │
+│  │  │  │ WidgetSlot (Slot 0)     │  │ WidgetSlot (Slot 1)     │  │  │  │
+│  │  │  │  ┌───────────────────┐  │  │                         │  │  │  │
+│  │  │  │  │ Widget Full.qml   │  │  │                         │  │  │  │
+│  │  │  │  │ anchors.margins:  │  │  │                         │  │  │  │
+│  │  │  │  │ (e.g. 4-8px)      │  │  │                         │  │  │  │
+│  │  │  │  │  ┌─────────────┐  │  │  │                         │  │  │  │
+│  │  │  │  │  │ USABLE      │  │  │  │                         │  │  │  │
+│  │  │  │  │  │ SPACE       │  │  │  │                         │  │  │  │
+│  │  │  │  │  │ (All UI fits│  │  │  │                         │  │  │  │
+│  │  │  │  │  │  strictly)  │  │  │  │                         │  │  │  │
+│  │  │  │  │  └─────────────┘  │  │  │                         │  │  │  │
+│  │  │  │  └───────────────────┘  │  │                         │  │  │  │
+│  │  │  └─────────────────────────┘  └─────────────────────────┘  │  │  │
+│  │  └────────────────────────────────────────────────────────────┘  │  │
+│  └──────────────────────────────────────────────────────────────────┘  │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+1. **Window Padding**: Configured in `userconfig.json` (`notchExpandedPaddingHorizontal`, `notchExpandedPaddingVertical`). Must never be bypassed.
+2. **Grid Spacing**: Fixed 8px gap (`WidgetSlotGrid.spacing`) between slot columns.
+3. **Slot Container**: Bounded by `width: span * slotBaseWidth + (span - 1) * spacing` and `height: gridContainer.height`.
+4. **Widget Usable Space**: The net area inside the widget after deducting outer margins.
+   - **Strict Invariant**: Every child item (labels, buttons, progress bars, drop targets, canvas) must be strictly positioned and sized within this rectangle.
+   - Never use negative margins to poke outside the slot bounds.
+   - Buttons must match toolbar height (`height: buttonSize`, `anchors.bottomMargin: 2` to `4`) so their rounded corners and hover backgrounds are never sliced off by container clipping.
+   - Rows of buttons must dynamically reduce sizes and collapse secondary actions (`ultraCompactMode`, `compactMode`) when slot width is narrow.
+
+---
+
+### 3.2 Dynamic Notch Expansion for Multi-Line Text Boxes
+The strict adherence to usable space **does not mean content must be cramped or artificially truncated**. When a widget contains content that needs more vertical space—such as multi-line text boxes, consent prompts, streaming transcripts, or note bodies—the widget expands the notch dynamically so that all lines can be legibly displayed.
+
+#### How It Works:
+1. **Declare Capability**:
+   Add `"dynamic_resize"` to `"capabilities"` in `manifest.json`:
+   ```json
+   "capabilities": [
+     "dynamic_resize"
+   ]
+   ```
+2. **Measure Natural Content Height**:
+   Use `WidgetTextView.measuredHeight` (with `overflowMode: "wrap"`) or a hidden text probe bound to the current usable width:
+   ```qml
+   WidgetTextView {
+       id: bodyText
+       width: parent.width
+       overflowMode: "wrap"
+       maximumLineCount: 0 // Allow all lines
+       role: "body"
+       text: root.fullTextContent
+       widgetContext: root.widgetContext
+   }
+   ```
+3. **Compute `requestedContentHeight`**:
+   Compare the measured height against the baseline slot height and request the exact expansion needed:
+   ```qml
+   readonly property real baseSlotHeight: Math.max(120, (UserConfig.notchOpenHeight || 190) - 52)
+   readonly property real requestedContentHeight: {
+       const textH = bodyText.measuredHeight;
+       const restingTextH = 40; // Height allocated in standard resting state
+       if (textH > restingTextH) {
+           const extraH = Math.min(180, textH - restingTextH);
+           return baseSlotHeight + extraH;
+       }
+       return 0; // 0 reverts to standard slot height
+   }
+   ```
+4. **Host Expansion Pipeline**:
+   - `WidgetSlot` reads `widgetLoader.item.requestedContentHeight` and signals `WidgetSlotGrid`.
+   - `WidgetSlotGrid` computes `maxReqH = Math.max(...)` across all visible slots on the active page.
+   - `ExpandedPlayerLayer` adds user vertical padding and status bar height.
+   - `DynamicIslandWindow` animates `targetHeight` smoothly to the expanded height.
+   - The slot container expands downward, enlarging the widget's usable space.
+   - All text lines render cleanly within the newly enlarged usable space without scrollbars, clipping, or text overlapping adjacent controls.
+
+---
+
+## 4. Noctalia IPC Integration (`WidgetNoctaliaBridge.qml`)
 
 Widgets communicate with the host desktop environment via `noctalia msg`.
 
@@ -227,7 +339,7 @@ WidgetActionButton {
 
 ---
 
-## 4. Cross-View Mode Matrix
+## 5. Cross-View Mode Matrix
 
 | Element | Full View (`Full.qml`) | Minimum View (`Minimum.qml`) | Circle View (`Circle.qml`) |
 |---|---|---|---|
@@ -242,7 +354,7 @@ WidgetActionButton {
 
 ---
 
-## 5. Declarative Manifest Schema (`manifest.json`)
+## 6. Declarative Manifest Schema (`manifest.json`)
 
 Each widget's `manifest.json` defines its identity, view modes, and element composition:
 
@@ -286,7 +398,7 @@ Each widget's `manifest.json` defines its identity, view modes, and element comp
 
 ---
 
-## 6. Blueprints for Future Planned Widgets
+## 7. Blueprints for Future Planned Widgets
 
 1. **Obsidian Companion**:
    - `Full.qml`: `WidgetSearchInput` for note search + `WidgetTextView` (daily prompt) + `WidgetActionButton` ("Quick Capture") + `WidgetDropTarget` (attach images/links to daily note).
@@ -345,7 +457,7 @@ Each widget's `manifest.json` defines its identity, view modes, and element comp
 
 ---
 
-## 7. Auditing & Inspection CLI
+## 8. Auditing & Inspection CLI
 
 Use `scripts/audit_widgets.py` to inspect and verify widget compliance across the repository:
 
