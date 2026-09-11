@@ -1,5 +1,6 @@
 import QtQuick
 import IslandBackend
+import "."
 import "../components"
 
 Item {
@@ -8,9 +9,8 @@ Item {
     property var widgetContext: null
     property int slotSpan: 1
     property bool isEditMode: false
-    property int elapsedSeconds: 0
 
-    readonly property real requestedContentWidth: Math.min(220, contentRow.implicitWidth + 20)
+    readonly property real requestedContentWidth: Math.min(220, contentRow.implicitWidth + 16)
     readonly property real requestedContentHeight: 0
 
     anchors.fill: parent
@@ -22,52 +22,43 @@ Item {
         Row {
             id: contentRow
             anchors.centerIn: parent
-            spacing: 8
+            spacing: 6
 
             WidgetIconGlyph {
-                glyph: "󰔛"
+                glyph: TimerService.mode === "stopwatch" ? "󰔛" : "󰔟"
                 size: 14
-                color: StyleTokens.accent
+                color: TimerService.running ? StyleTokens.accent : StyleTokens.textSecondary
                 widgetContext: root.widgetContext
                 anchors.verticalCenter: parent.verticalCenter
             }
 
-            Row {
-                spacing: 50
+            Item {
+                width: timerClock.implicitWidth
+                height: timerClock.implicitHeight
                 anchors.verticalCenter: parent.verticalCenter
 
-                WidgetTextView {
-                    text: "Stopwatch"
-                    role: "caption"
-                    colorOverride: StyleTokens.textSecondary
+                WidgetTimerClock {
+                    id: timerClock
+                    anchors.centerIn: parent
+                    mode: TimerService.mode
+                    representation: "compact"
+                    running: false
+                    elapsedSeconds: TimerService.elapsedSeconds
+                    elapsedMilliseconds: TimerService.elapsedMilliseconds
+                    totalSeconds: TimerService.totalSeconds
+                    colorOverride: TimerService.running ? StyleTokens.accent : StyleTokens.textPrimary
                     widgetContext: root.widgetContext
-                    anchors.verticalCenter: parent.verticalCenter
                 }
+            }
 
-                Item {
-                    width: 52
-                    height: timerClock.implicitHeight
-                    anchors.verticalCenter: parent.verticalCenter
-
-                    WidgetTimerClock {
-                        id: timerClock
-                        anchors.centerIn: parent
-                        mode: "stopwatch"
-                        representation: "compact"
-                        running: false
-                        elapsedSeconds: root.elapsedSeconds
-                        colorOverride: StyleTokens.textPrimary
-                        widgetContext: root.widgetContext
-                    }
-                }
-
-                WidgetTextView {
-                    text: "Paused"
-                    role: "caption"
-                    colorOverride: StyleTokens.textMuted
-                    widgetContext: root.widgetContext
-                    anchors.verticalCenter: parent.verticalCenter
-                }
+            WidgetTextView {
+                text: TimerService.running
+                    ? (TimerService.mode === "stopwatch" && TimerService.laps.length > 0 ? ("L" + (TimerService.laps.length + 1)) : "Run")
+                    : (TimerService.elapsedSeconds > 0 ? "Pause" : "Ready")
+                role: "caption"
+                colorOverride: TimerService.running ? StyleTokens.accent : StyleTokens.textMuted
+                widgetContext: root.widgetContext
+                anchors.verticalCenter: parent.verticalCenter
             }
         }
     }

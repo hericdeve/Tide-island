@@ -1,5 +1,6 @@
 import QtQuick
 import IslandBackend
+import "."
 import "../components"
 
 Item {
@@ -8,16 +9,15 @@ Item {
     property var widgetContext: null
     property int slotSpan: 1
     property bool isEditMode: false
-    property int elapsedSeconds: 0
 
-    readonly property real diameter: widgetContext ? widgetContext.circleDiameter : Math.min(width, height)
+    readonly property real diameter: (widgetContext && widgetContext.circleDiameter !== undefined && widgetContext.circleDiameter > 0) ? widgetContext.circleDiameter : Math.min(width, height)
 
     anchors.fill: parent
 
     WidgetProgressRing {
         anchors.fill: parent
-        value: (root.elapsedSeconds % 60) / 60.0
-        fillColor: StyleTokens.accent
+        value: TimerService.mode === "countdown" ? TimerService.progress : ((TimerService.elapsedSeconds % 60) / 60.0)
+        fillColor: TimerService.running ? StyleTokens.accent : StyleTokens.textSecondary
         trackColor: StyleTokens.track
         strokeWidth: Math.max(2.5, Math.min(4, root.diameter * 0.06))
     }
@@ -28,18 +28,20 @@ Item {
 
         WidgetIconGlyph {
             anchors.horizontalCenter: parent.horizontalCenter
-            glyph: "󰔛"
+            glyph: TimerService.mode === "stopwatch" ? "󰔛" : "󰔟"
             size: 13
-            color: StyleTokens.accent
+            color: TimerService.running ? StyleTokens.accent : StyleTokens.textSecondary
             widgetContext: root.widgetContext
         }
 
         WidgetTimerClock {
-            mode: "stopwatch"
+            mode: TimerService.mode
             representation: "circle"
             running: false
-            elapsedSeconds: root.elapsedSeconds
-            colorOverride: StyleTokens.textPrimary
+            elapsedSeconds: TimerService.elapsedSeconds
+            elapsedMilliseconds: TimerService.elapsedMilliseconds
+            totalSeconds: TimerService.totalSeconds
+            colorOverride: TimerService.running ? StyleTokens.accent : StyleTokens.textPrimary
             widgetContext: root.widgetContext
         }
     }

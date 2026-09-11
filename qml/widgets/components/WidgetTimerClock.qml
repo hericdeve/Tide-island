@@ -18,9 +18,9 @@ Item {
     signal tick(int elapsed, int remaining)
     signal finished()
 
-    readonly property string textFont: widgetContext ? widgetContext.textFontFamily : "sans-serif"
-    readonly property string heroFont: widgetContext ? widgetContext.heroFontFamily : "sans-serif"
-    readonly property int bodyFontSize: widgetContext ? widgetContext.bodyFontSize : 16
+    readonly property string textFont: (widgetContext && widgetContext.textFontFamily !== undefined && widgetContext.textFontFamily !== null) ? widgetContext.textFontFamily : "sans-serif"
+    readonly property string heroFont: (widgetContext && widgetContext.heroFontFamily !== undefined && widgetContext.heroFontFamily !== null) ? widgetContext.heroFontFamily : "sans-serif"
+    readonly property int bodyFontSize: (widgetContext && widgetContext.bodyFontSize !== undefined) ? widgetContext.bodyFontSize : 16
 
     // Calculated time remaining
     readonly property int remainingSeconds: Math.max(0, totalSeconds - elapsedSeconds)
@@ -47,12 +47,14 @@ Item {
         }
 
         if (mode === "stopwatch" && showMilliseconds) {
-            const ms = Math.floor((millisecondCounter % 1000) / 10);
+            const msVal = (root.elapsedMilliseconds > 0) ? root.elapsedMilliseconds : root.millisecondCounter;
+            const ms = Math.floor((msVal % 1000) / 10);
             str += "." + (ms < 10 ? "0" : "") + ms;
         }
         return str;
     }
 
+    property int elapsedMilliseconds: 0
     property int millisecondCounter: 0
 
     // Main 1000ms timer for seconds ticking
@@ -122,9 +124,14 @@ Item {
         font.family: root.heroFont
         font.pixelSize: {
             if (root.representation === "compact")
-                return Math.max(18, Math.min(24, Math.round(20 * root.bodyFontSize / 16.0)));
+                return Math.max(16, Math.min(22, Math.round(18 * root.bodyFontSize / 16.0)));
             if (root.representation === "circle")
-                return Math.max(10, Math.min(16, Math.round(12 * root.bodyFontSize / 16.0)));
+                return Math.max(10, Math.min(15, Math.round(12 * root.bodyFontSize / 16.0)));
+            const len = root.formattedTime.length;
+            if (len > 8)
+                return Math.round(20 * root.bodyFontSize / 16.0);
+            if (len > 5)
+                return Math.round(24 * root.bodyFontSize / 16.0);
             return Math.round(30 * root.bodyFontSize / 16.0);
         }
         font.weight: Font.Bold
