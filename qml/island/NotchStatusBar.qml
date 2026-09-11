@@ -88,13 +88,31 @@ Item {
 
                 // Integrated [+] Add Page button in edit mode
                 Item {
-                    visible: root.isEditMode
-                    width: 20
+                    id: addPageBtn
+                    readonly property bool shouldShow: root.isEditMode
+                    width: shouldShow ? 20 : 0
                     height: 20
+                    clip: true
+                    opacity: shouldShow ? 1.0 : 0.0
+                    scale: shouldShow ? 1.0 : 0.75
+                    transformOrigin: Item.Center
+                    visible: width > 0 || opacity > 0.001
                     anchors.verticalCenter: parent.verticalCenter
 
+                    Behavior on width { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
+                    Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+                    Behavior on scale {
+                        NumberAnimation {
+                            duration: 240
+                            easing.type: addPageBtn.shouldShow ? Easing.OutBack : Easing.InCubic
+                            easing.overshoot: 1.25
+                        }
+                    }
+
                     Rectangle {
-                        anchors.fill: parent
+                        anchors.centerIn: parent
+                        width: 20
+                        height: 20
                         radius: 10
                         color: addPageMouse.pressed
                             ? "#38ffffff"
@@ -127,12 +145,28 @@ Item {
                 // Slot Manager Stepper (shown in edit mode beside Add Page button on widget pages)
                 Rectangle {
                     id: slotStepperCapsule
-                    visible: root.isEditMode && root.currentPage > 0
-                    anchors.verticalCenter: parent.verticalCenter
+                    readonly property bool shouldShow: root.isEditMode && root.currentPage > 0
+                    readonly property real targetWidth: stepperRow.implicitWidth + 8
+                    width: shouldShow ? targetWidth : 0
                     height: 20
-                    width: stepperRow.implicitWidth + 8
+                    clip: true
+                    opacity: shouldShow ? 1.0 : 0.0
+                    scale: shouldShow ? 1.0 : 0.82
+                    transformOrigin: Item.Center
+                    visible: width > 0 || opacity > 0.001
+                    anchors.verticalCenter: parent.verticalCenter
                     radius: 10
                     color: "#12ffffff"
+
+                    Behavior on width { NumberAnimation { duration: 240; easing.type: Easing.OutCubic } }
+                    Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+                    Behavior on scale {
+                        NumberAnimation {
+                            duration: 250
+                            easing.type: slotStepperCapsule.shouldShow ? Easing.OutBack : Easing.InCubic
+                            easing.overshoot: 1.2
+                        }
+                    }
 
                     Row {
                         id: stepperRow
@@ -207,12 +241,28 @@ Item {
                 // Page Reorder Stepper (shown in edit mode beside slot stepper on widget pages when multiple pages exist)
                 Rectangle {
                     id: reorderStepperCapsule
-                    visible: root.isEditMode && root.currentPage > 0 && root.pages && root.pages.length > 1
-                    anchors.verticalCenter: parent.verticalCenter
+                    readonly property bool shouldShow: root.isEditMode && root.currentPage > 0 && root.pages && root.pages.length > 1
+                    readonly property real targetWidth: reorderRow.implicitWidth + 8
+                    width: shouldShow ? targetWidth : 0
                     height: 20
-                    width: reorderRow.implicitWidth + 8
+                    clip: true
+                    opacity: shouldShow ? 1.0 : 0.0
+                    scale: shouldShow ? 1.0 : 0.82
+                    transformOrigin: Item.Center
+                    visible: width > 0 || opacity > 0.001
+                    anchors.verticalCenter: parent.verticalCenter
                     radius: 10
                     color: "#12ffffff"
+
+                    Behavior on width { NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
+                    Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+                    Behavior on scale {
+                        NumberAnimation {
+                            duration: 260
+                            easing.type: reorderStepperCapsule.shouldShow ? Easing.OutBack : Easing.InCubic
+                            easing.overshoot: 1.2
+                        }
+                    }
 
                     Row {
                         id: reorderRow
@@ -332,15 +382,18 @@ Item {
 
         // Edit Mode Toggle button (pencil icon beside settings)
         Rectangle {
+            id: editBtnRect
             width: 24
             height: 24
             radius: 12
             color: root.isEditMode ? "#38ffffff" : (editMouse.pressed ? "#38ffffff" : (editMouse.containsMouse ? "#1fffffff" : "transparent"))
             border.width: 1
             border.color: root.isEditMode ? "#4dffffff" : (editMouse.containsMouse ? "#2effffff" : "transparent")
+            scale: editMouse.pressed ? 0.88 : (root.isEditMode ? 1.05 : 1.0)
 
             Behavior on color { ColorAnimation { duration: 120 } }
             Behavior on border.color { ColorAnimation { duration: 120 } }
+            Behavior on scale { NumberAnimation { duration: 180; easing.type: Easing.OutBack; easing.overshoot: 1.4 } }
 
             Text {
                 anchors.centerIn: parent
@@ -348,6 +401,8 @@ Item {
                 color: root.isEditMode ? "#ffffff" : (editMouse.containsMouse ? "#ffffff" : "#8e8e93")
                 font.family: root.iconFontFamily
                 font.pixelSize: 13
+                rotation: root.isEditMode ? 15 : 0
+                Behavior on rotation { NumberAnimation { duration: 250; easing.type: Easing.OutBack; easing.overshoot: 1.5 } }
             }
 
             MouseArea {

@@ -58,7 +58,12 @@ Item {
         id: editHeader
         width: parent.width
         height: root.showEditHeader ? 24 : 0
-        visible: root.showEditHeader
+        opacity: root.showEditHeader ? 1.0 : 0.0
+        clip: true
+        visible: height > 0 || opacity > 0.001
+
+        Behavior on height { NumberAnimation { duration: 240; easing.type: Easing.OutCubic } }
+        Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
 
         // Left controls: Page badge & Reorder controls
         Row {
@@ -245,11 +250,15 @@ Item {
     // Main Slot Grid Container
     Item {
         id: gridContainer
-        anchors.top: root.showEditHeader ? editHeader.bottom : parent.top
+        anchors.top: editHeader.bottom
         anchors.topMargin: root.showEditHeader ? 4 : 0
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
+
+        Behavior on anchors.topMargin {
+            NumberAnimation { duration: 240; easing.type: Easing.OutCubic }
+        }
 
         // Helper functions to resolve slots
         function itemAtSlot(index) {

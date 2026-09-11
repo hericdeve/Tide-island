@@ -47,10 +47,22 @@ Item {
         anchors.fill: parent
         anchors.margins: 4
         radius: 12
-        visible: !root.hasWidget && root.isEditMode
+        visible: opacity > 0.001
+        opacity: (!root.hasWidget && root.isEditMode) ? 1.0 : 0.0
+        scale: (!root.hasWidget && root.isEditMode) ? 1.0 : 0.90
+        transformOrigin: Item.Center
         color: addMouse.containsMouse ? "#14ffffff" : "#08ffffff"
         border.width: 1
         border.color: addMouse.containsMouse ? "#40ffffff" : "#1affffff"
+
+        Behavior on opacity { NumberAnimation { duration: root.isEditMode ? 240 : 160; easing.type: Easing.OutCubic } }
+        Behavior on scale {
+            NumberAnimation {
+                duration: root.isEditMode ? 280 : 160
+                easing.type: root.isEditMode ? Easing.OutBack : Easing.InCubic
+                easing.overshoot: 1.15
+            }
+        }
 
         Column {
             anchors.centerIn: parent
@@ -90,9 +102,20 @@ Item {
         visible: root.hasWidget
 
         // Wiggle parameters (subtle, gentle iOS home screen dancing effect)
-        readonly property real angleAmplitude: (root.slotSpan > 1 ? 0.45 : 0.7) * (root.slotIndex % 2 === 0 ? 1.0 : -1.0)
+        readonly property real maxAngle: (root.slotSpan > 1 ? 0.45 : 0.7) * (root.slotIndex % 2 === 0 ? 1.0 : -1.0)
+        property real angleAmplitude: 0
         readonly property int rotDuration: 150 + ((root.slotIndex * 37) % 25)
         readonly property int transDuration: 175 + ((root.slotIndex * 43) % 30)
+
+        Binding {
+            target: jiggleContainer
+            property: "angleAmplitude"
+            value: root.isEditMode ? jiggleContainer.maxAngle : 0
+        }
+
+        Behavior on angleAmplitude {
+            NumberAnimation { duration: 250; easing.type: Easing.OutCubic }
+        }
 
         property real currentRotation: 0
         property real xOffset: 0
@@ -158,11 +181,20 @@ Item {
         Item {
             id: editOverlay
             anchors.fill: parent
-            visible: root.hasWidget && root.isEditMode
+            visible: opacity > 0.001
+            opacity: (root.hasWidget && root.isEditMode) ? 1.0 : 0.0
             z: 99
+
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: root.isEditMode ? 220 : 150
+                    easing.type: Easing.OutCubic
+                }
+            }
 
             // Slot badge at top-left
             Rectangle {
+                id: slotBadge
                 anchors.left: parent.left
                 anchors.top: parent.top
                 anchors.margins: 4
@@ -170,6 +202,16 @@ Item {
                 height: 18
                 radius: 9
                 color: "#2c2c2e"
+                scale: (root.hasWidget && root.isEditMode) ? 1.0 : 0.75
+                transformOrigin: Item.TopLeft
+
+                Behavior on scale {
+                    NumberAnimation {
+                        duration: root.isEditMode ? 260 : 150
+                        easing.type: root.isEditMode ? Easing.OutBack : Easing.InCubic
+                        easing.overshoot: 1.25
+                    }
+                }
 
                 Text {
                     id: badgeText
@@ -186,10 +228,21 @@ Item {
 
             // Action buttons row at top-right
             Row {
+                id: actionButtonsRow
                 anchors.right: parent.right
                 anchors.top: parent.top
                 anchors.margins: 4
                 spacing: 4
+                scale: (root.hasWidget && root.isEditMode) ? 1.0 : 0.75
+                transformOrigin: Item.TopRight
+
+                Behavior on scale {
+                    NumberAnimation {
+                        duration: root.isEditMode ? 280 : 150
+                        easing.type: root.isEditMode ? Easing.OutBack : Easing.InCubic
+                        easing.overshoot: 1.3
+                    }
+                }
 
                 // Span expand button
                 Rectangle {
