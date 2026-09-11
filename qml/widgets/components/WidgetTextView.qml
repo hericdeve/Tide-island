@@ -74,6 +74,20 @@ Item {
             return StyleTokens.textTertiary;
         case "code":
             return StyleTokens.textSoft;
+        case "onAccent":
+        case "onPrimary":
+            return StyleTokens.textOnAccent;
+        case "onSecondary":
+            return StyleTokens.textOnSecondary;
+        case "onTertiary":
+            return StyleTokens.textOnTertiary;
+        case "onHover":
+            return StyleTokens.textOnHover;
+        case "onError":
+        case "onDanger":
+            return StyleTokens.textOnError;
+        case "highlighted":
+            return StyleTokens.textHighlighted;
         default:
             return StyleTokens.textPrimary;
         }

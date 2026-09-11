@@ -105,6 +105,11 @@ import "../components"
   - `"caption"`: 11px regular captions, uses `StyleTokens.textTertiary`.
   - `"metric"`: 15px bold tabular figures (`tnum: 1`), uses `StyleTokens.textPrimaryBright`.
   - `"code"`: 11px monospace code, uses `iconFontFamily` and `StyleTokens.textSoft`.
+  - `"onAccent"` / `"onPrimary"`: Contrast text for `StyleTokens.accent` / primary backgrounds (`StyleTokens.textOnAccent`).
+  - `"onSecondary"`: Contrast text for secondary / soft accent backgrounds (`StyleTokens.textOnSecondary`).
+  - `"onHover"`: Contrast text for hovered surfaces (`StyleTokens.textOnHover`).
+  - `"onError"` / `"onDanger"`: Contrast text for error/danger backgrounds (`StyleTokens.textOnError`).
+  - `"highlighted"`: Semantic contrast foreground for active/highlighted items (`StyleTokens.textHighlighted`).
 - **Marquee Scrolling Behavior**:
   - Automatically activates when `overflowMode === "marquee"` and text width exceeds container width (`root.width > 0`).
   - Seamless ticker reset: When `text` or container `width` updates dynamically, the marquee animation automatically pauses, resets its position to `x = 0`, and recalculates its travel distance and loop timing cleanly without jumping or desynchronizing.
@@ -178,7 +183,7 @@ import "../components"
 - **Rules**: Restricted strictly to `Full.qml`. Must never be used in `Minimum.qml` or `Circle.qml`.
 - **Button (`WidgetActionButton`)**:
   - Variants: `"capsule"` (pill with icon + label), `"icon"` (28x28px square), `"pill"` (compact text).
-  - Styles: `"primary"` (`StyleTokens.accent`), `"secondary"` (`StyleTokens.buttonFill`), `"ghost"`, `"danger"`.
+  - Styles: `"primary"` (background `StyleTokens.accent`, foreground `StyleTokens.textOnAccent`), `"secondary"` (background `StyleTokens.buttonFill`, foreground `StyleTokens.textOnButtonFill`), `"ghost"`, `"danger"` (background `StyleTokens.danger`, foreground `StyleTokens.textOnError`).
   - Press feedback: Micro-interaction scale shrink to 0.94 with `StyleTokens.durationFast` (120ms).
   - **Usable Space & Geometry Rules**:
     - When placed in `Full.qml` toolbars or rows, buttons must declare explicit `width: buttonSize` and `height: buttonSize` matching the toolbar's height.

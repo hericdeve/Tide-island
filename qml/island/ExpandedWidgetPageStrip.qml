@@ -271,7 +271,7 @@ Item {
                     text: "󰁍"
                     font.family: root.widgetContext ? root.widgetContext.iconFontFamily : root.iconFontFamily
                     font.pixelSize: 11
-                    color: moveLeftMouse.containsMouse ? "#ffffff" : "#8e8e93"
+                    color: moveLeftMouse.containsMouse ? StyleTokens.textOnHover : StyleTokens.textSecondary
                 }
 
                 MouseArea {
@@ -307,7 +307,7 @@ Item {
                     text: "󰁔"
                     font.family: root.widgetContext ? root.widgetContext.iconFontFamily : root.iconFontFamily
                     font.pixelSize: 11
-                    color: moveRightMouse.containsMouse ? "#ffffff" : "#8e8e93"
+                    color: moveRightMouse.containsMouse ? StyleTokens.textOnHover : StyleTokens.textSecondary
                 }
 
                 MouseArea {
@@ -332,9 +332,9 @@ Item {
             height: 22
             width: 22
             radius: 11
-            color: delMouse.pressed ? "#ff453a" : (delMouse.containsMouse ? "#29ff453a" : "#12ffffff")
+            color: delMouse.pressed ? StyleTokens.danger : (delMouse.containsMouse ? Qt.rgba(StyleTokens.danger.r, StyleTokens.danger.g, StyleTokens.danger.b, 0.16) : "#12ffffff")
             border.width: 1
-            border.color: delMouse.containsMouse ? "#66ff453a" : "#1affffff"
+            border.color: delMouse.containsMouse ? StyleTokens.danger : "#1affffff"
 
             Behavior on color { ColorAnimation { duration: 120 } }
             Behavior on border.color { ColorAnimation { duration: 120 } }
@@ -344,7 +344,7 @@ Item {
                 text: "󰅖"
                 font.family: root.widgetContext ? root.widgetContext.iconFontFamily : root.iconFontFamily
                 font.pixelSize: 10
-                color: delMouse.containsMouse ? "#ff6961" : "#8e8e93"
+                color: delMouse.pressed ? StyleTokens.textOnError : (delMouse.containsMouse ? StyleTokens.danger : StyleTokens.textSecondary)
             }
 
             MouseArea {

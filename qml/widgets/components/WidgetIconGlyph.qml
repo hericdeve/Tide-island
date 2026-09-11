@@ -83,7 +83,7 @@ Item {
             font.family: root.widgetContext ? root.widgetContext.textFontFamily : "sans-serif"
             font.pixelSize: 9
             font.weight: Font.Bold
-            color: StyleTokens.white
+            color: StyleTokens.textOnError
         }
     }
 }

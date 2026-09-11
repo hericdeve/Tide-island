@@ -1,4 +1,5 @@
 #include "UserConfigBackend.h"
+#include "StyleTokensBackend.h"
 
 #include <QJsonArray>
 #include <QSignalSpy>
@@ -36,6 +37,7 @@ private slots:
     void barOverlayDefaultsAndClamping();
     void themeStyleDefaultsAndAssignment();
     void notchNotificationsEnabledDefaultsAndPersists();
+    void styleTokensContrastAndThemeBindings();
 };
 
 void UserConfigBackendTests::initTestCase()
@@ -718,6 +720,49 @@ void UserConfigBackendTests::notchNotificationsEnabledDefaultsAndPersists()
 
     UserConfigBackend reloaded2;
     QCOMPARE(reloaded2.notchNotificationsEnabled(), true);
+}
+
+void UserConfigBackendTests::styleTokensContrastAndThemeBindings()
+{
+    UserConfigBackend config;
+    StyleTokensBackend tokens;
+
+    // Test Black theme tokens
+    config.setThemeStyle(QStringLiteral("black"));
+    tokens.reloadTheme();
+    QCOMPARE(tokens.textOnAccent(), QColor(Qt::white));
+    QCOMPARE(tokens.textOnPrimary(), QColor(Qt::white));
+    QCOMPARE(tokens.textOnError(), QColor(Qt::white));
+    QCOMPARE(tokens.textOnHover(), QColor(Qt::white));
+    QCOMPARE(tokens.textHighlighted(), QColor(Qt::white));
+    QCOMPARE(tokens.textOnButtonFill(), QColor(QStringLiteral("#1c1c1e")));
+
+    // Test White theme tokens
+    config.setThemeStyle(QStringLiteral("white"));
+    tokens.reloadTheme();
+    QCOMPARE(tokens.textOnAccent(), QColor(Qt::white));
+    QCOMPARE(tokens.textOnPrimary(), QColor(Qt::white));
+    QCOMPARE(tokens.textOnError(), QColor(Qt::white));
+    QCOMPARE(tokens.textOnHover(), QColor(Qt::black));
+    QCOMPARE(tokens.textHighlighted(), QColor(Qt::white));
+    QCOMPARE(tokens.textOnButtonFill(), QColor(Qt::white));
+
+    // Test Noctalia theme tokens
+    config.setThemeStyle(QStringLiteral("noctalia"));
+    tokens.reloadTheme();
+    QVERIFY(tokens.textOnAccent().isValid());
+    QVERIFY(tokens.textOnPrimary().isValid());
+    QVERIFY(tokens.textOnError().isValid());
+    QVERIFY(tokens.textOnHover().isValid());
+    QVERIFY(tokens.textOnSecondary().isValid());
+    QVERIFY(tokens.textOnTertiary().isValid());
+    QCOMPARE(tokens.textOnAccent(), tokens.textOnPrimary());
+    QCOMPARE(tokens.textHighlighted(), tokens.textOnPrimary());
+    QCOMPARE(tokens.textOnButtonFill(), tokens.textOnPrimary());
+
+    // Clean up
+    config.setThemeStyle(QStringLiteral("black"));
+    tokens.reloadTheme();
 }
 
 QTEST_MAIN(UserConfigBackendTests)

@@ -119,7 +119,7 @@ Item {
                                     Text {
                                         anchors.centerIn: parent
                                         text: root.padZero(dateObj.getDate())
-                                        color: isToday || isSelected ? StyleTokens.white : StyleTokens.textTertiary
+                                        color: isToday || isSelected ? StyleTokens.textOnAccent : StyleTokens.textTertiary
                                         font.pixelSize: Math.round(10 * root.fontScale)
                                         font.family: root.textFontFamily
                                         font.weight: isToday || isSelected ? Font.Bold : Font.Medium

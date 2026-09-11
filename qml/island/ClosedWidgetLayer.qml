@@ -579,7 +579,7 @@ Item {
                     width: 18
                     height: 18
                     radius: 9
-                    color: delCustomPageMouse.containsMouse ? "#ff453a" : "#2a2a2e"
+                    color: delCustomPageMouse.containsMouse ? StyleTokens.danger : StyleTokens.module
                     z: 50
                     visible: root.isEditMode && !pageDelegateItem.isOfferPage && pageDelegateItem.isCustomPage && pageDelegateItem.isPageEmpty
 
@@ -588,7 +588,7 @@ Item {
                         text: "󰅖"
                         font.family: root.iconFontFamily
                         font.pixelSize: 9
-                        color: "white"
+                        color: delCustomPageMouse.containsMouse ? StyleTokens.textOnError : StyleTokens.textSecondary
                     }
 
                     MouseArea {
@@ -705,9 +705,9 @@ Item {
                                     width: 13
                                     height: 13
                                     radius: 6.5
-                                    color: removePillWidgetMouse.containsMouse ? "#ff453a" : "#40000000"
+                                    color: removePillWidgetMouse.containsMouse ? StyleTokens.danger : "#40000000"
                                     border.width: 1
-                                    border.color: "#55ffffff"
+                                    border.color: removePillWidgetMouse.containsMouse ? StyleTokens.danger : "#55ffffff"
                                     visible: root.isEditMode
                                     z: 99
 
@@ -716,7 +716,7 @@ Item {
                                         text: "󰅖"
                                         font.family: root.iconFontFamily
                                         font.pixelSize: 8
-                                        color: "white"
+                                        color: removePillWidgetMouse.containsMouse ? StyleTokens.textOnError : StyleTokens.textSecondary
                                     }
 
                                     MouseArea {
@@ -820,7 +820,7 @@ Item {
                                         text: "󰐕"
                                         font.family: root.iconFontFamily
                                         font.pixelSize: 10
-                                        color: "#ffffff"
+                                        color: emptySlotMouse.containsMouse ? StyleTokens.textOnHover : StyleTokens.textSecondary
                                     }
 
                                     Text {
@@ -829,7 +829,7 @@ Item {
                                         font.family: root.textFontFamily
                                         font.pixelSize: 9
                                         font.weight: Font.DemiBold
-                                        color: emptySlotMouse.containsMouse ? "#ffffff" : "#c4c4c8"
+                                        color: emptySlotMouse.containsMouse ? StyleTokens.textOnHover : StyleTokens.textSecondary
                                     }
                                 }
 

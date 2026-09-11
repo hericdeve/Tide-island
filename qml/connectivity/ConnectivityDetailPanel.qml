@@ -441,7 +441,7 @@ Item {
                                 text: root.provider && root.provider.bluetoothPairingRequiresConfirmation
                                     ? "Confirm"
                                     : "Pair"
-                                color: StyleTokens.white
+                                color: StyleTokens.textOnAccent
                                 font.pixelSize: 11
                                 font.family: root.textFontFamily
                                 font.weight: Font.DemiBold
@@ -586,7 +586,7 @@ Item {
                         Text {
                             anchors.centerIn: parent
                             text: "Join"
-                            color: StyleTokens.white
+                            color: StyleTokens.textOnAccent
                             font.pixelSize: 11
                             font.family: root.textFontFamily
                             font.weight: Font.DemiBold

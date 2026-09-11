@@ -940,7 +940,7 @@ FocusScope {
 
                     Text {
                         text: "󰄜"
-                        color: StyleTokens.accent
+                        color: StyleTokens.textOnSecondary
                         font.family: root.iconFontFamily
                         font.pixelSize: 12
                         anchors.verticalCenter: parent.verticalCenter
@@ -948,7 +948,7 @@ FocusScope {
 
                     Text {
                         text: "Accept prompt on your phone"
-                        color: StyleTokens.textPrimary
+                        color: StyleTokens.textOnSecondary
                         font.family: root.textFontFamily
                         font.pixelSize: 10
                         font.weight: Font.DemiBold
@@ -1028,6 +1028,9 @@ FocusScope {
                             required property string deviceAddress
                             required property string deviceType
                             readonly property bool isHighlighted: devMouse.containsMouse || devDrop.containsDrag
+                            readonly property color devFgColor: devDrop.containsDrag ? StyleTokens.textOnSecondary : (devMouse.containsMouse ? StyleTokens.textOnButtonFill : StyleTokens.textPrimary)
+                            readonly property color devIconColor: devDrop.containsDrag ? StyleTokens.textOnSecondary : (devMouse.containsMouse ? StyleTokens.textOnButtonFill : StyleTokens.accent)
+                            readonly property color devSubColor: devDrop.containsDrag ? StyleTokens.textOnSecondary : (devMouse.containsMouse ? StyleTokens.textOnButtonFill : StyleTokens.textTertiary)
 
                             width: ListView.view.width
                             height: 38
@@ -1048,7 +1051,7 @@ FocusScope {
 
                                 Text {
                                     text: devDelegate.deviceType === "phone" ? "󰄜" : (devDelegate.deviceType === "tablet" ? "󰓹" : "󰌢")
-                                    color: devDelegate.isHighlighted ? StyleTokens.panel : StyleTokens.accent
+                                    color: devDelegate.devIconColor
                                     font.family: root.iconFontFamily
                                     font.pixelSize: 13
                                     anchors.verticalCenter: parent.verticalCenter
@@ -1060,7 +1063,7 @@ FocusScope {
 
                                     Text {
                                         text: devDelegate.deviceName
-                                        color: devDelegate.isHighlighted ? StyleTokens.panel : StyleTokens.textPrimary
+                                        color: devDelegate.devFgColor
                                         font.family: root.textFontFamily
                                         font.pixelSize: 11
                                         elide: Text.ElideRight
@@ -1069,7 +1072,7 @@ FocusScope {
 
                                     Text {
                                         text: devDelegate.deviceAddress
-                                        color: devDelegate.isHighlighted ? StyleTokens.panel : StyleTokens.textTertiary
+                                        color: devDelegate.devSubColor
                                         font.family: root.textFontFamily
                                         font.pixelSize: 9
                                     }

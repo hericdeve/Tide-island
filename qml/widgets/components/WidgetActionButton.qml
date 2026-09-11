@@ -55,9 +55,13 @@ Rectangle {
     readonly property color computedForeground: {
         if (!enabled)
             return StyleTokens.textDisabled;
-        if (buttonStyle === "primary" || buttonStyle === "danger")
-            return StyleTokens.white;
-        return StyleTokens.textPrimary;
+        if (buttonStyle === "primary")
+            return StyleTokens.textOnAccent;
+        if (buttonStyle === "danger")
+            return StyleTokens.textOnError;
+        if (buttonStyle === "ghost")
+            return isHovered ? StyleTokens.textPrimaryBright : StyleTokens.textPrimary;
+        return StyleTokens.textOnButtonFill;
     }
 
     radius: Math.min(height / 2, radiusOverride)

@@ -121,6 +121,8 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/user_config_backend_tests.cpp")
         tests/user_config_backend_tests.cpp
         backend/UserConfigBackend.h
         backend/UserConfigBackend.cpp
+        backend/StyleTokensBackend.h
+        backend/StyleTokensBackend.cpp
     )
 
     target_include_directories(user_config_backend_tests PRIVATE
@@ -129,6 +131,7 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/user_config_backend_tests.cpp")
 
     target_link_libraries(user_config_backend_tests PRIVATE
         Qt6::Core
+        Qt6::Gui
         Qt6::Qml
         Qt6::Test
     )

@@ -403,9 +403,9 @@ Item {
                             width: modeText.implicitWidth + 14
                             height: 20
                             radius: 10
-                            color: isSelected ? "#29ffffff" : (modeMouse.containsMouse ? "#14ffffff" : "transparent")
+                            color: isSelected ? StyleTokens.accent : (modeMouse.containsMouse ? StyleTokens.moduleHover : StyleTokens.transparent)
                             border.width: 1
-                            border.color: isSelected ? "#38ffffff" : "#0fffffff"
+                            border.color: isSelected ? StyleTokens.accent : StyleTokens.track
 
                             Text {
                                 id: modeText
@@ -414,7 +414,7 @@ Item {
                                 font.family: root.textFontFamily
                                 font.pixelSize: 10
                                 font.weight: parent.isSelected ? Font.Bold : Font.Normal
-                                color: parent.isSelected ? "#ffffff" : "#77777c"
+                                color: parent.isSelected ? StyleTokens.textOnAccent : (modeMouse.containsMouse ? StyleTokens.textOnHover : StyleTokens.textSecondary)
                             }
 
                             MouseArea {
@@ -1059,7 +1059,7 @@ Item {
                 font.family: root.textFontFamily
                 font.pixelSize: 13
                 font.weight: Font.DemiBold
-                color: stagingSection.isHovered ? "#ffffff" : "#8e8e93"
+                color: stagingSection.isHovered ? StyleTokens.textOnHover : StyleTokens.textSecondary
             }
         }
     }

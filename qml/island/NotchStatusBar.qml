@@ -129,7 +129,7 @@ Item {
                 Text {
                     anchors.centerIn: parent
                     text: "󰐕"
-                    color: addPageMouse.containsMouse ? "#ffffff" : "#8e8e93"
+                    color: addPageMouse.containsMouse ? StyleTokens.textOnHover : StyleTokens.textSecondary
                     font.family: root.iconFontFamily
                     font.pixelSize: 11
                     font.weight: Font.Bold
@@ -375,7 +375,7 @@ Item {
             Text {
                 anchors.centerIn: parent
                 text: "󰄀"
-                color: root.cameraMirrorActive ? "#ffffff" : (camMouse.containsMouse ? "#ffffff" : "#8e8e93")
+                color: root.cameraMirrorActive ? StyleTokens.textOnAccent : (camMouse.containsMouse ? StyleTokens.textOnHover : StyleTokens.textSecondary)
                 font.family: root.iconFontFamily
                 font.pixelSize: 13
             }
@@ -407,7 +407,7 @@ Item {
             Text {
                 anchors.centerIn: parent
                 text: "󰏫"
-                color: root.isEditMode ? "#ffffff" : (editMouse.containsMouse ? "#ffffff" : "#8e8e93")
+                color: root.isEditMode ? StyleTokens.textOnAccent : (editMouse.containsMouse ? StyleTokens.textOnHover : StyleTokens.textSecondary)
                 font.family: root.iconFontFamily
                 font.pixelSize: 13
                 rotation: root.isEditMode ? 15 : 0
@@ -446,7 +446,7 @@ Item {
                 width: 15
                 height: 1.5
                 radius: 0.75
-                color: modeToggleMouse.containsMouse ? "#ffffff" : "#8e8e93"
+                color: modeToggleMouse.containsMouse ? StyleTokens.textOnHover : StyleTokens.textSecondary
                 opacity: notchModeToggleBtn.activeMode === "notch" ? 1.0 : (notchModeToggleBtn.activeMode === "pill" ? 0.35 : 0.0)
 
                 Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
@@ -463,7 +463,7 @@ Item {
                 radius: notchModeToggleBtn.activeMode === "notch" ? 2 : (notchModeToggleBtn.activeMode === "pill" ? 3 : 4.75)
                 color: "transparent"
                 border.width: 1.5
-                border.color: modeToggleMouse.containsMouse ? "#ffffff" : "#8e8e93"
+                border.color: modeToggleMouse.containsMouse ? StyleTokens.textOnHover : StyleTokens.textSecondary
 
                 Behavior on y { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
                 Behavior on width { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
@@ -544,7 +544,7 @@ Item {
             Text {
                 anchors.centerIn: parent
                 text: "󰁌"
-                color: root.dynamicResizeToastActive ? "#ffffff" : (resizeMouse.containsMouse ? "#ffffff" : "#8e8e93")
+                color: root.dynamicResizeToastActive ? StyleTokens.textOnAccent : (resizeMouse.containsMouse ? StyleTokens.textOnHover : StyleTokens.textSecondary)
                 font.family: root.iconFontFamily
                 font.pixelSize: 13
             }
@@ -571,7 +571,7 @@ Item {
                     id: resizeTooltipText
                     anchors.centerIn: parent
                     text: "Dynamic Resizing"
-                    color: "#ffffff"
+                    color: StyleTokens.textPrimaryBright
                     font.family: root.textFontFamily
                     font.pixelSize: 10
                     font.weight: Font.Medium
@@ -602,7 +602,7 @@ Item {
             Text {
                 anchors.centerIn: parent
                 text: "󰒓"
-                color: settingsMouse.containsMouse ? "#ffffff" : "#8e8e93"
+                color: settingsMouse.containsMouse ? StyleTokens.textOnHover : StyleTokens.textSecondary
                 font.family: root.iconFontFamily
                 font.pixelSize: 13
             }
@@ -624,7 +624,7 @@ Item {
 
             Text {
                 text: root.batteryCapacity + "%"
-                color: "#ffffff"
+                color: StyleTokens.textPrimaryBright
                 font.pixelSize: 11
                 font.family: root.textFontFamily
                 font.weight: Font.Medium
@@ -633,7 +633,7 @@ Item {
 
             Text {
                 text: root.isCharging ? "󰂄" : "󰁹"
-                color: root.isCharging ? "#30d158" : (root.batteryCapacity <= 20 ? "#ff453a" : "#8e8e93")
+                color: root.isCharging ? StyleTokens.success : (root.batteryCapacity <= 20 ? StyleTokens.danger : StyleTokens.textSecondary)
                 font.pixelSize: 14
                 font.family: root.iconFontFamily
                 anchors.verticalCenter: parent.verticalCenter
@@ -645,7 +645,7 @@ Item {
             width: 24
             height: 24
             radius: 12
-            color: closeMouse.pressed ? "#ff453a" : (closeMouse.containsMouse ? "#1fffffff" : "transparent")
+            color: closeMouse.pressed ? StyleTokens.danger : (closeMouse.containsMouse ? Qt.rgba(StyleTokens.danger.r, StyleTokens.danger.g, StyleTokens.danger.b, 0.16) : "transparent")
             border.width: 1
             border.color: closeMouse.containsMouse ? "#2effffff" : "transparent"
 
@@ -655,7 +655,7 @@ Item {
             Text {
                 anchors.centerIn: parent
                 text: "󰅖"
-                color: closeMouse.containsMouse ? "#ffffff" : "#8e8e93"
+                color: closeMouse.pressed ? StyleTokens.textOnError : (closeMouse.containsMouse ? StyleTokens.danger : StyleTokens.textSecondary)
                 font.family: root.iconFontFamily
                 font.pixelSize: 12
             }

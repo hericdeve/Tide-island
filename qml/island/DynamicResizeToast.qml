@@ -128,7 +128,7 @@ Item {
                         text: "󰅖"
                         font.family: root.iconFontFamily
                         font.pixelSize: 11
-                        color: closeMouse.containsMouse ? "#ffffff" : "#a1a1a6"
+                        color: closeMouse.containsMouse ? StyleTokens.textOnHover : StyleTokens.textTertiary
                     }
 
                     MouseArea {
@@ -424,14 +424,14 @@ Item {
                         font.family: root.textFontFamily
                         font.pixelSize: 11
                         font.weight: Font.Medium
-                        color: settingsBtnMouse.containsMouse ? "#ffffff" : "#0a84ff"
+                        color: settingsBtnMouse.containsMouse ? StyleTokens.textOnHover : StyleTokens.accent
                     }
 
                     Text {
                         text: "󰅂"
                         font.family: root.iconFontFamily
                         font.pixelSize: 10
-                        color: settingsBtnMouse.containsMouse ? "#ffffff" : "#0a84ff"
+                        color: settingsBtnMouse.containsMouse ? StyleTokens.textOnHover : StyleTokens.accent
                         anchors.verticalCenter: parent.verticalCenter
                     }
                 }

@@ -45,6 +45,22 @@ class StyleTokensBackend final : public QObject {
     Q_PROPERTY(QColor textSubtle READ textSubtle NOTIFY themeChanged FINAL)
     Q_PROPERTY(QColor textDim READ textDim NOTIFY themeChanged FINAL)
 
+    Q_PROPERTY(QColor textOnAccent READ textOnAccent NOTIFY themeChanged FINAL)
+    Q_PROPERTY(QColor textOnPrimary READ textOnPrimary NOTIFY themeChanged FINAL)
+    Q_PROPERTY(QColor textOnSecondary READ textOnSecondary NOTIFY themeChanged FINAL)
+    Q_PROPERTY(QColor textOnTertiary READ textOnTertiary NOTIFY themeChanged FINAL)
+    Q_PROPERTY(QColor textOnError READ textOnError NOTIFY themeChanged FINAL)
+    Q_PROPERTY(QColor textOnHover READ textOnHover NOTIFY themeChanged FINAL)
+    Q_PROPERTY(QColor textHighlighted READ textHighlighted NOTIFY themeChanged FINAL)
+    Q_PROPERTY(QColor textOnButtonFill READ textOnButtonFill NOTIFY themeChanged FINAL)
+
+    Q_PROPERTY(QColor onAccent READ textOnAccent NOTIFY themeChanged FINAL)
+    Q_PROPERTY(QColor onPrimary READ textOnPrimary NOTIFY themeChanged FINAL)
+    Q_PROPERTY(QColor onSecondary READ textOnSecondary NOTIFY themeChanged FINAL)
+    Q_PROPERTY(QColor onTertiary READ textOnTertiary NOTIFY themeChanged FINAL)
+    Q_PROPERTY(QColor onError READ textOnError NOTIFY themeChanged FINAL)
+    Q_PROPERTY(QColor onHover READ textOnHover NOTIFY themeChanged FINAL)
+
     Q_PROPERTY(QColor accent READ accent NOTIFY themeChanged FINAL)
     Q_PROPERTY(QColor accentPressed READ accentPressed NOTIFY themeChanged FINAL)
     Q_PROPERTY(QColor accentSoft READ accentSoft NOTIFY themeChanged FINAL)
@@ -117,6 +133,15 @@ public:
     QColor textSubtle() const;
     QColor textDim() const;
 
+    QColor textOnAccent() const;
+    QColor textOnPrimary() const;
+    QColor textOnSecondary() const;
+    QColor textOnTertiary() const;
+    QColor textOnError() const;
+    QColor textOnHover() const;
+    QColor textHighlighted() const;
+    QColor textOnButtonFill() const;
+
     QColor accent() const;
     QColor accentPressed() const;
     QColor accentSoft() const;
@@ -179,6 +204,15 @@ private:
         QColor textDisabled;
         QColor textSubtle;
         QColor textDim;
+
+        QColor textOnAccent;
+        QColor textOnPrimary;
+        QColor textOnSecondary;
+        QColor textOnTertiary;
+        QColor textOnError;
+        QColor textOnHover;
+        QColor textHighlighted;
+        QColor textOnButtonFill;
 
         QColor accent;
         QColor accentPressed;

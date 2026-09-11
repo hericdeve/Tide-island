@@ -73,7 +73,7 @@ Item {
                 text: "󰐕"
                 font.family: root.widgetContext ? root.widgetContext.iconFontFamily : "Sans Serif"
                 font.pixelSize: 22
-                color: addMouse.containsMouse ? "#ffffff" : "#8e8e93"
+                color: addMouse.containsMouse ? StyleTokens.textOnHover : StyleTokens.textSecondary
             }
 
             Text {
@@ -82,7 +82,7 @@ Item {
                 font.family: root.widgetContext ? root.widgetContext.textFontFamily : "Sans Serif"
                 font.pixelSize: 12
                 font.weight: Font.Medium
-                color: addMouse.containsMouse ? "white" : "#8e8e93"
+                color: addMouse.containsMouse ? StyleTokens.textOnHover : StyleTokens.textSecondary
             }
         }
 

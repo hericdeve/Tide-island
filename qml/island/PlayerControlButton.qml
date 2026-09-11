@@ -33,7 +33,7 @@ Item {
     Text {
         anchors.centerIn: parent
         text: root.iconText
-        color: controlArea.pressed ? "#888888" : "#ffffff"
+        color: controlArea.pressed ? StyleTokens.textTertiary : StyleTokens.textPrimaryBright
         font.pixelSize: root.kind === "play" ? userConfig.iconFontSize + 7 : userConfig.iconFontSize + 5
         font.family: root.textFontFamily
         font.weight: Font.DemiBold

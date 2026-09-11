@@ -58,6 +58,20 @@ QColor colorFromSources(const QJsonObject &primaryObj, const QString &primaryKey
     return defaultColor;
 }
 
+QString configDirectory()
+{
+    const QByteArray xdg = qgetenv("XDG_CONFIG_HOME");
+    if (!xdg.isEmpty()) return QString::fromLocal8Bit(xdg);
+    return QDir::homePath() + QStringLiteral("/.config");
+}
+
+QString cacheDirectory()
+{
+    const QByteArray xdg = qgetenv("XDG_CACHE_HOME");
+    if (!xdg.isEmpty()) return QString::fromLocal8Bit(xdg);
+    return QDir::homePath() + QStringLiteral("/.cache");
+}
+
 } // namespace
 
 StyleTokensBackend::StyleTokensBackend(QObject *parent)
@@ -91,8 +105,8 @@ void StyleTokensBackend::reloadTheme()
 
 void StyleTokensBackend::updateWatchedPaths()
 {
-    const QString configHome = QDir::homePath() + QStringLiteral("/.config");
-    const QString cacheHome = QDir::homePath() + QStringLiteral("/.cache");
+    const QString configHome = configDirectory();
+    const QString cacheHome = cacheDirectory();
 
     const QStringList filesToWatch = {
         configHome + QStringLiteral("/tide-island/userconfig.json"),
@@ -113,7 +127,9 @@ void StyleTokensBackend::loadTheme()
 
     // 1. Read themeStyle from userconfig.json
     QString style = QStringLiteral("black");
-    const QString userConfigPath = QDir::homePath() + QStringLiteral("/.config/tide-island/userconfig.json");
+    const QString configHome = configDirectory();
+    const QString cacheHome = cacheDirectory();
+    const QString userConfigPath = configHome + QStringLiteral("/tide-island/userconfig.json");
     QFile userConfigFile(userConfigPath);
     if (userConfigFile.exists() && userConfigFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
         const QJsonDocument doc = QJsonDocument::fromJson(userConfigFile.readAll());
@@ -134,14 +150,14 @@ void StyleTokensBackend::loadTheme()
         m_currentTheme = QStringLiteral("noctalia");
 
         QJsonObject themeJson;
-        const QString themeCachePath = QDir::homePath() + QStringLiteral("/.cache/quickshell/theme.json");
+        const QString themeCachePath = cacheHome + QStringLiteral("/quickshell/theme.json");
         QFile themeFile(themeCachePath);
         if (themeFile.exists() && themeFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
             themeJson = QJsonDocument::fromJson(themeFile.readAll()).object();
         }
 
         QJsonObject noctaliaColors;
-        const QString noctaliaColorsPath = QDir::homePath() + QStringLiteral("/.config/noctalia/colors.json");
+        const QString noctaliaColorsPath = configHome + QStringLiteral("/noctalia/colors.json");
         QFile colorsFile(noctaliaColorsPath);
         if (colorsFile.exists() && colorsFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
             noctaliaColors = QJsonDocument::fromJson(colorsFile.readAll()).object();
@@ -182,6 +198,15 @@ StyleTokensBackend::ThemePalette StyleTokensBackend::makeBlackPalette()
     p.textDisabled = hex("#878a92");
     p.textSubtle = hex("#8f9198");
     p.textDim = hex("#b5b7bf");
+
+    p.textOnAccent = Qt::white;
+    p.textOnPrimary = Qt::white;
+    p.textOnSecondary = Qt::white;
+    p.textOnTertiary = Qt::white;
+    p.textOnError = Qt::white;
+    p.textOnHover = Qt::white;
+    p.textHighlighted = Qt::white;
+    p.textOnButtonFill = hex("#1c1c1e");
 
     p.accent = hex("#0a84ff");
     p.accentPressed = hex("#0066d6");
@@ -236,6 +261,15 @@ StyleTokensBackend::ThemePalette StyleTokensBackend::makeWhitePalette()
     p.textDisabled = hex("#aeaeb2");
     p.textSubtle = hex("#8e8e93");
     p.textDim = hex("#636366");
+
+    p.textOnAccent = Qt::white;
+    p.textOnPrimary = Qt::white;
+    p.textOnSecondary = Qt::white;
+    p.textOnTertiary = Qt::white;
+    p.textOnError = Qt::white;
+    p.textOnHover = Qt::black;
+    p.textHighlighted = Qt::white;
+    p.textOnButtonFill = Qt::white;
 
     p.accent = hex("#007aff");
     p.accentPressed = hex("#0051a8");
@@ -298,6 +332,21 @@ StyleTokensBackend::ThemePalette StyleTokensBackend::makeNoctaliaPalette(const Q
     const QColor shadow = colorFromSources(themeJson, QStringLiteral("shadow"),
                                            noctaliaColors, QStringLiteral("mShadow"),
                                            hex("#010409"));
+    const QColor onPrimary = colorFromSources(themeJson, QStringLiteral("on_primary"),
+                                              noctaliaColors, QStringLiteral("mOnPrimary"),
+                                              isDarkColor(primary) ? Qt::white : Qt::black);
+    const QColor onSecondary = colorFromSources(themeJson, QStringLiteral("on_secondary"),
+                                                noctaliaColors, QStringLiteral("mOnSecondary"),
+                                                isDarkColor(secondary) ? Qt::white : Qt::black);
+    const QColor onTertiary = colorFromSources(themeJson, QStringLiteral("on_tertiary"),
+                                               noctaliaColors, QStringLiteral("mOnTertiary"),
+                                               hex("#000000"));
+    const QColor onError = colorFromSources(themeJson, QStringLiteral("on_error"),
+                                           noctaliaColors, QStringLiteral("mOnError"),
+                                           isDarkColor(error) ? Qt::white : Qt::black);
+    const QColor onHover = colorFromSources(themeJson, QStringLiteral("on_hover"),
+                                           noctaliaColors, QStringLiteral("mOnHover"),
+                                           isDarkColor(hover) ? Qt::white : Qt::black);
 
     p.isDark = isDarkColor(surface);
     p.panel = surface;
@@ -322,6 +371,15 @@ StyleTokensBackend::ThemePalette StyleTokensBackend::makeNoctaliaPalette(const Q
     p.textDisabled = outline;
     p.textSubtle = onSurfaceVariant;
     p.textDim = onSurfaceVariant;
+
+    p.textOnPrimary = onPrimary;
+    p.textOnAccent = onPrimary;
+    p.textOnSecondary = onSecondary;
+    p.textOnTertiary = onTertiary;
+    p.textOnError = onError;
+    p.textOnHover = onHover;
+    p.textHighlighted = onPrimary;
+    p.textOnButtonFill = onPrimary;
 
     p.accent = primary;
     p.accentPressed = primary.darker(120);
@@ -386,6 +444,15 @@ QColor StyleTokensBackend::textTertiary() const { return m_palette.textTertiary;
 QColor StyleTokensBackend::textDisabled() const { return m_palette.textDisabled; }
 QColor StyleTokensBackend::textSubtle() const { return m_palette.textSubtle; }
 QColor StyleTokensBackend::textDim() const { return m_palette.textDim; }
+
+QColor StyleTokensBackend::textOnAccent() const { return m_palette.textOnAccent; }
+QColor StyleTokensBackend::textOnPrimary() const { return m_palette.textOnPrimary; }
+QColor StyleTokensBackend::textOnSecondary() const { return m_palette.textOnSecondary; }
+QColor StyleTokensBackend::textOnTertiary() const { return m_palette.textOnTertiary; }
+QColor StyleTokensBackend::textOnError() const { return m_palette.textOnError; }
+QColor StyleTokensBackend::textOnHover() const { return m_palette.textOnHover; }
+QColor StyleTokensBackend::textHighlighted() const { return m_palette.textHighlighted; }
+QColor StyleTokensBackend::textOnButtonFill() const { return m_palette.textOnButtonFill; }
 
 QColor StyleTokensBackend::accent() const { return m_palette.accent; }
 QColor StyleTokensBackend::accentPressed() const { return m_palette.accentPressed; }
