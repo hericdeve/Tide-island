@@ -1212,6 +1212,14 @@ PanelWindow {
             }
         }
 
+        Connections {
+            target: LocalSend
+
+            function onFileSent(filePath) {
+                FileShelf.removeFilePath(filePath);
+            }
+        }
+
         IslandMprisController {
             id: mediaController
 
@@ -2772,7 +2780,7 @@ PanelWindow {
                 case "widget_library":
                     return 520;
                 case "file_shelf":
-                    return userConfig.notchOpenHeight;
+                    return userConfig.notchOpenHeight + (fileShelfLoader.item ? fileShelfLoader.item.extraHeight : 0);
                 case "expanded":
                 case "bluetooth_expanded":
                     return userConfig.notchOpenHeight + dynamicResizeEngine.activeExtraHeight;
@@ -3849,7 +3857,8 @@ PanelWindow {
                         expanded.updateExternalDropPoint(expandedPoint);
                         if (expanded.routeExternalDrop(drop, expandedPoint)) {
                             drop.accept(Qt.CopyAction);
-                            // Do not close shelf immediately so user can see LocalSend devices and transfer status
+                            islandContainer.fileShelfOpenedManually = true;
+                            islandContainer.stopAutoHideTimer();
                             return;
                         }
                     } else if (shelf) {
@@ -3857,13 +3866,16 @@ PanelWindow {
                         shelf.updateExternalDropPoint(shelfPoint);
                         if (shelf.routeExternalDrop(drop, shelfPoint)) {
                             drop.accept(Qt.CopyAction);
+                            islandContainer.fileShelfOpenedManually = true;
+                            islandContainer.stopAutoHideTimer();
                             return;
                         }
                     }
 
                     root.addFilesFromDrop(drop);
                     drop.accept(Qt.CopyAction);
-                    islandContainer.closeAutoOpenedFileShelf();
+                    islandContainer.fileShelfOpenedManually = true;
+                    islandContainer.stopAutoHideTimer();
                 }
             }
 

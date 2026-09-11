@@ -12,6 +12,7 @@ private slots:
     void devicePropertiesAndRoles();
     void cancelResetsState();
     void emptyFileSendSetsError();
+    void fileSentSignalDeclared();
 };
 
 void LocalSendBackendTests::initialProperties()
@@ -59,6 +60,13 @@ void LocalSendBackendTests::emptyFileSendSetsError()
     backend.sendFile(QString(), 1);
     QCOMPARE(backend.status(), QStringLiteral("Select a file first"));
     QCOMPARE(backend.error(), QStringLiteral("No file selected to send"));
+}
+
+void LocalSendBackendTests::fileSentSignalDeclared()
+{
+    LocalSendBackend backend;
+    QSignalSpy fileSentSpy(&backend, &LocalSendBackend::fileSent);
+    QVERIFY(fileSentSpy.isValid());
 }
 
 QTEST_GUILESS_MAIN(LocalSendBackendTests)

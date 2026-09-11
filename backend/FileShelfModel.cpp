@@ -606,6 +606,30 @@ bool FileShelfModel::removeAt(int index)
     return true;
 }
 
+bool FileShelfModel::removeFilePath(const QString &filePath)
+{
+    if (filePath.isEmpty())
+        return false;
+
+    const QString cleanTarget = QDir::cleanPath(filePath);
+    const QUrl targetUrl = QUrl::fromUserInput(filePath, QDir::currentPath(), QUrl::AssumeLocalFile);
+    const QString targetUrlString = targetUrl.isValid() ? targetUrl.toString() : QString();
+
+    for (int i = 0; i < m_entries.size(); ++i) {
+        const QString candidatePath = QDir::cleanPath(m_entries.at(i).filePath);
+        const QString candidateUrl = m_entries.at(i).fileUrl.toString();
+        const QString candidateLocal = QDir::cleanPath(m_entries.at(i).fileUrl.toLocalFile());
+
+        if (candidatePath == cleanTarget
+            || candidateLocal == cleanTarget
+            || (!targetUrlString.isEmpty() && candidateUrl == targetUrlString)
+            || m_entries.at(i).fileName == filePath) {
+            return removeAt(i);
+        }
+    }
+    return false;
+}
+
 void FileShelfModel::clear()
 {
     if (m_entries.isEmpty())

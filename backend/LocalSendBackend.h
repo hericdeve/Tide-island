@@ -60,6 +60,7 @@ signals:
     void pendingFileChanged();
     void transferProgressChanged();
     void waitingForAcceptanceChanged();
+    void fileSent(const QString &filePath);
 
 private:
     struct Device {

@@ -42,6 +42,7 @@ public:
     Q_INVOKABLE QVariantMap get(int index) const;
     Q_INVOKABLE bool move(int sourceIndex, int targetIndex);
     Q_INVOKABLE bool removeAt(int index);
+    Q_INVOKABLE bool removeFilePath(const QString &filePath);
     Q_INVOKABLE void clear();
     Q_INVOKABLE void refresh();
 

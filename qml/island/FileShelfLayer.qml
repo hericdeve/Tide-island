@@ -29,6 +29,7 @@ FocusScope {
     property bool cameraMirrorActive: false
     property int batteryCapacity: -1
     property bool isCharging: false
+    readonly property int extraHeight: LocalSend.waitingForAcceptance ? 36 : 0
 
     property bool reorderActive: false
     property bool reorderCommitting: false
@@ -39,10 +40,6 @@ FocusScope {
     property real reorderPointerX: 0
     property string suppressedOpenUri: ""
     property string externalDropZone: ""
-
-    ListModel {
-        id: sendQueueModel
-    }
 
     readonly property int visibleCapacity: 5
     readonly property real horizontalPadding: 18
@@ -96,10 +93,22 @@ FocusScope {
     Connections {
         target: LocalSend
 
+        function onFileSent(filePath) {
+            root.removeByFilePath(filePath);
+        }
+
         function onStatusChanged() {
-            if (LocalSend.status === "Sent") {
-                sendQueueModel.clear();
+            if (LocalSend.status === "Sent" && LocalSend.pendingFile) {
+                root.removeByFilePath(LocalSend.pendingFile);
             }
+        }
+    }
+
+    Connections {
+        target: FileShelf
+
+        function onCountChanged() {
+            root.normalizeSelection();
         }
     }
 
@@ -129,6 +138,26 @@ FocusScope {
         if (FileShelf.count === 0 || selectedIndex < 0)
             return;
         removeAt(selectedIndex);
+    }
+
+    function removeByFilePath(filePath) {
+        if (!filePath || FileShelf.count === 0)
+            return;
+
+        let targetIndex = -1;
+        for (let i = 0; i < FileShelf.count; ++i) {
+            const entry = FileShelf.get(i);
+            if (entry && (entry.filePath === filePath || entry.uri === filePath || entry.fileName === filePath)) {
+                targetIndex = i;
+                break;
+            }
+        }
+        if (targetIndex >= 0) {
+            removeAt(targetIndex);
+        } else {
+            FileShelf.removeFilePath(filePath);
+            normalizeSelection();
+        }
     }
 
     function removeAt(index) {
@@ -189,12 +218,25 @@ FocusScope {
             return true;
         }
 
-        for (let i = 0; i < paths.length; ++i) {
-            const path = paths[i];
-            sendQueueModel.append({ filePath: path, fileName: path.split("/").pop() });
+        FileShelf.addUrls(paths);
+        let foundIndex = -1;
+        for (let i = 0; i < FileShelf.count; ++i) {
+            const entry = FileShelf.get(i);
+            if (entry && (entry.filePath === firstPath || entry.uri === firstPath)) {
+                foundIndex = i;
+                break;
+            }
         }
-        if (sendQueueModel.count > 0)
-            LocalSend.discover(sendQueueModel.get(0).filePath);
+        if (foundIndex >= 0) {
+            root.selectedIndex = foundIndex;
+            root.ensureSelectedVisible();
+        } else if (FileShelf.count > 0) {
+            root.selectedIndex = FileShelf.count - 1;
+            root.ensureSelectedVisible();
+        }
+        const entry = FileShelf.get(root.selectedIndex);
+        if (entry && entry.filePath)
+            LocalSend.discover(entry.filePath);
         return true;
     }
 
@@ -848,7 +890,7 @@ FocusScope {
                     Text {
                         text: LocalSend.waitingForAcceptance
                             ? "Waiting for phone acceptance..."
-                            : (LocalSend.error ? LocalSend.error : (LocalSend.status || (sendQueueModel.count > 0 ? "Choose a device" : "Ready")))
+                            : (LocalSend.error ? LocalSend.error : (LocalSend.status || (FileShelf.count > 0 ? "Choose a device" : "Ready")))
                         color: LocalSend.waitingForAcceptance
                             ? StyleTokens.accent
                             : (LocalSend.error ? StyleTokens.danger : StyleTokens.textSecondary)
@@ -872,8 +914,10 @@ FocusScope {
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            if (sendQueueModel.count > 0)
-                                LocalSend.discover(sendQueueModel.get(0).filePath);
+                            const idx = root.selectedIndex >= 0 ? root.selectedIndex : 0;
+                            const entry = FileShelf.get(idx);
+                            if (entry && entry.filePath)
+                                LocalSend.discover(entry.filePath);
                             else
                                 LocalSend.discover();
                         }
@@ -933,7 +977,7 @@ FocusScope {
 
             Rectangle {
                 width: parent.width
-                height: Math.max(82, parent.height - (sendQueueModel.count > 0 ? 165 : 120) - (LocalSend.waitingForAcceptance ? 36 : 0))
+                height: Math.max(82, parent.height - y)
                 radius: StyleTokens.radiusPrompt
                 color: StyleTokens.transparent
                 border.width: 1
@@ -1037,16 +1081,12 @@ FocusScope {
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: {
-                                    if (sendQueueModel.count > 0) {
-                                        LocalSend.sendFile(sendQueueModel.get(0).filePath, devDelegate.deviceNumber);
+                                    const idx = root.selectedIndex >= 0 ? root.selectedIndex : 0;
+                                    const entry = FileShelf.get(idx);
+                                    if (entry && entry.filePath) {
+                                        LocalSend.sendFile(entry.filePath, devDelegate.deviceNumber);
                                     } else {
-                                        const idx = root.selectedIndex >= 0 ? root.selectedIndex : 0;
-                                        const entry = FileShelf.get(idx);
-                                        if (entry && entry.filePath) {
-                                            LocalSend.sendFile(entry.filePath, devDelegate.deviceNumber);
-                                        } else {
-                                            LocalSend.sendFile("", devDelegate.deviceNumber);
-                                        }
+                                        LocalSend.sendFile("", devDelegate.deviceNumber);
                                     }
                                 }
                             }
@@ -1069,97 +1109,6 @@ FocusScope {
                     }
                 }
             }
-
-            Column {
-                width: parent.width
-                spacing: 4
-                visible: sendQueueModel.count > 0
-
-                    Row {
-                        width: parent.width
-                        spacing: 4
-
-                        Text {
-                            text: "Files to send"
-                            color: StyleTokens.textSecondary
-                            font.family: root.textFontFamily
-                            font.pixelSize: 10
-                            font.weight: Font.DemiBold
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-
-                        Item {
-                            height: 1
-                            width: Math.max(0, parent.width - 70 - clearText.implicitWidth)
-                        }
-
-                        Text {
-                            id: clearText
-                            text: "Clear"
-                            color: clearQueueMouse.containsMouse ? StyleTokens.textPrimary : StyleTokens.textTertiary
-                            font.family: root.textFontFamily
-                            font.pixelSize: 10
-                            anchors.verticalCenter: parent.verticalCenter
-
-                            MouseArea {
-                                id: clearQueueMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: sendQueueModel.clear()
-                            }
-                        }
-                    }
-
-                ListView {
-                    width: parent.width
-                    height: Math.min(72, sendQueueModel.count * 24)
-                    model: sendQueueModel
-                    clip: true
-
-                    delegate: Item {
-                        required property string filePath
-                        required property string fileName
-                        width: ListView.view.width
-                        height: 24
-
-                        Drag.active: queueDrag.active
-                        Drag.dragType: Drag.Automatic
-                        Drag.supportedActions: Qt.CopyAction
-                        Drag.proposedAction: Qt.CopyAction
-                        Drag.mimeData: ({
-                            "text/uri-list": "file://" + filePath
-                        })
-
-                        Row {
-                            anchors.fill: parent
-                            spacing: 6
-
-                            Text {
-                                text: "󰈔"
-                                color: StyleTokens.textSecondary
-                                font.family: root.iconFontFamily
-                                font.pixelSize: 13
-                            }
-
-                            Text {
-                                text: fileName
-                                color: StyleTokens.textPrimary
-                                font.family: root.textFontFamily
-                                font.pixelSize: 10
-                                elide: Text.ElideMiddle
-                                width: parent.width - 24
-                            }
-                        }
-
-                        DragHandler {
-                            id: queueDrag
-                            target: null
-                            acceptedButtons: Qt.LeftButton
-                        }
-                    }
-                }
-            }
         }
 
         DropArea {
@@ -1174,15 +1123,39 @@ FocusScope {
 
                 const targetDevice = localSendPanel.deviceAtPoint(drop.x, drop.y);
                 if (targetDevice) {
-                    LocalSend.sendFile(drop.urls[0].toLocalFile(), targetDevice.deviceNumber);
+                    const firstUrl = drop.urls[0];
+                    const firstPath = firstUrl.toLocalFile ? firstUrl.toLocalFile() : firstUrl.toString();
+                    if (firstPath)
+                        LocalSend.sendFile(firstPath, targetDevice.deviceNumber);
                 } else {
+                    const paths = [];
                     for (let i = 0; i < drop.urls.length; ++i) {
-                        const path = drop.urls[i].toLocalFile();
+                        const u = drop.urls[i];
+                        const path = u.toLocalFile ? u.toLocalFile() : u.toString();
                         if (path)
-                            sendQueueModel.append({ filePath: path, fileName: path.split("/").pop() });
+                            paths.push(path);
                     }
-                    if (sendQueueModel.count > 0)
-                        LocalSend.discover(sendQueueModel.get(0).filePath);
+                    if (paths.length > 0) {
+                        FileShelf.addUrls(drop.urls);
+                        let foundIndex = -1;
+                        for (let i = 0; i < FileShelf.count; ++i) {
+                            const entry = FileShelf.get(i);
+                            if (entry && (entry.filePath === paths[0] || entry.uri === paths[0])) {
+                                foundIndex = i;
+                                break;
+                            }
+                        }
+                        if (foundIndex >= 0) {
+                            root.selectedIndex = foundIndex;
+                            root.ensureSelectedVisible();
+                        } else if (FileShelf.count > 0) {
+                            root.selectedIndex = FileShelf.count - 1;
+                            root.ensureSelectedVisible();
+                        }
+                        const entry = FileShelf.get(root.selectedIndex);
+                        if (entry && entry.filePath)
+                            LocalSend.discover(entry.filePath);
+                    }
                 }
                 drop.acceptProposedAction();
             }

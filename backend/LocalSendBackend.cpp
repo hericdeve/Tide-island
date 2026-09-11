@@ -37,8 +37,10 @@ LocalSendBackend::LocalSendBackend(QObject *parent)
                 setWaitingForAcceptance(false);
                 cleanupMasterFd();
                 if (exitCode == 0 && !m_pendingFile.isEmpty()) {
+                    const QString sentFile = m_pendingFile;
                     setStatus(QStringLiteral("Sent"));
                     setTransferProgress(100);
+                    emit fileSent(sentFile);
                 } else if (exitCode != 0) {
                     if (m_outputBuffer.contains(QStringLiteral("rejected"), Qt::CaseInsensitive)
                         || m_outputBuffer.contains(QStringLiteral("declined"), Qt::CaseInsensitive)) {

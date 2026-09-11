@@ -18,6 +18,7 @@ private slots:
     void reordersEntriesWithoutChangingCount();
     void refreshRemovesMissingEntries();
     void removeDoesNotDeleteSourceFiles();
+    void removesEntryByFilePath();
     void clearDoesNotDeleteSourceFiles();
     void addsTextSnippetAsFileEntry();
     void rejectsEmptyTextSnippet();
@@ -160,6 +161,30 @@ void FileShelfModelTests::removeDoesNotDeleteSourceFiles()
 
     QCOMPARE(model.rowCount(), 0);
     QVERIFY(QFileInfo::exists(filePath));
+}
+
+void FileShelfModelTests::removesEntryByFilePath()
+{
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+
+    const QString path1 = createFile(directory.filePath(QStringLiteral("first.txt")));
+    const QString path2 = createFile(directory.filePath(QStringLiteral("second.txt")));
+    QVERIFY(!path1.isEmpty() && !path2.isEmpty());
+
+    FileShelfModel model;
+    QCOMPARE(model.addUrls(QVariantList{QUrl::fromLocalFile(path1), QUrl::fromLocalFile(path2)}), 2);
+    QCOMPARE(model.rowCount(), 2);
+
+    QVERIFY(model.removeFilePath(path1));
+    QCOMPARE(model.rowCount(), 1);
+    QCOMPARE(model.get(0).value(QStringLiteral("fileName")).toString(), QStringLiteral("second.txt"));
+
+    QVERIFY(!model.removeFilePath(QStringLiteral("nonexistent.txt")));
+    QCOMPARE(model.rowCount(), 1);
+
+    QVERIFY(model.removeFilePath(path2));
+    QCOMPARE(model.rowCount(), 0);
 }
 
 void FileShelfModelTests::addsTextSnippetAsFileEntry()
