@@ -46,15 +46,13 @@ Item {
                 widgetContext: root.widgetContext
             }
 
-            Text {
+            WidgetTextView {
                 text: root.currentSeconds
-                font.family: root.heroFontFamily
-                font.pixelSize: Math.round(14 * root.bodyFontSize / 16.0)
-                font.weight: Font.DemiBold
-                color: StyleTokens.textSecondary
+                role: "metric"
+                colorOverride: StyleTokens.textSecondary
                 anchors.bottom: parent.bottom
                 anchors.bottomMargin: 5
-                font.features: { "tnum": 1 }
+                widgetContext: root.widgetContext
             }
         }
 

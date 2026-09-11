@@ -1132,6 +1132,9 @@ PanelWindow {
         readonly property bool expandedLayerVisible: !root.overviewVisible && islandState === "expanded"
         readonly property bool bluetoothExpandedLayerVisible: !root.overviewVisible && islandState === "bluetooth_expanded"
         readonly property bool notificationLayerVisible: !root.overviewVisible && islandState === "notification"
+        property string preNotificationIslandState: "normal"
+        property int preNotificationMinimumPage: -1
+        property int preNotificationCirclePage: -1
         readonly property bool controlCenterLayerVisible: !root.overviewVisible && islandState === "control_center"
         readonly property bool notificationCenterLayerVisible: !root.overviewVisible && islandState === "notification_center"
         readonly property bool wallpaperPickerLayerVisible: !root.overviewVisible && islandState === "wallpaper_picker"
@@ -1792,15 +1795,42 @@ PanelWindow {
         }
 
         function showNotificationCapsule(appName, summary, body) {
-            if (root.overviewVisible || islandState === "control_center"
-                    || islandState === "expanded" || islandState === "file_shelf") return;
-
             const cleanedAppName = cleanNotificationText(appName);
             const cleanedSummary = cleanNotificationText(summary);
             const cleanedBody = cleanNotificationText(body);
             const resolvedSummary = cleanedSummary !== ""
                 ? cleanedSummary
                 : (cleanedBody !== "" ? cleanedBody : "New notification");
+
+            // Store in notification history regardless of whether notch popup is enabled
+            if (notificationHistoryModel) {
+                notificationHistoryModel.insert(0, {
+                    appName: cleanedAppName !== "" ? cleanedAppName : "Notification",
+                    summary: resolvedSummary,
+                    body: cleanedSummary !== "" ? cleanedBody : "",
+                    timestamp: new Date()
+                });
+                if (notificationHistoryModel.count > 50)
+                    notificationHistoryModel.remove(50, notificationHistoryModel.count - 50);
+            }
+
+            if (userConfig && !userConfig.notchNotificationsEnabled)
+                return;
+
+            if (root.overviewVisible || islandState === "control_center"
+                    || islandState === "expanded" || islandState === "file_shelf") return;
+
+            if (islandState !== "notification") {
+                preNotificationIslandState = islandState;
+                preNotificationMinimumPage = (closedWidgetLoader && closedWidgetLoader.item)
+                    ? closedWidgetLoader.item.currentPageIndex
+                    : ((userConfig && userConfig.widgetLayouts && userConfig.widgetLayouts.minimum && userConfig.widgetLayouts.minimum.activePageIndex !== undefined)
+                        ? userConfig.widgetLayouts.minimum.activePageIndex : 0);
+                preNotificationCirclePage = (circleClosedLoader && circleClosedLoader.item)
+                    ? circleClosedLoader.item.currentPageIndex
+                    : ((userConfig && userConfig.widgetLayouts && userConfig.widgetLayouts.circle && userConfig.widgetLayouts.circle.activePageIndex !== undefined)
+                        ? userConfig.widgetLayouts.circle.activePageIndex : 0);
+            }
 
             abortSideTransientMode();
             clearTransientCapsule();
@@ -1810,18 +1840,6 @@ PanelWindow {
             notificationExpanded = false;
             islandState = "notification";
             restartAutoHideTimer(notificationAutoHideInterval);
-            // Store in notification history
-                if (notificationHistoryModel) {
-                    notificationHistoryModel.insert(0, {
-                        appName: cleanedAppName !== "" ? cleanedAppName : "Notification",
-                        summary: resolvedSummary,
-                        body: cleanedSummary !== "" ? cleanedBody : "",
-                        timestamp: new Date()
-                    });
-                    if (notificationHistoryModel.count > 50)
-                        notificationHistoryModel.remove(50, notificationHistoryModel.count - 50);
-                }
-
         }
 
         function toggleNotificationExpansionIfNeeded() {
@@ -1878,9 +1896,53 @@ PanelWindow {
             restingState = normalizeRestingState(nextState);
         }
 
+        function restoreAfterNotification() {
+            stopAutoHideTimer();
+            notificationExpanded = false;
+
+            const savedMinPage = preNotificationMinimumPage;
+            const savedCirclePage = preNotificationCirclePage;
+
+            preNotificationIslandState = "normal";
+            preNotificationMinimumPage = -1;
+            preNotificationCirclePage = -1;
+
+            restoreRestingCapsule();
+
+            if (userConfig && userConfig.notchMode === "circle") {
+                const targetP = savedCirclePage >= 0 ? savedCirclePage : 0;
+                if (userConfig) {
+                    userConfig.setActivePage("circle", targetP);
+                }
+                if (circleClosedLoader && circleClosedLoader.item) {
+                    if (circleClosedLoader.item.setPageDirect)
+                        circleClosedLoader.item.setPageDirect(targetP);
+                    else
+                        circleClosedLoader.item.currentPageIndex = targetP;
+                }
+            } else {
+                const targetP = savedMinPage >= 0 ? savedMinPage : 0;
+                if (userConfig) {
+                    userConfig.setActivePage("minimum", targetP);
+                }
+                if (closedWidgetLoader && closedWidgetLoader.item) {
+                    if (closedWidgetLoader.item.setPageDirect)
+                        closedWidgetLoader.item.setPageDirect(targetP);
+                    else
+                        closedWidgetLoader.item.currentPageIndex = targetP;
+                }
+            }
+        }
+
         function smartRestoreState() {
             if (widgetStagingActive)
                 return;
+
+            if (islandState === "notification") {
+                restoreAfterNotification();
+                return;
+            }
+
             restoreRestingCapsule();
         }
 
@@ -3309,10 +3371,10 @@ PanelWindow {
                 anchors.fill: parent
                 active: !root.overviewVisible
                     && userConfig.notchMode !== "circle"
-                    && islandContainer.islandState === "normal"
+                    && (islandContainer.islandState === "normal" || islandContainer.islandState === "notification")
                     && Math.abs(islandContainer.swipeTransitionProgress) < 0.01
                 asynchronous: false
-                visible: active
+                visible: active && islandContainer.islandState === "normal"
                 z: 2
 
                 onActiveChanged: dynamicResizeEngine.updateRequestedSizes()
@@ -3326,6 +3388,11 @@ PanelWindow {
                                 item.setPageDirect(targetP);
                             else
                                 item.currentPageIndex = targetP;
+                        } else if (islandContainer.preNotificationMinimumPage >= 0) {
+                            if (item.setPageDirect)
+                                item.setPageDirect(islandContainer.preNotificationMinimumPage);
+                            else
+                                item.currentPageIndex = islandContainer.preNotificationMinimumPage;
                         }
                     }
                     dynamicResizeEngine.updateRequestedSizes();
@@ -3368,12 +3435,11 @@ PanelWindow {
                     && islandContainer.islandState !== "wallpaper_picker"
                     && islandContainer.islandState !== "application_launcher"
                     && islandContainer.islandState !== "file_shelf"
-                    && islandContainer.islandState !== "notification"
                     && islandContainer.islandState !== "long_capsule"
                     && islandContainer.islandState !== "split"
                     && (islandContainer.islandState !== "widget_library" || islandContainer.isDraggingWidgetFromLibrary)
                 asynchronous: false
-                visible: active
+                visible: active && islandContainer.islandState !== "notification"
 
                 onActiveChanged: dynamicResizeEngine.updateRequestedSizes()
                 onLoaded: {
@@ -3386,6 +3452,11 @@ PanelWindow {
                                 item.setPageDirect(targetP);
                             else
                                 item.currentPageIndex = targetP;
+                        } else if (islandContainer.preNotificationCirclePage >= 0) {
+                            if (item.setPageDirect)
+                                item.setPageDirect(islandContainer.preNotificationCirclePage);
+                            else
+                                item.currentPageIndex = islandContainer.preNotificationCirclePage;
                         }
                     }
                     dynamicResizeEngine.updateRequestedSizes();

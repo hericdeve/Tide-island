@@ -796,6 +796,21 @@ bool UserConfigBackend::boringNotchEnabled() const
     return m_notchMode == QLatin1String("notch");
 }
 
+bool UserConfigBackend::notchNotificationsEnabled() const
+{
+    return m_notchNotificationsEnabled;
+}
+
+void UserConfigBackend::setNotchNotificationsEnabled(bool enabled)
+{
+    if (m_notchNotificationsEnabled == enabled)
+        return;
+
+    m_notchNotificationsEnabled = enabled;
+    emit notchNotificationsEnabledChanged();
+    writeConfigJsonField(m_userConfigPath, QStringLiteral("notchNotificationsEnabled"), m_notchNotificationsEnabled);
+}
+
 bool UserConfigBackend::hideNotchInFullscreen() const
 {
     return m_hideNotchInFullscreen;
@@ -1412,6 +1427,7 @@ void UserConfigBackend::loadConfig()
     updateField(this, m_hoverExpandAction, jsonInt(configObject, QLatin1String("hoverExpandAction"), 1), &UserConfigBackend::hoverExpandActionChanged);
     updateField(this, m_islandAutoHideEnabled, jsonBool(configObject, QLatin1String("islandAutoHideEnabled"), true), &UserConfigBackend::islandAutoHideEnabledChanged);
     updateField(this, m_islandAutoHideDelayMs, jsonBoundedInt(configObject, QLatin1String("islandAutoHideDelayMs"), 1000, 100, 10000), &UserConfigBackend::islandAutoHideDelayMsChanged);
+    updateField(this, m_notchNotificationsEnabled, jsonBool(configObject, QLatin1String("notchNotificationsEnabled"), true), &UserConfigBackend::notchNotificationsEnabledChanged);
 
     const bool legacyBoringNotch = jsonBool(configObject, QLatin1String("boringNotchEnabled"), true);
     QString configuredNotchMode = jsonString(configObject, QLatin1String("notchMode"), QString()).trimmed().toLower();

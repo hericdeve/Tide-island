@@ -71,6 +71,14 @@ Item {
     function setPageDirect(target) {
         const clamped = Math.max(0, Math.min(pageCount - 1, target));
         currentPageIndex = clamped;
+        if (userConfig) {
+            userConfig.setActivePage("circle", clamped);
+        }
+        root.updateActivePageRequestedSizes();
+    }
+
+    Component.onCompleted: {
+        root.updateActivePageRequestedSizes();
     }
 
     readonly property real circleDiameter: Math.min(width, height)

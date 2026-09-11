@@ -30,7 +30,7 @@ Item {
         return (minL && minL.activePageIndex !== undefined) ? minL.activePageIndex : 0;
     }
     property alias currentPageIndex: root.currentPage
-    property real pageProgress: 0
+    property real pageProgress: currentPage
     property bool isDropTargetActive: false
     property bool dotsVisible: true
     property bool isEditMode: false
@@ -100,6 +100,10 @@ Item {
         const clamped = Math.max(0, Math.min(pageCount - 1, target));
         currentPage = clamped;
         pageProgress = clamped;
+        if (userConfig) {
+            userConfig.setActivePage("minimum", clamped);
+        }
+        root.updateActivePageRequestedSizes();
     }
 
     NumberAnimation {
@@ -123,6 +127,14 @@ Item {
         if (!settleAnimation.running) {
             pageProgress = currentPage;
         }
+        if (userConfig) {
+            userConfig.setActivePage("minimum", currentPage);
+        }
+        root.updateActivePageRequestedSizes();
+    }
+
+    Component.onCompleted: {
+        pageProgress = currentPage;
         root.updateActivePageRequestedSizes();
     }
 

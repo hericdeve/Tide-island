@@ -168,6 +168,12 @@ def audit_widget(widget_dir: Path) -> list:
         if re.search(r"anchors\.(?:top|bottom|left|right|margins)Margin\s*:\s*-\s*\d+", content):
             issues.append(f"{qml_file.name} contains negative margin violating usable space boundary")
 
+    # Check for bare Text elements: zero-tolerance enforcement for standardized typography and icons
+    for qml_file in widget_dir.glob("*.qml"):
+        content = qml_file.read_text(encoding="utf-8", errors="ignore")
+        if re.search(r"\bText\s*\{", content):
+            issues.append(f"{qml_file.name} contains non-standard bare Text element; all typography must use WidgetTextView and icons must use WidgetIconGlyph")
+
     # Check dynamic resizing protocol: if widget implements non-zero requestedContentHeight or Width, capability must be declared
     implements_dynamic_resize = False
     for qml_file in widget_dir.glob("*.qml"):
@@ -226,6 +232,7 @@ def cmd_verify(repo_root: Path, target_widget: str = None):
     print()
     if total_issues > 0:
         print(f"⚠️  Found {total_issues} specification issue(s).")
+        sys.exit(1)
     else:
         print("🎉 All audited widgets comply with standard specifications!")
     print()

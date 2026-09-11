@@ -57,6 +57,7 @@ class UserConfigBackend final : public QObject {
     Q_PROPERTY(bool notchBorderEnabled READ notchBorderEnabled WRITE setNotchBorderEnabled NOTIFY notchBorderEnabledChanged FINAL)
     Q_PROPERTY(int notchBorderWidth READ notchBorderWidth WRITE setNotchBorderWidth NOTIFY notchBorderWidthChanged FINAL)
     Q_PROPERTY(bool boringNotchEnabled READ boringNotchEnabled NOTIFY boringNotchEnabledChanged FINAL)
+    Q_PROPERTY(bool notchNotificationsEnabled READ notchNotificationsEnabled WRITE setNotchNotificationsEnabled NOTIFY notchNotificationsEnabledChanged FINAL)
     Q_PROPERTY(bool hideNotchInFullscreen READ hideNotchInFullscreen NOTIFY hideNotchInFullscreenChanged FINAL)
     Q_PROPERTY(bool showBoringFace READ showBoringFace NOTIFY showBoringFaceChanged FINAL)
     Q_PROPERTY(int notchClosedWidth READ notchClosedWidth NOTIFY notchClosedWidthChanged FINAL)
@@ -182,6 +183,8 @@ public:
     int notchBorderWidth() const;
     Q_INVOKABLE void setNotchBorderWidth(int width);
     bool boringNotchEnabled() const;
+    bool notchNotificationsEnabled() const;
+    Q_INVOKABLE void setNotchNotificationsEnabled(bool enabled);
     bool hideNotchInFullscreen() const;
     bool showBoringFace() const;
     int notchClosedWidth() const;
@@ -281,6 +284,7 @@ signals:
     void notchBorderEnabledChanged();
     void notchBorderWidthChanged();
     void boringNotchEnabledChanged();
+    void notchNotificationsEnabledChanged();
     void hideNotchInFullscreenChanged();
     void showBoringFaceChanged();
     void notchClosedWidthChanged();
@@ -367,6 +371,7 @@ private:
     bool m_notchBorderEnabled = false;
     int m_notchBorderWidth = 1;
     bool m_boringNotchEnabled = true;
+    bool m_notchNotificationsEnabled = true;
     bool m_hideNotchInFullscreen = true;
     bool m_showBoringFace = false;
     int m_notchClosedWidth = 185;

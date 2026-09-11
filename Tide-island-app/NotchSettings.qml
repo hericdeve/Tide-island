@@ -265,6 +265,16 @@ PagePanel {
                         fallbackState: false
                         width: parent.width
                     }
+
+                    SplitLine { width: parent.width }
+
+                    ToggleRow {
+                        title: "Notch Notifications"
+                        description: "Display incoming notifications as an animated capsule in the notch"
+                        keyName: "notchNotificationsEnabled"
+                        fallbackState: true
+                        width: parent.width
+                    }
                 }
             }
 

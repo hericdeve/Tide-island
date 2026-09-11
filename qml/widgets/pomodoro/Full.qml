@@ -84,21 +84,20 @@ Item {
             spacing: 6
             visible: root.isWide
 
-            Text {
+            WidgetTextView {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: "Pomotroid Offline"
-                font.family: root.textFontFamily
-                font.pixelSize: Math.round(13 * root.bodyFontSize / 16.0)
-                font.weight: Font.Bold
-                color: "white"
+                role: "title"
+                colorOverride: "white"
+                widgetContext: root.widgetContext
             }
 
-            Text {
+            WidgetTextView {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: "Launch Pomotroid to start tracking sessions"
-                font.family: root.textFontFamily
-                font.pixelSize: Math.round(11 * root.bodyFontSize / 16.0)
-                color: "#a1a1aa"
+                role: "caption"
+                colorOverride: "#a1a1aa"
+                widgetContext: root.widgetContext
             }
 
             Item { width: 1; height: 4 }
@@ -115,21 +114,20 @@ Item {
                     anchors.centerIn: parent
                     spacing: 6
 
-                    Text {
-                        text: "󰐊"
-                        font.family: root.iconFontFamily
-                        font.pixelSize: Math.round(11 * root.iconFontSize / 18.0)
+                    WidgetIconGlyph {
+                        glyph: "󰐊"
+                        size: 11
                         color: "white"
                         anchors.verticalCenter: parent.verticalCenter
+                        widgetContext: root.widgetContext
                     }
 
-                    Text {
+                    WidgetTextView {
                         text: "Launch Pomotroid"
-                        font.family: root.textFontFamily
-                        font.pixelSize: Math.round(11 * root.bodyFontSize / 16.0)
-                        font.weight: Font.DemiBold
-                        color: "white"
+                        role: "caption"
+                        colorOverride: "white"
                         anchors.verticalCenter: parent.verticalCenter
+                        widgetContext: root.widgetContext
                     }
                 }
 
@@ -149,13 +147,12 @@ Item {
             spacing: 6
             visible: !root.isWide
 
-            Text {
+            WidgetTextView {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: "Pomotroid Offline"
-                font.family: root.textFontFamily
-                font.pixelSize: Math.round(11 * root.bodyFontSize / 16.0)
-                font.weight: Font.Bold
-                color: "white"
+                role: "body"
+                colorOverride: "white"
+                widgetContext: root.widgetContext
             }
 
             Rectangle {
@@ -170,21 +167,20 @@ Item {
                     anchors.centerIn: parent
                     spacing: 4
 
-                    Text {
-                        text: "󰐊"
-                        font.family: root.iconFontFamily
-                        font.pixelSize: Math.round(10 * root.iconFontSize / 18.0)
+                    WidgetIconGlyph {
+                        glyph: "󰐊"
+                        size: 10
                         color: "white"
                         anchors.verticalCenter: parent.verticalCenter
+                        widgetContext: root.widgetContext
                     }
 
-                    Text {
+                    WidgetTextView {
                         text: "Launch"
-                        font.family: root.textFontFamily
-                        font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
-                        font.weight: Font.DemiBold
-                        color: "white"
+                        role: "caption"
+                        colorOverride: "white"
                         anchors.verticalCenter: parent.verticalCenter
+                        widgetContext: root.widgetContext
                     }
                 }
 
@@ -248,13 +244,13 @@ Item {
                                     id: badgeRow
                                     anchors.centerIn: parent
 
-                                    Text {
+                                    WidgetTextView {
                                         text: root.roundLabel + " " + root.roundNumber + "/" + root.roundsTotal
-                                        font.family: root.textFontFamily
-                                        font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
-                                        font.weight: Font.DemiBold
-                                        color: root.themeColor
+                                        role: "caption"
+                                        tabularFigures: true
+                                        colorOverride: root.themeColor
                                         anchors.verticalCenter: parent.verticalCenter
+                                        widgetContext: root.widgetContext
                                     }
                                 }
                             }
@@ -273,21 +269,21 @@ Item {
                                     anchors.centerIn: parent
                                     spacing: 4
 
-                                    Text {
-                                        text: "󰓠"
-                                        font.family: root.iconFontFamily
-                                        font.pixelSize: Math.round(9 * root.iconFontSize / 18.0)
+                                    WidgetIconGlyph {
+                                        glyph: "󰓠"
+                                        size: 9
                                         color: "#a1a1aa"
                                         anchors.verticalCenter: parent.verticalCenter
+                                        widgetContext: root.widgetContext
                                     }
 
-                                    Text {
+                                    WidgetTextView {
                                         text: (root.isWork ? Math.max(0, root.sessionWorkCount - 1) : root.sessionWorkCount) + "/" + root.goalRounds
-                                        font.family: root.textFontFamily
-                                        font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
-                                        font.weight: Font.Medium
-                                        color: "white"
+                                        role: "caption"
+                                        tabularFigures: true
+                                        colorOverride: "white"
                                         anchors.verticalCenter: parent.verticalCenter
+                                        widgetContext: root.widgetContext
                                     }
 
                                     // Decrement button
@@ -298,12 +294,12 @@ Item {
                                         color: decMouse.containsMouse ? "#3f3f46" : "transparent"
                                         anchors.verticalCenter: parent.verticalCenter
 
-                                        Text {
+                                        WidgetTextView {
                                             anchors.centerIn: parent
                                             text: "-"
-                                            font.pixelSize: Math.round(11 * root.bodyFontSize / 16.0)
-                                            font.weight: Font.Bold
-                                            color: "#d4d4d8"
+                                            role: "caption"
+                                            colorOverride: "#d4d4d8"
+                                            widgetContext: root.widgetContext
                                         }
                                         MouseArea {
                                             id: decMouse
@@ -322,12 +318,12 @@ Item {
                                         color: incMouse.containsMouse ? "#3f3f46" : "transparent"
                                         anchors.verticalCenter: parent.verticalCenter
 
-                                        Text {
+                                        WidgetTextView {
                                             anchors.centerIn: parent
                                             text: "+"
-                                            font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
-                                            font.weight: Font.Bold
-                                            color: "#d4d4d8"
+                                            role: "caption"
+                                            colorOverride: "#d4d4d8"
+                                            widgetContext: root.widgetContext
                                         }
                                         MouseArea {
                                             id: incMouse
@@ -353,12 +349,12 @@ Item {
                                 radius: 10
                                 color: statsMouse.containsMouse ? "#27272a" : "transparent"
 
-                                Text {
+                                WidgetIconGlyph {
                                     anchors.centerIn: parent
-                                    text: "󰄫"
-                                    font.family: root.iconFontFamily
-                                    font.pixelSize: Math.round(12 * root.iconFontSize / 18.0)
+                                    glyph: "󰄫"
+                                    size: 12
                                     color: statsMouse.containsMouse ? "white" : "#a1a1aa"
+                                    widgetContext: root.widgetContext
                                 }
                                 MouseArea {
                                     id: statsMouse
@@ -376,12 +372,12 @@ Item {
                                 radius: 10
                                 color: mainWinMouse.containsMouse ? "#27272a" : "transparent"
 
-                                Text {
+                                WidgetIconGlyph {
                                     anchors.centerIn: parent
-                                    text: "󰖰"
-                                    font.family: root.iconFontFamily
-                                    font.pixelSize: Math.round(12 * root.iconFontSize / 18.0)
+                                    glyph: "󰖰"
+                                    size: 12
                                     color: mainWinMouse.containsMouse ? "white" : "#a1a1aa"
+                                    widgetContext: root.widgetContext
                                 }
                                 MouseArea {
                                     id: mainWinMouse
@@ -417,13 +413,12 @@ Item {
                                     trackColor: StyleTokens.track
                                 }
 
-                                Text {
+                                WidgetTextView {
                                     anchors.centerIn: parent
                                     text: root.roundNumber
-                                    font.family: root.textFontFamily
-                                    font.pixelSize: Math.round(13 * root.titleFontSize / 20.0)
-                                    font.weight: Font.Bold
-                                    color: root.themeColor
+                                    role: "metric"
+                                    colorOverride: root.themeColor
+                                    widgetContext: root.widgetContext
                                 }
                             }
 
@@ -433,25 +428,22 @@ Item {
                                 anchors.verticalCenter: parent.verticalCenter
                                 spacing: 0
 
-                                Text {
+                                WidgetTextView {
                                     width: parent.width
                                     text: PomotroidBackend.formatTime(root.remainingSeconds)
-                                    font.family: root.heroFontFamily
-                                    font.pixelSize: Math.round(28 * root.titleFontSize / 20.0)
-                                    font.weight: Font.Bold
+                                    role: "hero"
                                     horizontalAlignment: Text.AlignHCenter
-                                    color: StyleTokens.textPrimaryBright
-                                    font.features: { "tnum": 1 }
+                                    tabularFigures: true
+                                    widgetContext: root.widgetContext
                                 }
 
-                                Text {
+                                WidgetTextView {
                                     width: parent.width
                                     text: root.isRunning ? "RUNNING" : (root.isPaused ? "PAUSED" : "IDLE")
-                                    font.family: root.textFontFamily
-                                    font.pixelSize: Math.round(9 * root.bodyFontSize / 16.0)
-                                    font.weight: Font.DemiBold
+                                    role: "caption"
                                     horizontalAlignment: Text.AlignHCenter
-                                    color: root.isRunning ? root.themeColor : "#71717a"
+                                    colorOverride: root.isRunning ? root.themeColor : "#71717a"
+                                    widgetContext: root.widgetContext
                                 }
                             }
                         }
@@ -539,31 +531,30 @@ Item {
                             anchors.verticalCenter: parent.verticalCenter
                             spacing: 6
 
-                            Text {
-                                text: "󰓹"
-                                font.family: root.iconFontFamily
-                                font.pixelSize: Math.round(11 * root.iconFontSize / 18.0)
+                            WidgetIconGlyph {
+                                glyph: "󰓹"
+                                size: 11
                                 color: "#a1a1aa"
                                 anchors.verticalCenter: parent.verticalCenter
+                                widgetContext: root.widgetContext
                             }
 
-                            Text {
+                            WidgetTextView {
                                 text: "Session Tags"
-                                font.family: root.textFontFamily
-                                font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
-                                font.weight: Font.DemiBold
-                                color: "#a1a1aa"
+                                role: "caption"
+                                colorOverride: "#a1a1aa"
                                 anchors.verticalCenter: parent.verticalCenter
+                                widgetContext: root.widgetContext
                             }
                         }
 
-                        Text {
+                        WidgetTextView {
                             anchors.right: parent.right
                             anchors.verticalCenter: parent.verticalCenter
                             text: "Auto-synced"
-                            font.family: root.textFontFamily
-                            font.pixelSize: Math.round(9 * root.bodyFontSize / 16.0)
-                            color: "#52525b"
+                            role: "caption"
+                            colorOverride: "#52525b"
+                            widgetContext: root.widgetContext
                         }
                     }
 
@@ -586,12 +577,12 @@ Item {
                                 anchors.rightMargin: 6
                                 spacing: 4
 
-                                Text {
-                                    text: "󰑴"
-                                    font.family: root.iconFontFamily
-                                    font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
+                                WidgetIconGlyph {
+                                    glyph: "󰑴"
+                                    size: 10
                                     color: "#71717a"
                                     anchors.verticalCenter: parent.verticalCenter
+                                    widgetContext: root.widgetContext
                                 }
 
                                 TextInput {
@@ -611,13 +602,13 @@ Item {
                                     }
                                     onEditingFinished: root.commitTags()
 
-                                    Text {
+                                    WidgetTextView {
                                         text: "Subject (e.g. Math, Physics)..."
-                                        font.family: root.textFontFamily
-                                        font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
-                                        color: "#52525b"
+                                        role: "caption"
+                                        colorOverride: "#52525b"
                                         visible: !subjectInput.text && !subjectInput.activeFocus
                                         anchors.verticalCenter: parent.verticalCenter
+                                        widgetContext: root.widgetContext
                                     }
                                 }
 
@@ -628,12 +619,12 @@ Item {
                                     color: subDropMouse.containsMouse ? "#27272a" : "transparent"
                                     anchors.verticalCenter: parent.verticalCenter
 
-                                    Text {
+                                    WidgetIconGlyph {
                                         anchors.centerIn: parent
-                                        text: "󰅀"
-                                        font.family: root.iconFontFamily
-                                        font.pixelSize: Math.round(8 * root.iconFontSize / 18.0)
+                                        glyph: "󰅀"
+                                        size: 8
                                         color: "#71717a"
+                                        widgetContext: root.widgetContext
                                     }
                                     MouseArea {
                                         id: subDropMouse
@@ -671,14 +662,14 @@ Item {
                                     radius: 4
                                     color: subItemMouse.containsMouse ? "#27272a" : "transparent"
 
-                                    Text {
+                                    WidgetTextView {
                                         anchors.left: parent.left
                                         anchors.leftMargin: 6
                                         anchors.verticalCenter: parent.verticalCenter
                                         text: modelData
-                                        font.family: root.textFontFamily
-                                        font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
-                                        color: "white"
+                                        role: "caption"
+                                        colorOverride: "white"
+                                        widgetContext: root.widgetContext
                                     }
                                     MouseArea {
                                         id: subItemMouse
@@ -716,12 +707,12 @@ Item {
                                 anchors.rightMargin: 6
                                 spacing: 4
 
-                                Text {
-                                    text: "󰅍"
-                                    font.family: root.iconFontFamily
-                                    font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
+                                WidgetIconGlyph {
+                                    glyph: "󰅍"
+                                    size: 10
                                     color: "#71717a"
                                     anchors.verticalCenter: parent.verticalCenter
+                                    widgetContext: root.widgetContext
                                 }
 
                                 TextInput {
@@ -736,13 +727,13 @@ Item {
                                     onTextChanged: root.currentTopic = text
                                     onEditingFinished: root.commitTags()
 
-                                    Text {
+                                    WidgetTextView {
                                         text: "Topic / Chapter..."
-                                        font.family: root.textFontFamily
-                                        font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
-                                        color: "#52525b"
+                                        role: "caption"
+                                        colorOverride: "#52525b"
                                         visible: !topicInput.text && !topicInput.activeFocus
                                         anchors.verticalCenter: parent.verticalCenter
+                                        widgetContext: root.widgetContext
                                     }
                                 }
 
@@ -753,12 +744,12 @@ Item {
                                     color: topicDropMouse.containsMouse ? "#27272a" : "transparent"
                                     anchors.verticalCenter: parent.verticalCenter
 
-                                    Text {
+                                    WidgetIconGlyph {
                                         anchors.centerIn: parent
-                                        text: "󰅀"
-                                        font.family: root.iconFontFamily
-                                        font.pixelSize: Math.round(8 * root.iconFontSize / 18.0)
+                                        glyph: "󰅀"
+                                        size: 8
                                         color: "#71717a"
+                                        widgetContext: root.widgetContext
                                     }
                                     MouseArea {
                                         id: topicDropMouse
@@ -796,14 +787,14 @@ Item {
                                     radius: 4
                                     color: topicItemMouse.containsMouse ? "#27272a" : "transparent"
 
-                                    Text {
+                                    WidgetTextView {
                                         anchors.left: parent.left
                                         anchors.leftMargin: 6
                                         anchors.verticalCenter: parent.verticalCenter
                                         text: modelData
-                                        font.family: root.textFontFamily
-                                        font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
-                                        color: "white"
+                                        role: "caption"
+                                        colorOverride: "white"
+                                        widgetContext: root.widgetContext
                                     }
                                     MouseArea {
                                         id: topicItemMouse
@@ -841,12 +832,12 @@ Item {
                                 anchors.rightMargin: 6
                                 spacing: 4
 
-                                Text {
-                                    text: "󰌵"
-                                    font.family: root.iconFontFamily
-                                    font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
+                                WidgetIconGlyph {
+                                    glyph: "󰌵"
+                                    size: 10
                                     color: "#71717a"
                                     anchors.verticalCenter: parent.verticalCenter
+                                    widgetContext: root.widgetContext
                                 }
 
                                 TextInput {
@@ -861,13 +852,13 @@ Item {
                                     onTextChanged: root.currentStudyType = text
                                     onEditingFinished: root.commitTags()
 
-                                    Text {
+                                    WidgetTextView {
                                         text: "Type (Teoria, Exercicio, Leitura)..."
-                                        font.family: root.textFontFamily
-                                        font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
-                                        color: "#52525b"
+                                        role: "caption"
+                                        colorOverride: "#52525b"
                                         visible: !typeInput.text && !typeInput.activeFocus
                                         anchors.verticalCenter: parent.verticalCenter
+                                        widgetContext: root.widgetContext
                                     }
                                 }
 
@@ -878,12 +869,12 @@ Item {
                                     color: typeDropMouse.containsMouse ? "#27272a" : "transparent"
                                     anchors.verticalCenter: parent.verticalCenter
 
-                                    Text {
+                                    WidgetIconGlyph {
                                         anchors.centerIn: parent
-                                        text: "󰅀"
-                                        font.family: root.iconFontFamily
-                                        font.pixelSize: Math.round(8 * root.iconFontSize / 18.0)
+                                        glyph: "󰅀"
+                                        size: 8
                                         color: "#71717a"
+                                        widgetContext: root.widgetContext
                                     }
                                     MouseArea {
                                         id: typeDropMouse
@@ -921,14 +912,14 @@ Item {
                                     radius: 4
                                     color: typeItemMouse.containsMouse ? "#27272a" : "transparent"
 
-                                    Text {
+                                    WidgetTextView {
                                         anchors.left: parent.left
                                         anchors.leftMargin: 6
                                         anchors.verticalCenter: parent.verticalCenter
                                         text: modelData
-                                        font.family: root.textFontFamily
-                                        font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
-                                        color: "white"
+                                        role: "caption"
+                                        colorOverride: "white"
+                                        widgetContext: root.widgetContext
                                     }
                                     MouseArea {
                                         id: typeItemMouse
@@ -962,12 +953,12 @@ Item {
                             anchors.rightMargin: 6
                             spacing: 4
 
-                            Text {
-                                text: "󰎞"
-                                font.family: root.iconFontFamily
-                                font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
+                            WidgetIconGlyph {
+                                glyph: "󰎞"
+                                size: 10
                                 color: "#71717a"
                                 anchors.verticalCenter: parent.verticalCenter
+                                widgetContext: root.widgetContext
                             }
 
                             TextInput {
@@ -982,13 +973,13 @@ Item {
                                 onTextChanged: root.currentNotes = text
                                 onEditingFinished: root.commitTags()
 
-                                Text {
+                                WidgetTextView {
                                     text: "Session notes..."
-                                    font.family: root.textFontFamily
-                                    font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
-                                    color: "#52525b"
+                                    role: "caption"
+                                    colorOverride: "#52525b"
                                     visible: !notesInput.text && !notesInput.activeFocus
                                     anchors.verticalCenter: parent.verticalCenter
+                                    widgetContext: root.widgetContext
                                 }
                             }
                         }
@@ -1028,12 +1019,12 @@ Item {
                             id: compactBadgeRow
                             anchors.centerIn: parent
 
-                            Text {
+                            WidgetTextView {
                                 text: root.roundNumber + "/" + root.roundsTotal
-                                font.family: root.textFontFamily
-                                font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
-                                font.weight: Font.DemiBold
-                                color: root.themeColor
+                                role: "caption"
+                                tabularFigures: true
+                                colorOverride: root.themeColor
+                                widgetContext: root.widgetContext
                             }
                         }
                     }
@@ -1055,13 +1046,12 @@ Item {
                                 height: parent.height
                                 radius: 10
                                 color: root.singleSlotTab === 0 ? "#27272a" : "transparent"
-                                Text {
+                                WidgetTextView {
                                     anchors.centerIn: parent
                                     text: "Timer"
-                                    font.family: root.textFontFamily
-                                    font.pixelSize: Math.round(9 * root.bodyFontSize / 16.0)
-                                    font.weight: root.singleSlotTab === 0 ? Font.Bold : Font.Normal
-                                    color: root.singleSlotTab === 0 ? "white" : "#71717a"
+                                    role: "caption"
+                                    colorOverride: root.singleSlotTab === 0 ? "white" : "#71717a"
+                                    widgetContext: root.widgetContext
                                 }
                                 MouseArea {
                                     anchors.fill: parent
@@ -1074,13 +1064,12 @@ Item {
                                 height: parent.height
                                 radius: 10
                                 color: root.singleSlotTab === 1 ? "#27272a" : "transparent"
-                                Text {
+                                WidgetTextView {
                                     anchors.centerIn: parent
                                     text: "Tags"
-                                    font.family: root.textFontFamily
-                                    font.pixelSize: Math.round(9 * root.bodyFontSize / 16.0)
-                                    font.weight: root.singleSlotTab === 1 ? Font.Bold : Font.Normal
-                                    color: root.singleSlotTab === 1 ? "white" : "#71717a"
+                                    role: "caption"
+                                    colorOverride: root.singleSlotTab === 1 ? "white" : "#71717a"
+                                    widgetContext: root.widgetContext
                                 }
                                 MouseArea {
                                     anchors.fill: parent
@@ -1103,12 +1092,12 @@ Item {
                         radius: 10
                         color: cStatsMouse.containsMouse ? "#27272a" : "transparent"
 
-                        Text {
+                        WidgetIconGlyph {
                             anchors.centerIn: parent
-                            text: "󰄫"
-                            font.family: root.iconFontFamily
-                            font.pixelSize: Math.round(11 * root.iconFontSize / 18.0)
+                            glyph: "󰄫"
+                            size: 11
                             color: "#a1a1aa"
+                            widgetContext: root.widgetContext
                         }
                         MouseArea {
                             id: cStatsMouse
@@ -1126,12 +1115,12 @@ Item {
                         radius: 10
                         color: cMainMouse.containsMouse ? "#27272a" : "transparent"
 
-                        Text {
+                        WidgetIconGlyph {
                             anchors.centerIn: parent
-                            text: "󰖰"
-                            font.family: root.iconFontFamily
-                            font.pixelSize: Math.round(11 * root.iconFontSize / 18.0)
+                            glyph: "󰖰"
+                            size: 11
                             color: "#a1a1aa"
+                            widgetContext: root.widgetContext
                         }
                         MouseArea {
                             id: cMainMouse
@@ -1160,24 +1149,25 @@ Item {
                         anchors.horizontalCenter: parent.horizontalCenter
                         spacing: 1
 
-                        Text {
+                        WidgetTextView {
                             anchors.horizontalCenter: parent.horizontalCenter
                             text: PomotroidBackend.formatTime(root.remainingSeconds)
-                            font.family: root.textFontFamily
-                            font.pixelSize: Math.round(26 * root.titleFontSize / 20.0)
-                            font.weight: Font.Bold
-                            color: "white"
+                            role: "hero"
+                            tabularFigures: true
+                            horizontalAlignment: Text.AlignHCenter
+                            colorOverride: "white"
+                            widgetContext: root.widgetContext
                         }
 
-                        Text {
+                        WidgetTextView {
                             anchors.horizontalCenter: parent.horizontalCenter
                             text: root.currentSubject ? (root.currentSubject + (root.currentTopic ? " • " + root.currentTopic : "")) : (root.isRunning ? "RUNNING" : "IDLE")
-                            font.family: root.textFontFamily
-                            font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
-                            color: root.currentSubject ? "#d4d4d8" : "#71717a"
-                            elide: Text.ElideRight
+                            role: "caption"
+                            colorOverride: root.currentSubject ? "#d4d4d8" : "#71717a"
+                            overflowMode: "elide"
                             width: parent.width - 20
                             horizontalAlignment: Text.AlignHCenter
+                            widgetContext: root.widgetContext
                         }
                     }
 
@@ -1210,12 +1200,12 @@ Item {
                             color: "#18181b"
                             border.width: 1
                             border.color: "#27272a"
-                            Text {
+                            WidgetIconGlyph {
                                 anchors.centerIn: parent
-                                text: "󰑐"
-                                font.family: root.iconFontFamily
-                                font.pixelSize: Math.round(12 * root.iconFontSize / 18.0)
+                                glyph: "󰑐"
+                                size: 12
                                 color: "#d4d4d8"
+                                widgetContext: root.widgetContext
                             }
                             MouseArea {
                                 anchors.fill: parent
@@ -1229,12 +1219,12 @@ Item {
                             height: 26
                             radius: 6
                             color: root.themeColor
-                            Text {
+                            WidgetIconGlyph {
                                 anchors.centerIn: parent
-                                text: root.isRunning ? "󰏤" : "󰐊"
-                                font.family: root.iconFontFamily
-                                font.pixelSize: Math.round(13 * root.iconFontSize / 18.0)
+                                glyph: root.isRunning ? "󰏤" : "󰐊"
+                                size: 13
                                 color: "white"
+                                widgetContext: root.widgetContext
                             }
                             MouseArea {
                                 anchors.fill: parent
@@ -1250,12 +1240,12 @@ Item {
                             color: "#18181b"
                             border.width: 1
                             border.color: "#27272a"
-                            Text {
+                            WidgetIconGlyph {
                                 anchors.centerIn: parent
-                                text: "󰒭"
-                                font.family: root.iconFontFamily
-                                font.pixelSize: Math.round(12 * root.iconFontSize / 18.0)
+                                glyph: "󰒭"
+                                size: 12
                                 color: "#d4d4d8"
+                                widgetContext: root.widgetContext
                             }
                             MouseArea {
                                 anchors.fill: parent
@@ -1271,12 +1261,12 @@ Item {
                             color: "#18181b"
                             border.width: 1
                             border.color: "#27272a"
-                            Text {
+                            WidgetIconGlyph {
                                 anchors.centerIn: parent
-                                text: "󰦛"
-                                font.family: root.iconFontFamily
-                                font.pixelSize: Math.round(12 * root.iconFontSize / 18.0)
+                                glyph: "󰦛"
+                                size: 12
                                 color: "#ef4444"
+                                widgetContext: root.widgetContext
                             }
                             MouseArea {
                                 anchors.fill: parent
@@ -1320,13 +1310,13 @@ Item {
                             onTextChanged: root.currentSubject = text
                             onEditingFinished: root.commitTags()
 
-                            Text {
+                            WidgetTextView {
                                 text: "Subject..."
-                                font.family: root.textFontFamily
-                                font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
-                                color: "#52525b"
+                                role: "caption"
+                                colorOverride: "#52525b"
                                 visible: !cSubInput.text && !cSubInput.activeFocus
                                 anchors.verticalCenter: parent.verticalCenter
+                                widgetContext: root.widgetContext
                             }
                         }
                     }
@@ -1354,13 +1344,13 @@ Item {
                             onTextChanged: root.currentTopic = text
                             onEditingFinished: root.commitTags()
 
-                            Text {
+                            WidgetTextView {
                                 text: "Topic..."
-                                font.family: root.textFontFamily
-                                font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
-                                color: "#52525b"
+                                role: "caption"
+                                colorOverride: "#52525b"
                                 visible: !cTopInput.text && !cTopInput.activeFocus
                                 anchors.verticalCenter: parent.verticalCenter
+                                widgetContext: root.widgetContext
                             }
                         }
                     }
@@ -1388,13 +1378,13 @@ Item {
                             onTextChanged: root.currentStudyType = text
                             onEditingFinished: root.commitTags()
 
-                            Text {
+                            WidgetTextView {
                                 text: "Study Type..."
-                                font.family: root.textFontFamily
-                                font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
-                                color: "#52525b"
+                                role: "caption"
+                                colorOverride: "#52525b"
                                 visible: !cTypInput.text && !cTypInput.activeFocus
                                 anchors.verticalCenter: parent.verticalCenter
+                                widgetContext: root.widgetContext
                             }
                         }
                     }
@@ -1422,13 +1412,13 @@ Item {
                             onTextChanged: root.currentNotes = text
                             onEditingFinished: root.commitTags()
 
-                            Text {
+                            WidgetTextView {
                                 text: "Notes..."
-                                font.family: root.textFontFamily
-                                font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
-                                color: "#52525b"
+                                role: "caption"
+                                colorOverride: "#52525b"
                                 visible: !cNotInput.text && !cNotInput.activeFocus
                                 anchors.verticalCenter: parent.verticalCenter
+                                widgetContext: root.widgetContext
                             }
                         }
                     }

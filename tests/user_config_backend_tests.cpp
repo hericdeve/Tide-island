@@ -35,6 +35,7 @@ private slots:
     void notchContentPaddingDefaultsAndClamping();
     void barOverlayDefaultsAndClamping();
     void themeStyleDefaultsAndAssignment();
+    void notchNotificationsEnabledDefaultsAndPersists();
 };
 
 void UserConfigBackendTests::initTestCase()
@@ -690,6 +691,33 @@ void UserConfigBackendTests::themeStyleDefaultsAndAssignment()
 
     // Cleanup
     reloaded.setThemeStyle(QStringLiteral("black"));
+}
+
+void UserConfigBackendTests::notchNotificationsEnabledDefaultsAndPersists()
+{
+    UserConfigBackend config;
+    QCOMPARE(config.notchNotificationsEnabled(), true);
+
+    QSignalSpy spy(&config, &UserConfigBackend::notchNotificationsEnabledChanged);
+
+    config.setNotchNotificationsEnabled(false);
+    QCOMPARE(config.notchNotificationsEnabled(), false);
+    QCOMPARE(spy.count(), 1);
+
+    // Setting same value shouldn't emit signal
+    config.setNotchNotificationsEnabled(false);
+    QCOMPARE(spy.count(), 1);
+
+    // Reload persistence
+    UserConfigBackend reloaded;
+    QCOMPARE(reloaded.notchNotificationsEnabled(), false);
+
+    // Turn back on
+    reloaded.setNotchNotificationsEnabled(true);
+    QCOMPARE(reloaded.notchNotificationsEnabled(), true);
+
+    UserConfigBackend reloaded2;
+    QCOMPARE(reloaded2.notchNotificationsEnabled(), true);
 }
 
 QTEST_MAIN(UserConfigBackendTests)

@@ -15,8 +15,9 @@ You are creating a new widget for the **Tide Island** Dynamic Island for Linux/W
 2. **Strict View Mode Interactivity Boundaries**:
    - `Full.qml` (Expanded Notch): **Interactive**. MouseArea, buttons, text inputs, sliders, and drop targets are welcome.
    - `Minimum.qml` (Closed Pill) & `Circle.qml` (Smartwatch Face): **STRICTLY NON-INTERACTIVE**. You must **never** add `MouseArea`, `TapHandler`, `Button`, or clickable elements to `Minimum.qml` or `Circle.qml`. Clicking the closed notch is strictly reserved by the compositor to expand the notch or cycle pages.
-3. **Use Standardized Components**:
+3. **Use Standardized Components & Strict Zero-Tolerance for Bare `Text {}`**:
    - Do not reinvent search bars, progress bars, buttons, timers, or list rows. Import and compose them from `../components` (`WidgetSearchInput`, `WidgetProgressBar`, `WidgetTimerClock`, etc.).
+   - **No Bare `Text {}` Elements**: Bare Qt Quick `Text {}` elements are strictly forbidden in all widget files. All typography must use `WidgetTextView` (ensuring correct typography roles, consistent font family bindings, contrast tokens, tabular figures, and overflow handling), and all standalone icon glyphs must use `WidgetIconGlyph`. This is strictly checked by `scripts/audit_widgets.py --verify-all` and has zero backwards compatibility.
 4. **Scale Typography Proportional to User Config**:
    - `font.pixelSize: Math.round(14 * root.bodyFontSize / 16.0)`
    - `font.pixelSize: Math.round(18 * root.titleFontSize / 20.0)`
@@ -53,7 +54,7 @@ import "../components"
 | Component | Manifest Tag | Purpose |
 |---|---|---|
 | `WidgetSearchInput` | `"search_bar"` | Search/text input with clear button, active focus outline, and submit handler |
-| `WidgetTextView` | `"text_view"` | Typography field with roles (`"hero"`, `"title"`, `"body"`, `"caption"`, `"metric"`, `"code"`), line limits, and auto-marquee |
+| `WidgetTextView` | `"text_view"` | Typography field with roles (`"hero"`, `"title"`, `"body"`, `"caption"`, `"metric"`, `"code"`), alignments, tabular figures, and auto-marquee |
 | `WidgetTimerClock` | `"timer_clock"` | High-precision timer, clock, stopwatch, and pomodoro with tabular numbers (`tnum: 1`) |
 | `WidgetProgressBar` | `"progress_bar"` | Linear progress bar with smooth cubic animation and indeterminate sweep |
 | `WidgetProgressRing` | `"progress_bar"` | Canvas 2D radial arc and concentric multi-ring progress meter (Activity rings) |

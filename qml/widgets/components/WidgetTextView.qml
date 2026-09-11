@@ -7,11 +7,17 @@ Item {
     property string text: ""
     property string role: "body" // "hero" | "title" | "body" | "caption" | "metric" | "code"
     property string overflowMode: "elide" // "elide" | "marquee" | "wrap" | "clip"
-    property int maximumLineCount: 1
+    property int maximumLineCount: overflowMode === "wrap" ? 0 : 1
     property real marqueeSpeed: 30 // pixels per second
     property color colorOverride: StyleTokens.transparent
     property bool measureOnly: false
     property var widgetContext: null
+    property int horizontalAlignment: Text.AlignLeft
+    property int verticalAlignment: overflowMode === "wrap" ? Text.AlignTop : Text.AlignVCenter
+    property bool tabularFigures: role === "metric" || role === "hero"
+
+    onTextChanged: if (overflowMode === "marquee") marqueeContainer.resetMarquee()
+    onWidthChanged: if (overflowMode === "marquee") marqueeContainer.resetMarquee()
 
     readonly property string iconFont: widgetContext ? widgetContext.iconFontFamily : "monospace"
     readonly property string textFont: widgetContext ? widgetContext.textFontFamily : "sans-serif"
@@ -92,8 +98,10 @@ Item {
         font.pixelSize: root.computedFontSize
         font.weight: root.computedFontWeight
         wrapMode: root.overflowMode === "wrap" ? Text.Wrap : Text.NoWrap
-        width: root.overflowMode === "wrap" ? root.width : undefined
-        font.features: root.role === "metric" || root.role === "hero" ? { "tnum": 1 } : {}
+        width: (root.overflowMode === "wrap" && root.width > 0 && root.width !== root.implicitWidth) ? root.width : undefined
+        maximumLineCount: root.maximumLineCount > 0 ? root.maximumLineCount : (root.overflowMode === "wrap" ? 0 : 1)
+        font.features: root.tabularFigures ? { "tnum": 1 } : {}
+        horizontalAlignment: root.horizontalAlignment
     }
 
     // Standard static text display (elide, wrap, clip)
@@ -106,11 +114,12 @@ Item {
         font.pixelSize: root.computedFontSize
         font.weight: root.computedFontWeight
         color: root.computedColor
-        font.features: root.role === "metric" || root.role === "hero" ? { "tnum": 1 } : {}
+        font.features: root.tabularFigures ? { "tnum": 1 } : {}
         wrapMode: root.overflowMode === "wrap" ? Text.Wrap : Text.NoWrap
-        maximumLineCount: root.overflowMode === "wrap" || root.overflowMode === "elide" ? root.maximumLineCount : 1
+        maximumLineCount: root.maximumLineCount > 0 ? root.maximumLineCount : (root.overflowMode === "wrap" ? 0 : 1)
         elide: root.overflowMode === "elide" ? Text.ElideRight : Text.ElideNone
-        verticalAlignment: Text.AlignVCenter
+        horizontalAlignment: root.horizontalAlignment
+        verticalAlignment: root.verticalAlignment
     }
 
     // Marquee scrolling display
@@ -122,6 +131,14 @@ Item {
 
         readonly property bool needsScroll: probeText.implicitWidth > root.width && root.width > 0
         readonly property real textGap: 28
+
+        function resetMarquee() {
+            marqueeAnim.stop();
+            scrollCanvas.x = 0;
+            if (needsScroll && root.visible) {
+                marqueeAnim.restart();
+            }
+        }
 
         Item {
             id: scrollCanvas
@@ -138,7 +155,7 @@ Item {
                 font.pixelSize: root.computedFontSize
                 font.weight: root.computedFontWeight
                 color: root.computedColor
-                font.features: root.role === "metric" ? { "tnum": 1 } : {}
+                font.features: root.tabularFigures ? { "tnum": 1 } : {}
             }
 
             Text {
@@ -151,16 +168,19 @@ Item {
                 font.pixelSize: root.computedFontSize
                 font.weight: root.computedFontWeight
                 color: root.computedColor
-                font.features: root.role === "metric" ? { "tnum": 1 } : {}
+                font.features: root.tabularFigures ? { "tnum": 1 } : {}
                 visible: marqueeContainer.needsScroll
             }
 
-            SequentialAnimation on x {
+            SequentialAnimation {
+                id: marqueeAnim
                 running: marqueeContainer.needsScroll && root.visible
                 loops: Animation.Infinite
 
                 PauseAnimation { duration: 1200 }
                 NumberAnimation {
+                    target: scrollCanvas
+                    property: "x"
                     from: 0
                     to: -(probeText.implicitWidth + marqueeContainer.textGap)
                     duration: Math.max(1000, (probeText.implicitWidth + marqueeContainer.textGap) / root.marqueeSpeed * 1000)

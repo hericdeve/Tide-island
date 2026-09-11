@@ -52,12 +52,12 @@ Item {
             anchors.verticalCenter: clockSegment.verticalCenter
             spacing: 6
 
-            Text {
+            WidgetTextView {
                 text: "·"
-                font.family: root.widgetContext ? root.widgetContext.textFontFamily : "sans-serif"
-                font.pixelSize: Math.round(13 * (root.widgetContext ? root.widgetContext.bodyFontSize : 16) / 16.0)
-                color: StyleTokens.textMuted
+                role: "body"
+                colorOverride: StyleTokens.textMuted
                 anchors.verticalCenter: parent.verticalCenter
+                widgetContext: root.widgetContext
             }
 
             WidgetTextView {

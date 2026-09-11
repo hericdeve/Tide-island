@@ -5,7 +5,7 @@ import IslandBackend
 Rectangle {
     id: root
 
-    property string text: ""
+    property alias text: inputField.text
     property string placeholder: "Search..."
     property string icon: "󰍉"
     property bool showClearButton: true
@@ -51,7 +51,6 @@ Rectangle {
             id: inputField
             anchors.verticalCenter: parent.verticalCenter
             width: Math.max(0, parent.width - leadIcon.width - (clearBtn.visible ? clearBtn.width : 0) - parent.spacing * 2)
-            text: root.text
             font.family: root.textFont
             font.pixelSize: Math.round(13 * root.bodyFontSize / 16.0)
             color: StyleTokens.textPrimary
@@ -66,12 +65,11 @@ Rectangle {
                 text: root.placeholder
                 font: inputField.font
                 color: StyleTokens.textTertiary
-                visible: inputField.text.length === 0 && !inputField.activeFocus
+                visible: inputField.text.length === 0
                 elide: Text.ElideRight
             }
 
             onTextEdited: {
-                root.text = inputField.text;
                 root.textEdited(inputField.text);
             }
 
@@ -107,7 +105,6 @@ Rectangle {
                 cursorShape: Qt.PointingHandCursor
                 onClicked: {
                     inputField.text = "";
-                    root.text = "";
                     root.cleared();
                     root.textEdited("");
                 }

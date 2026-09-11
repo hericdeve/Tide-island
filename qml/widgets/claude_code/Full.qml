@@ -19,24 +19,24 @@ Item {
     readonly property bool isWaitingConsent: state === "waiting_consent" || (ClaudeCodeBackend.pendingConsentId !== "")
 
     // Off-screen measuring items to determine wrapped content height
-    Text {
+    WidgetTextView {
         id: bannerTextMeasure
-        visible: false
+        measureOnly: true
         width: Math.max(120, (root.width > 0 ? root.width : 600) - (root.state === "error" ? 56 : 36))
-        font.family: root.textFontFamily
-        font.pixelSize: Math.round(13 * root.bodyFontSize / 16.0)
-        wrapMode: Text.Wrap
+        role: "body"
+        overflowMode: "wrap"
         text: ClaudeCodeBackend.toolDetail || ClaudeCodeBackend.lastMessage || ""
+        widgetContext: root.widgetContext
     }
 
-    Text {
+    WidgetTextView {
         id: consentTextMeasure
-        visible: false
+        measureOnly: true
         width: Math.max(120, (root.width > 0 ? root.width : 600) - 40)
-        font.family: "Monospace"
-        font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
-        wrapMode: Text.WrapAnywhere
+        role: "code"
+        overflowMode: "wrap"
         text: ClaudeCodeBackend.pendingConsentDetail || ClaudeCodeBackend.toolDetail || ""
+        widgetContext: root.widgetContext
     }
 
     readonly property real baseSlotHeight: Math.max(120, (UserConfig.notchOpenHeight || 190) - 52)
@@ -119,32 +119,31 @@ Item {
                     height: 22
                     radius: 11
                     color: "#33f59e0b"
-                    Text {
+                    WidgetIconGlyph {
                         anchors.centerIn: parent
-                        text: "󰀦"
-                        font.family: root.iconFontFamily
-                        font.pixelSize: Math.round(13 * root.iconFontSize / 18.0)
+                        glyph: "󰀦"
+                        size: 13
                         color: "#f59e0b"
+                        widgetContext: root.widgetContext
                     }
                 }
 
                 Column {
                     anchors.verticalCenter: parent.verticalCenter
                     width: parent.width - 28
-                    Text {
+                    WidgetTextView {
                         text: "Action Permission"
-                        font.family: root.textFontFamily
-                        font.pixelSize: Math.round(11 * root.bodyFontSize / 16.0)
-                        font.weight: Font.DemiBold
-                        color: StyleTokens.textPrimary
+                        role: "caption"
+                        colorOverride: StyleTokens.textPrimary
+                        widgetContext: root.widgetContext
                     }
-                    Text {
+                    WidgetTextView {
                         text: "Tool: " + (ClaudeCodeBackend.pendingConsentTool || ClaudeCodeBackend.currentTool || "Action")
-                        font.family: root.textFontFamily
-                        font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
-                        color: "#d1d5db"
-                        elide: Text.ElideRight
+                        role: "caption"
+                        colorOverride: "#d1d5db"
+                        overflowMode: "elide"
                         width: parent.width
+                        widgetContext: root.widgetContext
                     }
                 }
             }
@@ -212,14 +211,14 @@ Item {
                     contentHeight: detailText.height
                     boundsBehavior: Flickable.StopAtBounds
 
-                    Text {
+                    WidgetTextView {
                         id: detailText
                         text: ClaudeCodeBackend.pendingConsentDetail || ClaudeCodeBackend.toolDetail || "Execute command"
-                        font.family: "Monospace"
-                        font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
-                        color: "#93c5fd"
-                        wrapMode: Text.WrapAnywhere
+                        role: "code"
+                        overflowMode: "wrap"
+                        colorOverride: "#93c5fd"
                         width: Math.max(10, consentFlickable.width - 12)
+                        widgetContext: root.widgetContext
                     }
                 }
             }
@@ -249,12 +248,12 @@ Item {
                         radius: 12
                         color: "#27272a"
 
-                        Text {
+                        WidgetIconGlyph {
                             anchors.centerIn: parent
-                            text: "󰚩"
-                            font.family: root.iconFontFamily
-                            font.pixelSize: Math.round(13 * root.iconFontSize / 18.0)
+                            glyph: "󰚩"
+                            size: 13
                             color: root.stateColor()
+                            widgetContext: root.widgetContext
                         }
 
                         // Pulsing ambient ring when active
@@ -291,14 +290,12 @@ Item {
 
                         Row {
                             spacing: 4
-                            Text {
+                            WidgetTextView {
                                 text: ClaudeCodeBackend.projectName || "Claude Code"
-                                font.family: root.textFontFamily
-                                font.pixelSize: Math.round(11 * root.bodyFontSize / 16.0)
-                                font.weight: Font.Bold
-                                color: StyleTokens.textPrimary
-                                elide: Text.ElideRight
-                                maximumLineCount: 1
+                                role: "caption"
+                                colorOverride: StyleTokens.textPrimary
+                                overflowMode: "elide"
+                                widgetContext: root.widgetContext
                             }
                             // Branch tag
                             Rectangle {
@@ -311,29 +308,29 @@ Item {
                                     id: branchLabel
                                     anchors.centerIn: parent
                                     spacing: 3
-                                    Text {
-                                        text: "󰘬"
-                                        font.family: root.iconFontFamily
-                                        font.pixelSize: Math.round(8 * root.iconFontSize / 18.0)
+                                    WidgetIconGlyph {
+                                        glyph: "󰘬"
+                                        size: 8
                                         color: "#9ca3af"
+                                        widgetContext: root.widgetContext
                                     }
-                                    Text {
+                                    WidgetTextView {
                                         text: ClaudeCodeBackend.gitBranch
-                                        font.family: root.textFontFamily
-                                        font.pixelSize: Math.round(9 * root.bodyFontSize / 16.0)
-                                        color: "#d1d5db"
+                                        role: "caption"
+                                        colorOverride: "#d1d5db"
+                                        widgetContext: root.widgetContext
                                     }
                                 }
                             }
                         }
 
-                        Text {
+                        WidgetTextView {
                             text: root.stateText() + (ClaudeCodeBackend.currentTool ? " (" + ClaudeCodeBackend.currentTool + ")" : "")
-                            font.family: root.textFontFamily
-                            font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
-                            color: root.stateColor()
-                            elide: Text.ElideRight
+                            role: "caption"
+                            colorOverride: root.stateColor()
+                            overflowMode: "elide"
                             width: parent.width
+                            widgetContext: root.widgetContext
                         }
                     }
 
@@ -366,22 +363,21 @@ Item {
                                 anchors.centerIn: parent
                                 spacing: 4
 
-                                Text {
+                                WidgetIconGlyph {
                                     anchors.verticalCenter: parent.verticalCenter
-                                    text: minModeBtn.showsLastMsg ? "󰍡" : "󰚩"
-                                    font.family: root.iconFontFamily
-                                    font.pixelSize: Math.round(10 * root.iconFontSize / 18.0)
+                                    glyph: minModeBtn.showsLastMsg ? "󰍡" : "󰚩"
+                                    size: 10
                                     color: minModeBtn.showsLastMsg ? "#ffffff" : "#9ca3af"
+                                    widgetContext: root.widgetContext
                                 }
 
-                                Text {
+                                WidgetTextView {
                                     visible: !minModeBtn.compact
                                     anchors.verticalCenter: parent.verticalCenter
                                     text: minModeBtn.showsLastMsg ? "Min: Last Msg" : "Min: Status"
-                                    font.family: root.textFontFamily
-                                    font.pixelSize: Math.round(9 * root.bodyFontSize / 16.0)
-                                    font.weight: minModeBtn.showsLastMsg ? Font.DemiBold : Font.Normal
-                                    color: minModeBtn.showsLastMsg ? "#ffffff" : "#d1d5db"
+                                    role: "caption"
+                                    colorOverride: minModeBtn.showsLastMsg ? "#ffffff" : "#d1d5db"
+                                    widgetContext: root.widgetContext
                                 }
                             }
 
@@ -404,12 +400,12 @@ Item {
                             height: 20
                             radius: StyleTokens.radiusButton
                             color: demoBtnMouse.containsMouse ? "#3f3f46" : "#27272a"
-                            Text {
+                            WidgetIconGlyph {
                                 anchors.centerIn: parent
-                                text: "󰍉"
-                                font.family: root.iconFontFamily
-                                font.pixelSize: Math.round(10 * root.iconFontSize / 18.0)
+                                glyph: "󰍉"
+                                size: 10
                                 color: ClaudeCodeBackend.demoMode ? "#a855f7" : "#9ca3af"
+                                widgetContext: root.widgetContext
                             }
                             MouseArea {
                                 id: demoBtnMouse
@@ -437,12 +433,12 @@ Item {
                             height: 20
                             radius: StyleTokens.radiusButton
                             color: termBtnMouse.containsMouse ? "#3f3f46" : "#27272a"
-                            Text {
+                            WidgetIconGlyph {
                                 anchors.centerIn: parent
-                                text: "󰆍"
-                                font.family: root.iconFontFamily
-                                font.pixelSize: Math.round(10 * root.iconFontSize / 18.0)
+                                glyph: "󰆍"
+                                size: 10
                                 color: "#e4e4e7"
+                                widgetContext: root.widgetContext
                             }
                             MouseArea {
                                 id: termBtnMouse
@@ -474,13 +470,13 @@ Item {
                         anchors.margins: 4
                         spacing: 5
 
-                        Text {
+                        WidgetIconGlyph {
                             anchors.top: parent.top
                             anchors.topMargin: 2
-                            text: (root.state === "thinking") ? "󰑣" : ((root.state === "running_tool") ? "󰞷" : ((root.state === "error") ? "󰅚" : "󰋼"))
-                            font.family: root.iconFontFamily
-                            font.pixelSize: Math.round(11 * root.iconFontSize / 18.0)
+                            glyph: (root.state === "thinking") ? "󰑣" : ((root.state === "running_tool") ? "󰞷" : ((root.state === "error") ? "󰅚" : "󰋼"))
+                            size: 11
                             color: root.stateColor()
+                            widgetContext: root.widgetContext
 
                             RotationAnimation on rotation {
                                 running: root.state === "thinking"
@@ -489,16 +485,15 @@ Item {
                             }
                         }
 
-                        Text {
+                        WidgetTextView {
                             id: bannerText
                             anchors.verticalCenter: parent.verticalCenter
                             width: parent.width - 24 - (dismissErrorBtn.visible ? 20 : 0)
                             text: ClaudeCodeBackend.toolDetail || ClaudeCodeBackend.lastMessage || "Ready to assist"
-                            font.family: root.textFontFamily
-                            font.pixelSize: Math.round(13 * root.bodyFontSize / 16.0)
-                            color: root.state === "error" ? "#fca5a5" : "#e4e4e7"
-                            wrapMode: Text.Wrap
-                            elide: Text.ElideRight
+                            role: "body"
+                            overflowMode: "wrap"
+                            colorOverride: root.state === "error" ? "#fca5a5" : "#e4e4e7"
+                            widgetContext: root.widgetContext
                         }
 
                         Item {
@@ -508,12 +503,12 @@ Item {
                             width: 16
                             height: 16
 
-                            Text {
+                            WidgetIconGlyph {
                                 anchors.centerIn: parent
-                                text: "󰅖"
-                                font.family: root.iconFontFamily
-                                font.pixelSize: Math.round(10 * root.iconFontSize / 18.0)
+                                glyph: "󰅖"
+                                size: 10
                                 color: dismissMouse.containsMouse ? "#ffffff" : "#ef4444"
+                                widgetContext: root.widgetContext
                             }
 
                             MouseArea {
@@ -538,19 +533,21 @@ Item {
 
                     Row {
                         width: parent.width
-                        Text {
+                        WidgetTextView {
                             text: Math.round(ClaudeCodeBackend.contextUsagePercent * 100) + "% Context"
-                            font.family: root.textFontFamily
-                            font.pixelSize: Math.round(9 * root.bodyFontSize / 16.0)
-                            color: "#9ca3af"
+                            role: "caption"
+                            tabularFigures: true
+                            colorOverride: "#9ca3af"
+                            widgetContext: root.widgetContext
                         }
-                        Item { width: parent.width - costLabel.implicitWidth - 70; height: 1 }
-                        Text {
+                        Item { width: Math.max(0, parent.width - costLabel.width - 70); height: 1 }
+                        WidgetTextView {
                             id: costLabel
                             text: "$" + ClaudeCodeBackend.estimatedCost.toFixed(2) + " · " + (ClaudeCodeBackend.modelName || "Claude")
-                            font.family: root.textFontFamily
-                            font.pixelSize: Math.round(9 * root.bodyFontSize / 16.0)
-                            color: "#9ca3af"
+                            role: "caption"
+                            tabularFigures: true
+                            colorOverride: "#9ca3af"
+                            widgetContext: root.widgetContext
                         }
                     }
 

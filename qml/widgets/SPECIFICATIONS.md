@@ -38,6 +38,9 @@ Tide Island widgets are modular QML components rendered within notch slots of th
 7. **Auditable Metadata**:
    Every widget declares its element tags in `manifest.json` under `"elements": [...]` to enable repository-wide indexing via `scripts/audit_widgets.py`.
 
+8. **Zero-Tolerance Prohibition of Bare `Text {}`**:
+   Direct instantiation of Qt Quick `Text {}` inside widget QML files is strictly forbidden. All typography must use `WidgetTextView` (ensuring standardized typography roles, consistent font family bindings, contrast tokens, tabular figures, and overflow handling), and all standalone icon glyphs must use `WidgetIconGlyph`. This rule is enforced across the entire repository by `scripts/audit_widgets.py --verify-all` with zero backwards-compatibility exemptions.
+
 ---
 
 ## 2. Standardized Element Taxonomy & Component Catalog
@@ -54,8 +57,8 @@ import "../components"
 - **Properties**:
   | Property | Type | Default | Description |
   |---|---|---|---|
-  | `text` | `string` | `""` | Input text (read/write) |
-  | `placeholder` | `string` | `"Search..."` | Placeholder text when empty |
+  | `text` | `string (alias)` | `""` | Two-way reactive input text (aliased directly to `TextInput.text`) |
+  | `placeholder` | `string` | `"Search..."` | Placeholder text when empty (remains visible on focus until characters are typed) |
   | `icon` | `string` | `"󰍉"` | Leading search glyph |
   | `showClearButton` | `bool` | `true` | Shows trailing clear icon when text is entered |
   | `inputHeight` | `real` | `32` | Standard height (28px compact, 32px standard) |
@@ -80,14 +83,17 @@ import "../components"
 ### Element 2: Text View Field (`WidgetTextView.qml`)
 - **Component**: `WidgetTextView`
 - **Manifest Tag**: `"text_view"`
-- **Role**: Typography component with predefined hierarchy roles, line limits, and automatic marquee scrolling on overflow.
+- **Role**: Typography component with predefined hierarchy roles, line limits, alignment controls, tabular figures, and automatic marquee scrolling on overflow.
 - **Properties**:
   | Property | Type | Default | Description |
   |---|---|---|---|
   | `text` | `string` | `""` | Rendered string |
   | `role` | `string` | `"body"` | `"hero"`, `"title"`, `"body"`, `"caption"`, `"metric"`, `"code"` |
   | `overflowMode` | `string` | `"elide"` | `"elide"`, `"marquee"`, `"wrap"`, `"clip"` |
-  | `maximumLineCount`| `int` | `1` | Max visible lines when wrap or elide is active |
+  | `maximumLineCount`| `int` | `overflowMode === "wrap" ? 0 : 1` | Max visible lines (`0` = unlimited lines when wrapping; `1` in elide/clip/marquee) |
+  | `horizontalAlignment` | `int` | `Text.AlignLeft` | Horizontal alignment (`Text.AlignLeft`, `Text.AlignHCenter`, `Text.AlignRight`, `Text.AlignJustify`) |
+  | `verticalAlignment` | `int` | `overflowMode === "wrap" ? Text.AlignTop : Text.AlignVCenter` | Vertical alignment (`Text.AlignTop`, `Text.AlignVCenter`, `Text.AlignBottom`) |
+  | `tabularFigures` | `bool` | `role === "metric" \|\| role === "hero"` | OpenType tabular figures (`tnum: 1`) to eliminate character jitter during number updates |
   | `marqueeSpeed` | `real` | `30` | Scrolling speed in pixels/second |
   | `colorOverride` | `color` | `transparent` | Custom color override |
   | `measureOnly` | `bool` | `false` | Used for calculating off-screen geometry |
@@ -99,10 +105,16 @@ import "../components"
   - `"caption"`: 11px regular captions, uses `StyleTokens.textTertiary`.
   - `"metric"`: 15px bold tabular figures (`tnum: 1`), uses `StyleTokens.textPrimaryBright`.
   - `"code"`: 11px monospace code, uses `iconFontFamily` and `StyleTokens.textSoft`.
+- **Marquee Scrolling Behavior**:
+  - Automatically activates when `overflowMode === "marquee"` and text width exceeds container width (`root.width > 0`).
+  - Seamless ticker reset: When `text` or container `width` updates dynamically, the marquee animation automatically pauses, resets its position to `x = 0`, and recalculates its travel distance and loop timing cleanly without jumping or desynchronizing.
+- **Tabular Figures (`tabularFigures`)**:
+  - Enabled by default for `"metric"` and `"hero"` roles.
+  - Can be explicitly enabled on any role (e.g. `role: "body", tabularFigures: true`) when presenting dynamic numbers, timestamps, or counters to prevent layout jiggle.
 - **Measurement Helpers & Multi-Line Expansion**:
   - `measuredWidth`: Exposes natural unclipped text width.
   - `measuredHeight`: Exposes wrapped text height for dynamic notch expansion.
-  - **Showing All Text Lines Dynamically**: When a text field (such as a consent message, transcript, note body, or multi-line status) needs to display all its lines without truncation, set `overflowMode: "wrap"` and bind `width` to the container width. The internal probe automatically computes the exact wrapped height (`measuredHeight`). The widget then reports `requestedContentHeight: baseSlotHeight + Math.max(0, textView.measuredHeight - restingTextHeight)`, prompting the Dynamic Island to smoothly expand its vertical dimension so every line is visible without scrollbars, clipping, or breaking padding bounds.
+  - **Showing All Text Lines Dynamically**: When a text field (such as a consent message, transcript, note body, or multi-line status) needs to display all its lines without truncation, set `overflowMode: "wrap"` (which defaults `maximumLineCount` to 0) and bind `width` to the container width. The internal probe automatically computes the exact wrapped height (`measuredHeight`). The widget then reports `requestedContentHeight: baseSlotHeight + Math.max(0, textView.measuredHeight - restingTextHeight)`, prompting the Dynamic Island to smoothly expand its vertical dimension so every line is visible without scrollbars, clipping, or breaking padding bounds.
 
 ---
 

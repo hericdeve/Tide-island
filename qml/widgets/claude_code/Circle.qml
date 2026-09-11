@@ -14,10 +14,6 @@ Item {
     readonly property int iconFontSize: widgetContext ? widgetContext.iconFontSize : 18
     readonly property real scrollSpeed: widgetContext ? widgetContext.claudeCodeScrollSpeed : 17
 
-    onScrollSpeedChanged: {
-        pillScrollAnimation.restart();
-    }
-
     readonly property string state: ClaudeCodeBackend.sessionState
     readonly property bool isWaitingConsent: state === "waiting_consent" || (ClaudeCodeBackend.pendingConsentId !== "")
     readonly property real contextPercent: Math.max(0.0, Math.min(1.0, ClaudeCodeBackend.contextUsagePercent))
@@ -166,12 +162,12 @@ Item {
             anchors.centerIn: parent
             spacing: 0
 
-            Text {
+            WidgetIconGlyph {
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: root.isWaitingConsent ? "󰀦" : ((root.state === "running_tool") ? "󰞷" : "󰚩")
-                font.family: root.iconFontFamily
-                font.pixelSize: Math.round((root.isPillMode ? 10 : 13) * root.iconFontSize / 18.0)
+                glyph: root.isWaitingConsent ? "󰀦" : ((root.state === "running_tool") ? "󰞷" : "󰚩")
+                size: root.isPillMode ? 10 : 13
                 color: root.stateColor()
+                widgetContext: root.widgetContext
 
                 // Pulsing animation if waiting consent
                 SequentialAnimation on opacity {
@@ -182,94 +178,34 @@ Item {
                 }
             }
 
-            Text {
+            WidgetTextView {
                 visible: !root.isPillMode
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: Math.round(root.contextPercent * 100) + "%"
-                font.family: root.textFontFamily
-                font.pixelSize: Math.round(8 * root.bodyFontSize / 16.0)
-                font.weight: Font.DemiBold
-                color: StyleTokens.textSecondary
+                role: "caption"
+                tabularFigures: true
+                colorOverride: StyleTokens.textSecondary
+                widgetContext: root.widgetContext
             }
         }
     }
 
     // Side Status Label in Pill Mode
-    Flickable {
-        id: pillStatusViewport
+    WidgetTextView {
+        id: pillStatusTextView
         anchors.left: complicationContainer.right
         anchors.leftMargin: 6
         anchors.right: parent.right
         anchors.rightMargin: 8
         anchors.verticalCenter: parent.verticalCenter
-        height: pillStatusText.implicitHeight
-        clip: true
-        interactive: false
-        contentWidth: pillScrollAnimation.running
-            ? (pillStatusText.implicitWidth * 2 + textSpacing)
-            : pillStatusText.implicitWidth
-        contentHeight: height
+        text: root.displayStatusText()
+        role: "caption"
+        overflowMode: "marquee"
+        marqueeSpeed: root.scrollSpeed
+        colorOverride: root.isWaitingConsent ? StyleTokens.warning : (root.state === "error" ? StyleTokens.danger : StyleTokens.textPrimary)
+        widgetContext: root.widgetContext
         opacity: root.isPillMode ? 1.0 : 0.0
         visible: opacity > 0.001
-
-        readonly property int textSpacing: Math.round(3.0 * root.bodyFontSize)
-
-        onWidthChanged: {
-            contentX = 0;
-            pillScrollAnimation.restart();
-        }
-
-        Text {
-            id: pillStatusText
-            x: 0
-            width: implicitWidth
-            anchors.verticalCenter: parent.verticalCenter
-            text: root.displayStatusText()
-            font.family: root.textFontFamily
-            font.pixelSize: Math.round(11 * root.bodyFontSize / 16.0)
-            font.weight: Font.Medium
-            color: root.isWaitingConsent ? StyleTokens.warning : (root.state === "error" ? StyleTokens.danger : StyleTokens.textPrimary)
-
-            onImplicitWidthChanged: {
-                pillStatusViewport.contentX = 0;
-                pillScrollAnimation.restart();
-            }
-            onTextChanged: {
-                pillStatusViewport.contentX = 0;
-                pillScrollAnimation.restart();
-            }
-        }
-
-        Text {
-            id: pillStatusTextDuplicate
-            x: pillStatusText.implicitWidth + pillStatusViewport.textSpacing
-            width: implicitWidth
-            anchors.verticalCenter: parent.verticalCenter
-            visible: pillScrollAnimation.running
-            text: pillStatusText.text
-            font.family: pillStatusText.font.family
-            font.pixelSize: pillStatusText.font.pixelSize
-            font.weight: pillStatusText.font.weight
-            color: pillStatusText.color
-        }
-
-        NumberAnimation {
-            id: pillScrollAnimation
-            target: pillStatusViewport
-            property: "contentX"
-            from: 0
-            to: pillStatusText.implicitWidth + pillStatusViewport.textSpacing
-            duration: Math.max(1, (pillStatusText.implicitWidth + pillStatusViewport.textSpacing) / Math.max(1, root.scrollSpeed) * 1000)
-            running: root.isPillMode && pillStatusText.implicitWidth > pillStatusViewport.width
-            loops: Animation.Infinite
-            easing.type: Easing.Linear
-
-            onRunningChanged: {
-                if (!running) {
-                    pillStatusViewport.contentX = 0;
-                }
-            }
-        }
 
         Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.InOutQuad } }
     }

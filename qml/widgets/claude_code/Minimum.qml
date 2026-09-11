@@ -15,10 +15,6 @@ Item {
     readonly property int iconFontSize: widgetContext ? widgetContext.iconFontSize : 18
     readonly property real scrollSpeed: widgetContext ? widgetContext.claudeCodeScrollSpeed : 17
 
-    onScrollSpeedChanged: {
-        statusScrollAnimation.restart();
-    }
-
     readonly property string state: ClaudeCodeBackend.sessionState
     readonly property bool isWaitingConsent: state === "waiting_consent" || (ClaudeCodeBackend.pendingConsentId !== "")
     readonly property bool showsLastMessage: UserConfig.claudeMinimumShowsLastMessage || ClaudeCodeBackend.minimumShowsLastMessage
@@ -69,7 +65,7 @@ Item {
         return root.displayText;
     }
 
-    readonly property real naturalContentWidth: 16 + 7 + statusTextContent.implicitWidth + 24
+    readonly property real naturalContentWidth: 16 + 7 + statusTextView.measuredWidth + 24
     readonly property real requestedContentWidth: naturalContentWidth
     readonly property real requestedContentHeight: 0
 
@@ -122,76 +118,16 @@ Item {
         }
 
         // Status text
-        Flickable {
-            id: statusViewport
-            readonly property int textSpacing: Math.round(3.0 * root.bodyFontSize)
+        WidgetTextView {
+            id: statusTextView
             anchors.verticalCenter: parent.verticalCenter
-            width: Math.min(statusTextContent.implicitWidth, Math.max(0, root.width - statusDot.width - contentRow.spacing - 12))
-            height: statusTextContent.implicitHeight
-            clip: true
-            interactive: false
-            contentWidth: statusScrollAnimation.running
-                ? (statusTextContent.implicitWidth * 2 + textSpacing)
-                : statusTextContent.implicitWidth
-            contentHeight: height
-            opacity: 1.0
-
-            onWidthChanged: {
-                contentX = 0;
-                statusScrollAnimation.restart();
-            }
-
-            Text {
-                id: statusTextContent
-                x: 0
-                width: implicitWidth
-                anchors.verticalCenter: parent.verticalCenter
-                text: root.displayText
-                font.family: root.textFontFamily
-                font.pixelSize: Math.round(14 * root.bodyFontSize / 16.0)
-                font.weight: root.isWaitingConsent ? Font.Bold : Font.DemiBold
-                color: root.isWaitingConsent ? StyleTokens.warning : (root.state === "error" ? StyleTokens.danger : StyleTokens.textPrimary)
-
-                onImplicitWidthChanged: {
-                    statusViewport.contentX = 0;
-                    statusScrollAnimation.restart();
-                }
-                onTextChanged: {
-                    statusViewport.contentX = 0;
-                    statusScrollAnimation.restart();
-                }
-            }
-
-            Text {
-                id: statusTextDuplicate
-                x: statusTextContent.implicitWidth + statusViewport.textSpacing
-                width: implicitWidth
-                anchors.verticalCenter: parent.verticalCenter
-                visible: statusScrollAnimation.running
-                text: statusTextContent.text
-                font.family: statusTextContent.font.family
-                font.pixelSize: statusTextContent.font.pixelSize
-                font.weight: statusTextContent.font.weight
-                color: statusTextContent.color
-            }
-
-            NumberAnimation {
-                id: statusScrollAnimation
-                target: statusViewport
-                property: "contentX"
-                from: 0
-                to: statusTextContent.implicitWidth + statusViewport.textSpacing
-                duration: Math.max(1, (statusTextContent.implicitWidth + statusViewport.textSpacing) / Math.max(1, root.scrollSpeed) * 1000)
-                running: statusTextContent.implicitWidth > statusViewport.width
-                loops: Animation.Infinite
-                easing.type: Easing.Linear
-
-                onRunningChanged: {
-                    if (!running) {
-                        statusViewport.contentX = 0;
-                    }
-                }
-            }
+            width: Math.min(measuredWidth, Math.max(0, root.width - statusDot.width - contentRow.spacing - 12))
+            text: root.displayText
+            role: "body"
+            overflowMode: "marquee"
+            marqueeSpeed: root.scrollSpeed
+            colorOverride: root.isWaitingConsent ? StyleTokens.warning : (root.state === "error" ? StyleTokens.danger : StyleTokens.textPrimary)
+            widgetContext: root.widgetContext
         }
     }
 }
