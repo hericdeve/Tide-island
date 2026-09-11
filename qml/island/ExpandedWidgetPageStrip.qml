@@ -14,6 +14,15 @@ Item {
     property int hoveredSlotIndex: -1
     property bool isDraggingWidget: false
 
+    function updateExternalDropPoint(point) {
+        if (fileShelfItem)
+            fileShelfItem.updateExternalDropPoint(point);
+    }
+
+    function routeExternalDrop(dropEvent, point) {
+        return fileShelfItem ? fileShelfItem.routeExternalDrop(dropEvent, point) : false;
+    }
+
     // Shelf integration properties
     property bool showCondition: false
     property string iconFontFamily: ""
@@ -30,6 +39,7 @@ Item {
     signal spanChangeRequested(int pageIndex, int slotIndex, int newSpan)
     signal setSlotsRequested(int pageIndex, int newSlotCount)
     signal deletePageRequested(int pageIndex)
+    signal movePageRequested(int fromIndex, int toIndex)
 
     readonly property int widgetPageCount: pages ? Math.max(1, pages.length) : 1
     // Page 0 is the File Shelf, Pages 1..widgetPageCount are widget pages
@@ -269,6 +279,7 @@ Item {
                 id: slotGrid
                 anchors.fill: parent
                 pageIndex: pageWrapper.widgetIndex
+                totalPages: root.widgetPageCount
                 pageData: (root.pages && root.pages[pageWrapper.widgetIndex]) ? root.pages[pageWrapper.widgetIndex] : null
                 isEditMode: root.isEditMode
                 cameraMirrorActive: root.cameraMirrorActive && (pageWrapper.pIdx === root.currentPage)
@@ -281,6 +292,7 @@ Item {
                 onSpanChangeRequested: (pI, sI, nS) => root.spanChangeRequested(pI, sI, nS)
                 onSetSlotsRequested: (pI, sC) => root.setSlotsRequested(pI, sC)
                 onDeletePageRequested: (pI) => root.deletePageRequested(pI)
+                onMovePageRequested: (fI, tI) => root.movePageRequested(fI, tI)
 
                 Connections {
                     target: slotGrid

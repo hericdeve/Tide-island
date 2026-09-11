@@ -66,6 +66,9 @@ class UserConfigBackend final : public QObject {
     Q_PROPERTY(int notchOpenHeight READ notchOpenHeight NOTIFY notchOpenHeightChanged FINAL)
     Q_PROPERTY(int notchTopCornerRadius READ notchTopCornerRadius NOTIFY notchTopCornerRadiusChanged FINAL)
     Q_PROPERTY(int notchBottomCornerRadius READ notchBottomCornerRadius NOTIFY notchBottomCornerRadiusChanged FINAL)
+    Q_PROPERTY(int notchClosedPaddingHorizontal READ notchClosedPaddingHorizontal NOTIFY notchClosedPaddingHorizontalChanged FINAL)
+    Q_PROPERTY(int notchExpandedPaddingHorizontal READ notchExpandedPaddingHorizontal NOTIFY notchExpandedPaddingHorizontalChanged FINAL)
+    Q_PROPERTY(int notchExpandedPaddingVertical READ notchExpandedPaddingVertical NOTIFY notchExpandedPaddingVerticalChanged FINAL)
     Q_PROPERTY(int notchHoverOpenDelayMs READ notchHoverOpenDelayMs NOTIFY notchHoverOpenDelayMsChanged FINAL)
     Q_PROPERTY(int notchHoverCloseDelayMs READ notchHoverCloseDelayMs NOTIFY notchHoverCloseDelayMsChanged FINAL)
     Q_PROPERTY(bool mediaLightingEffectEnabled READ mediaLightingEffectEnabled NOTIFY mediaLightingEffectEnabledChanged FINAL)
@@ -188,6 +191,9 @@ public:
     int notchOpenHeight() const;
     int notchTopCornerRadius() const;
     int notchBottomCornerRadius() const;
+    int notchClosedPaddingHorizontal() const;
+    int notchExpandedPaddingHorizontal() const;
+    int notchExpandedPaddingVertical() const;
     int notchHoverOpenDelayMs() const;
     int notchHoverCloseDelayMs() const;
     bool mediaLightingEffectEnabled() const;
@@ -214,6 +220,7 @@ public:
     Q_INVOKABLE void setWidgetLayouts(const QJsonObject &layouts);
     Q_INVOKABLE void addPage(const QString &mode, const QString &title = QString(), int slotCount = 1);
     Q_INVOKABLE void removePage(const QString &mode, int pageIndex);
+    Q_INVOKABLE void movePage(const QString &mode, int fromIndex, int toIndex);
     Q_INVOKABLE void setPageSlots(const QString &mode, int pageIndex, int slotCount);
     Q_INVOKABLE void setSlotWidget(const QString &mode, int pageIndex, int slotIndex, const QString &widgetId, int slotSpan = 1);
     Q_INVOKABLE void removeSlotWidget(const QString &mode, int pageIndex, int slotIndex);
@@ -283,6 +290,9 @@ signals:
     void notchOpenHeightChanged();
     void notchTopCornerRadiusChanged();
     void notchBottomCornerRadiusChanged();
+    void notchClosedPaddingHorizontalChanged();
+    void notchExpandedPaddingHorizontalChanged();
+    void notchExpandedPaddingVerticalChanged();
     void notchHoverOpenDelayMsChanged();
     void notchHoverCloseDelayMsChanged();
     void mediaLightingEffectEnabledChanged();
@@ -366,6 +376,9 @@ private:
     int m_notchOpenHeight = 190;
     int m_notchTopCornerRadius = 6;
     int m_notchBottomCornerRadius = 14;
+    int m_notchClosedPaddingHorizontal = 12;
+    int m_notchExpandedPaddingHorizontal = 8;
+    int m_notchExpandedPaddingVertical = 6;
     int m_notchHoverOpenDelayMs = 300;
     int m_notchHoverCloseDelayMs = 100;
     bool m_mediaLightingEffectEnabled = true;

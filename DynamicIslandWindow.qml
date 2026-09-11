@@ -3802,14 +3802,63 @@ PanelWindow {
                     if (!islandContainer.expandedLayerVisible || (expandedPlayerLoader.item && expandedPlayerLoader.item.currentPage !== 0))
                         islandContainer.showExpandedPlayer(false, 0);
                     root.showAutoHiddenIsland("state");
+
+                    const expanded = expandedPlayerLoader.item;
+                    const shelf = fileShelfLoader.item;
+                    if (expanded && expanded.currentPage === 0) {
+                        const expandedPoint = islandFileDropArea.mapToItem(expanded, drag.x, drag.y);
+                        expanded.updateExternalDropPoint(expandedPoint);
+                    } else if (shelf) {
+                        const shelfPoint = islandFileDropArea.mapToItem(shelf, drag.x, drag.y);
+                        shelf.updateExternalDropPoint(shelfPoint);
+                    }
                 }
 
-                onExited: islandContainer.closeAutoOpenedFileShelf()
+                onPositionChanged: drag => {
+                    const expanded = expandedPlayerLoader.item;
+                    const shelf = fileShelfLoader.item;
+                    if (expanded && expanded.currentPage === 0) {
+                        const expandedPoint = islandFileDropArea.mapToItem(expanded, drag.x, drag.y);
+                        expanded.updateExternalDropPoint(expandedPoint);
+                    } else if (shelf) {
+                        const shelfPoint = islandFileDropArea.mapToItem(shelf, drag.x, drag.y);
+                        shelf.updateExternalDropPoint(shelfPoint);
+                    }
+                }
+
+                onExited: {
+                    const expanded = expandedPlayerLoader.item;
+                    const shelf = fileShelfLoader.item;
+                    if (expanded)
+                        expanded.updateExternalDropPoint(null);
+                    if (shelf)
+                        shelf.updateExternalDropPoint(null);
+                    islandContainer.closeAutoOpenedFileShelf();
+                }
 
                 onDropped: drop => {
                     if (!root.dragCarriesFiles(drop)) {
                         drop.accepted = false;
                         return;
+                    }
+
+                    const expanded = expandedPlayerLoader.item;
+                    const shelf = fileShelfLoader.item;
+                    if (expanded && expanded.currentPage === 0) {
+                        const expandedPoint = islandFileDropArea.mapToItem(expanded, drop.x, drop.y);
+                        expanded.updateExternalDropPoint(expandedPoint);
+                        if (expanded.routeExternalDrop(drop, expandedPoint)) {
+                            drop.accept(Qt.CopyAction);
+                            // Do not close shelf immediately so user can see LocalSend devices and transfer status
+                            return;
+                        }
+                    } else if (shelf) {
+                        const shelfPoint = islandFileDropArea.mapToItem(shelf, drop.x, drop.y);
+                        shelf.updateExternalDropPoint(shelfPoint);
+                        if (shelf.routeExternalDrop(drop, shelfPoint)) {
+                            drop.accept(Qt.CopyAction);
+                            return;
+                        }
                     }
 
                     root.addFilesFromDrop(drop);
@@ -3822,10 +3871,9 @@ PanelWindow {
                 z: 9999
                 anchors.fill: parent
                 radius: mainCapsule.radius
-                color: StyleTokens.clearBlack
-                border.width: islandFileDropArea.containsDrag ? 2 : 0
-                border.color: StyleTokens.accent
-                visible: islandFileDropArea.containsDrag
+                color: StyleTokens.transparent
+                border.width: 0
+                visible: false
             }
 
             Loader {

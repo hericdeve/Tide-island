@@ -343,6 +343,19 @@ PagePanel {
                         maximumValue: 160
                         width: parent.width
                     }
+
+                    SplitLine { width: parent.width }
+
+                    ConfigRow {
+                        title: "Content Side Padding"
+                        description: "Horizontal padding between closed widgets and notch edges (default 12)"
+                        keyName: "notchClosedPaddingHorizontal"
+                        fallbackText: "12"
+                        numeric: true
+                        minimumValue: 0
+                        maximumValue: 40
+                        width: parent.width
+                    }
                 }
             }
 
@@ -406,6 +419,32 @@ PagePanel {
                         numeric: true
                         minimumValue: 100
                         maximumValue: 900
+                        width: parent.width
+                    }
+
+                    SplitLine { width: parent.width }
+
+                    ConfigRow {
+                        title: "Content Side Padding"
+                        description: "Horizontal space between expanded content and notch edges (default 8)"
+                        keyName: "notchExpandedPaddingHorizontal"
+                        fallbackText: "8"
+                        numeric: true
+                        minimumValue: 0
+                        maximumValue: 40
+                        width: parent.width
+                    }
+
+                    SplitLine { width: parent.width }
+
+                    ConfigRow {
+                        title: "Content Vertical Padding"
+                        description: "Top and bottom space between expanded content and notch edges (default 6)"
+                        keyName: "notchExpandedPaddingVertical"
+                        fallbackText: "6"
+                        numeric: true
+                        minimumValue: 0
+                        maximumValue: 30
                         width: parent.width
                     }
                 }

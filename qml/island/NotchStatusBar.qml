@@ -29,6 +29,7 @@ Item {
     signal dynamicResizeToggleRequested()
     signal settingsRequested()
     signal closeRequested()
+    signal movePageRequested(int fromIndex, int toIndex)
 
     height: 24
 
@@ -198,6 +199,94 @@ Item {
                                 hoverEnabled: true
                                 cursorShape: parent.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
                                 onClicked: root.setSlotsRequested(root.currentPage, root.currentSlotCount + 1)
+                            }
+                        }
+                    }
+                }
+
+                // Page Reorder Stepper (shown in edit mode beside slot stepper on widget pages when multiple pages exist)
+                Rectangle {
+                    id: reorderStepperCapsule
+                    visible: root.isEditMode && root.currentPage > 0 && root.pages && root.pages.length > 1
+                    anchors.verticalCenter: parent.verticalCenter
+                    height: 20
+                    width: reorderRow.implicitWidth + 8
+                    radius: 10
+                    color: "#12ffffff"
+
+                    Row {
+                        id: reorderRow
+                        anchors.centerIn: parent
+                        spacing: 4
+
+                        // Move Left button
+                        Rectangle {
+                            width: 16
+                            height: 16
+                            radius: 8
+                            color: moveLeftMouse.pressed ? "#38ffffff" : (moveLeftMouse.containsMouse ? "#24ffffff" : "transparent")
+                            enabled: (root.currentPage - 1) > 0
+                            opacity: enabled ? 1.0 : 0.35
+                            anchors.verticalCenter: parent.verticalCenter
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: "󰁍"
+                                font.family: root.iconFontFamily
+                                font.pixelSize: 10
+                                color: StyleTokens.textPrimary
+                            }
+
+                            MouseArea {
+                                id: moveLeftMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: parent.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                                onClicked: {
+                                    const fromIdx = root.currentPage - 1;
+                                    const toIdx = fromIdx - 1;
+                                    root.movePageRequested(fromIdx, toIdx);
+                                }
+                            }
+                        }
+
+                        Text {
+                            text: "Page " + root.currentPage + " of " + (root.pages ? root.pages.length : 1)
+                            font.family: root.textFontFamily
+                            font.pixelSize: 10
+                            font.weight: Font.Medium
+                            color: StyleTokens.textSecondary
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+
+                        // Move Right button
+                        Rectangle {
+                            width: 16
+                            height: 16
+                            radius: 8
+                            color: moveRightMouse.pressed ? "#38ffffff" : (moveRightMouse.containsMouse ? "#24ffffff" : "transparent")
+                            enabled: (root.currentPage - 1) < (root.pages ? root.pages.length - 1 : 0)
+                            opacity: enabled ? 1.0 : 0.35
+                            anchors.verticalCenter: parent.verticalCenter
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: "󰁔"
+                                font.family: root.iconFontFamily
+                                font.pixelSize: 10
+                                color: StyleTokens.textPrimary
+                            }
+
+                            MouseArea {
+                                id: moveRightMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: parent.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                                onClicked: {
+                                    const fromIdx = root.currentPage - 1;
+                                    const toIdx = fromIdx + 1;
+                                    root.movePageRequested(fromIdx, toIdx);
+                                }
                             }
                         }
                     }

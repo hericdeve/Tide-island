@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import IslandBackend
+import "../widgets/components"
 
 FocusScope {
     id: root
@@ -37,6 +38,11 @@ FocusScope {
     property real reorderTranslationX: 0
     property real reorderPointerX: 0
     property string suppressedOpenUri: ""
+    property string externalDropZone: ""
+
+    ListModel {
+        id: sendQueueModel
+    }
 
     readonly property int visibleCapacity: 5
     readonly property real horizontalPadding: 18
@@ -65,6 +71,8 @@ FocusScope {
         normalizeSelection();
         if (!dropPreviewOnly && isCurrentPage)
             grabKeyboardFocus();
+        if (!dropPreviewOnly)
+            LocalSend.discover();
     }
 
     onCurrentPageChanged: {
@@ -82,6 +90,16 @@ FocusScope {
 
         function onCountChanged() {
             root.normalizeSelection();
+        }
+    }
+
+    Connections {
+        target: LocalSend
+
+        function onStatusChanged() {
+            if (LocalSend.status === "Sent") {
+                sendQueueModel.clear();
+            }
         }
     }
 
@@ -148,6 +166,101 @@ FocusScope {
             "text/plain": textPayload,
             "x-special/gnome-copied-files": "copy\n" + url + "\n"
         };
+    }
+
+    function routeExternalDrop(dropEvent, point) {
+        if (!dropEvent || !localSendPanel.visible)
+            return false;
+
+        const panelPoint = localSendPanel.mapFromItem(root, point.x, point.y);
+        if (panelPoint.x < 0 || panelPoint.y < 0
+                || panelPoint.x > localSendPanel.width
+                || panelPoint.y > localSendPanel.height)
+            return false;
+
+        const paths = localPathsFromDrop(dropEvent);
+        if (paths.length === 0)
+            return true;
+
+        const targetDevice = localSendPanel.deviceAtPoint(panelPoint.x, panelPoint.y);
+        const firstPath = paths[0];
+        if (targetDevice && firstPath) {
+            LocalSend.sendFile(firstPath, targetDevice.deviceNumber);
+            return true;
+        }
+
+        for (let i = 0; i < paths.length; ++i) {
+            const path = paths[i];
+            sendQueueModel.append({ filePath: path, fileName: path.split("/").pop() });
+        }
+        if (sendQueueModel.count > 0)
+            LocalSend.discover(sendQueueModel.get(0).filePath);
+        return true;
+    }
+
+    function localPathsFromDrop(dropEvent) {
+        const paths = [];
+        if (dropEvent.urls) {
+            for (let i = 0; i < dropEvent.urls.length; ++i) {
+                const candidate = dropEvent.urls[i];
+                const path = candidate && candidate.toLocalFile
+                    ? candidate.toLocalFile()
+                    : String(candidate || "").startsWith("file://")
+                        ? decodeURIComponent(String(candidate).slice(7))
+                        : String(candidate || "");
+                if (path)
+                    paths.push(path);
+            }
+        }
+
+        if (paths.length > 0)
+            return paths;
+
+        const formats = dropEvent.formats || [];
+        const uriFormat = formats.indexOf("text/uri-list") >= 0
+            ? "text/uri-list"
+            : (formats.indexOf("x-special/gnome-copied-files") >= 0
+                ? "x-special/gnome-copied-files" : "");
+        const payload = uriFormat && dropEvent.getDataAsString
+            ? dropEvent.getDataAsString(uriFormat)
+            : (dropEvent.text || "");
+        const lines = payload.split(/\r?\n/);
+        for (let i = 0; i < lines.length; ++i) {
+            const line = lines[i].trim();
+            if (!line || line.startsWith("#") || line === "copy" || line === "cut")
+                continue;
+            try {
+                const path = line.startsWith("file://")
+                    ? decodeURIComponent(line.slice(7))
+                    : (line.startsWith("/") ? line : "");
+                if (path)
+                    paths.push(path);
+            } catch (error) {
+                console.warn("[FileShelfLayer] Could not decode dropped file URI:", line);
+            }
+        }
+        return paths;
+    }
+
+    function updateExternalDropPoint(point) {
+        if (!point || !showCondition || dropPreviewOnly) {
+            externalDropZone = "";
+            return;
+        }
+
+        const inContent = point.x >= shelfContentArea.x
+            && point.x <= shelfContentArea.x + shelfContentArea.width
+            && point.y >= shelfContentArea.y
+            && point.y <= shelfContentArea.y + shelfContentArea.height;
+        const inLocalSend = point.x >= localSendPanel.x
+            && point.x <= localSendPanel.x + localSendPanel.width
+            && point.y >= localSendPanel.y
+            && point.y <= localSendPanel.y + localSendPanel.height;
+        externalDropZone = inLocalSend ? "localsend" : (inContent ? "shelf" : "");
+
+        if ((inContent || inLocalSend) && !LocalSend.busy && LocalSend.count === 0) {
+            LocalSend.discover();
+        }
     }
 
     function slotStep() {
@@ -376,8 +489,9 @@ FocusScope {
         anchors.top: root.showStatusBar ? statusBar.bottom : parent.top
         anchors.bottom: parent.bottom
         anchors.left: parent.left
-        anchors.right: parent.right
+        anchors.right: localSendPanel.left
         anchors.topMargin: root.showStatusBar ? 6 : 0
+        anchors.rightMargin: 12
         anchors.bottomMargin: 8
 
         Column {
@@ -665,5 +779,439 @@ FocusScope {
             }
         }
     }
+    }
+
+    Item {
+        id: localSendPanel
+        visible: !root.dropPreviewOnly
+        z: 3
+        anchors.top: shelfContentArea.top
+        anchors.right: parent.right
+        anchors.bottom: shelfContentArea.bottom
+        width: Math.max(250, parent.width * 0.42)
+        anchors.rightMargin: 14
+
+        function deviceAtPoint(x, y) {
+            if (!deviceListView) return null;
+            for (let i = 0; i < deviceListView.count; ++i) {
+                const deviceItem = deviceListView.itemAtIndex(i);
+                if (!deviceItem)
+                    continue;
+                const topLeft = deviceItem.mapToItem(localSendPanel, 0, 0);
+                if (x >= topLeft.x && x <= topLeft.x + deviceItem.width
+                        && y >= topLeft.y && y <= topLeft.y + deviceItem.height)
+                    return deviceItem;
+            }
+            return null;
+        }
+
+        Rectangle {
+            anchors.fill: parent
+            radius: StyleTokens.radiusModule
+            color: StyleTokens.module
+            border.width: 1
+            border.color: StyleTokens.track
+            opacity: 0.94
+        }
+
+        Column {
+            z: 2
+            anchors.fill: parent
+            anchors.margins: 12
+            spacing: 8
+
+            Row {
+                width: parent.width
+                spacing: 8
+
+                Text {
+                    text: "󰀄"
+                    color: StyleTokens.accent
+                    font.family: root.iconFontFamily
+                    font.pixelSize: 20
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+
+                Column {
+                    spacing: 1
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: Math.max(0, parent.width - 28 - 28)
+
+                    Text {
+                        text: "LocalSend"
+                        color: StyleTokens.textPrimary
+                        font.family: root.textFontFamily
+                        font.pixelSize: 13
+                        font.weight: Font.DemiBold
+                    }
+
+                    Text {
+                        text: LocalSend.waitingForAcceptance
+                            ? "Waiting for phone acceptance..."
+                            : (LocalSend.error ? LocalSend.error : (LocalSend.status || (sendQueueModel.count > 0 ? "Choose a device" : "Ready")))
+                        color: LocalSend.waitingForAcceptance
+                            ? StyleTokens.accent
+                            : (LocalSend.error ? StyleTokens.danger : StyleTokens.textSecondary)
+                        font.family: root.textFontFamily
+                        font.pixelSize: 10
+                        elide: Text.ElideRight
+                        width: parent.width
+                    }
+                }
+
+                Text {
+                    text: "󰑐"
+                    font.family: root.iconFontFamily
+                    font.pixelSize: 14
+                    color: refreshMouse.containsMouse ? StyleTokens.textPrimary : StyleTokens.textSecondary
+                    anchors.verticalCenter: parent.verticalCenter
+
+                    MouseArea {
+                        id: refreshMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            if (sendQueueModel.count > 0)
+                                LocalSend.discover(sendQueueModel.get(0).filePath);
+                            else
+                                LocalSend.discover();
+                        }
+                    }
+                }
+            }
+
+            // Acceptance / Verification Notice Banner
+            Rectangle {
+                id: promptNotice
+                width: parent.width
+                height: 30
+                radius: StyleTokens.radiusPrompt
+                color: StyleTokens.accentSoft
+                border.width: 1
+                border.color: StyleTokens.accent
+                visible: LocalSend.waitingForAcceptance
+
+                Row {
+                    anchors.centerIn: parent
+                    spacing: 7
+
+                    Text {
+                        text: "󰄜"
+                        color: StyleTokens.accent
+                        font.family: root.iconFontFamily
+                        font.pixelSize: 15
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+
+                    Text {
+                        text: "Accept prompt on your phone"
+                        color: StyleTokens.textPrimary
+                        font.family: root.textFontFamily
+                        font.pixelSize: 10
+                        font.weight: Font.DemiBold
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                }
+            }
+
+            // Transfer Progress Bar (shown during upload)
+            Rectangle {
+                width: parent.width
+                height: 4
+                radius: 2
+                color: StyleTokens.track
+                visible: LocalSend.transferProgress >= 0
+
+                Rectangle {
+                    height: parent.height
+                    radius: 2
+                    color: StyleTokens.accent
+                    width: Math.max(0, parent.width * Math.min(1.0, LocalSend.transferProgress / 100.0))
+                }
+            }
+
+            Rectangle {
+                width: parent.width
+                height: Math.max(82, parent.height - (sendQueueModel.count > 0 ? 165 : 120) - (LocalSend.waitingForAcceptance ? 36 : 0))
+                radius: StyleTokens.radiusPrompt
+                color: StyleTokens.transparent
+                border.width: 1
+                border.color: sendDropArea.containsDrag ? StyleTokens.accent : StyleTokens.track
+
+                Behavior on border.color {
+                    ColorAnimation { duration: StyleTokens.durationFast }
+                }
+
+                Column {
+                    anchors.fill: parent
+                    anchors.margins: 8
+                    spacing: 6
+
+                    Text {
+                        text: "Nearby devices (" + LocalSend.count + ")"
+                        color: StyleTokens.textSecondary
+                        font.family: root.textFontFamily
+                        font.pixelSize: 10
+                        font.weight: Font.DemiBold
+                    }
+
+                    Text {
+                        visible: LocalSend.count === 0
+                        text: LocalSend.status === "Offline"
+                            ? "No Wi-Fi or LAN interface found"
+                            : (LocalSend.status === "Unavailable"
+                                ? "LocalSend unavailable"
+                                : (LocalSend.busy ? "Searching for devices..." : "No devices found. Tap 󰑐 to scan"))
+                        color: StyleTokens.textTertiary
+                        font.family: root.textFontFamily
+                        font.pixelSize: 11
+                        width: parent.width
+                        wrapMode: Text.Wrap
+                    }
+
+                    ListView {
+                        id: deviceListView
+                        visible: LocalSend.count > 0
+                        width: parent.width
+                        height: Math.max(0, parent.height - 22)
+                        model: LocalSend.devices
+                        clip: true
+                        spacing: 4
+
+                        delegate: Rectangle {
+                            id: devDelegate
+                            required property var modelData
+
+                            readonly property int deviceNumber: modelData.deviceNumber
+                            readonly property string deviceName: modelData.deviceName
+                            readonly property string deviceAddress: modelData.deviceAddress
+                            readonly property string deviceType: modelData.deviceType || "desktop"
+
+                            width: ListView.view.width
+                            height: 38
+                            radius: StyleTokens.radiusButton
+                            color: devDrop.containsDrag ? StyleTokens.accentSoft : (devMouse.containsMouse ? StyleTokens.moduleHover : StyleTokens.buttonFill)
+                            border.width: devDrop.containsDrag ? 1 : 0
+                            border.color: StyleTokens.accent
+
+                            Row {
+                                anchors.fill: parent
+                                anchors.leftMargin: 9
+                                anchors.rightMargin: 9
+                                spacing: 8
+
+                                Text {
+                                    text: devDelegate.deviceType === "phone" ? "󰄜" : (devDelegate.deviceType === "tablet" ? "󰓹" : "󰌢")
+                                    color: StyleTokens.accent
+                                    font.family: root.iconFontFamily
+                                    font.pixelSize: 16
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+
+                                Column {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    spacing: 1
+
+                                    Text {
+                                        text: devDelegate.deviceName
+                                        color: StyleTokens.textPrimary
+                                        font.family: root.textFontFamily
+                                        font.pixelSize: 11
+                                        elide: Text.ElideRight
+                                        width: devDelegate.width - 70
+                                    }
+
+                                    Text {
+                                        text: devDelegate.deviceAddress
+                                        color: StyleTokens.textTertiary
+                                        font.family: root.textFontFamily
+                                        font.pixelSize: 9
+                                    }
+                                }
+                            }
+
+                            MouseArea {
+                                id: devMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    if (sendQueueModel.count > 0) {
+                                        LocalSend.sendFile(sendQueueModel.get(0).filePath, devDelegate.deviceNumber);
+                                    } else {
+                                        const idx = root.selectedIndex >= 0 ? root.selectedIndex : 0;
+                                        const entry = FileShelf.get(idx);
+                                        if (entry && entry.filePath) {
+                                            LocalSend.sendFile(entry.filePath, devDelegate.deviceNumber);
+                                        } else {
+                                            LocalSend.sendFile("", devDelegate.deviceNumber);
+                                        }
+                                    }
+                                }
+                            }
+
+                            DropArea {
+                                id: devDrop
+                                anchors.fill: parent
+                                keys: ["text/uri-list", "application/x-tide-file"]
+                                onDropped: drop => {
+                                    if (drop.hasUrls && drop.urls.length > 0) {
+                                        const path = drop.urls[0].toLocalFile();
+                                        if (path) {
+                                            LocalSend.sendFile(path, devDelegate.deviceNumber);
+                                            drop.acceptProposedAction();
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Column {
+                width: parent.width
+                spacing: 4
+                visible: sendQueueModel.count > 0
+
+                    Row {
+                        width: parent.width
+                        spacing: 4
+
+                        Text {
+                            text: "Files to send"
+                            color: StyleTokens.textSecondary
+                            font.family: root.textFontFamily
+                            font.pixelSize: 10
+                            font.weight: Font.DemiBold
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+
+                        Item {
+                            height: 1
+                            width: Math.max(0, parent.width - 70 - clearText.implicitWidth)
+                        }
+
+                        Text {
+                            id: clearText
+                            text: "Clear"
+                            color: clearQueueMouse.containsMouse ? StyleTokens.textPrimary : StyleTokens.textTertiary
+                            font.family: root.textFontFamily
+                            font.pixelSize: 10
+                            anchors.verticalCenter: parent.verticalCenter
+
+                            MouseArea {
+                                id: clearQueueMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: sendQueueModel.clear()
+                            }
+                        }
+                    }
+
+                ListView {
+                    width: parent.width
+                    height: Math.min(72, sendQueueModel.count * 24)
+                    model: sendQueueModel
+                    clip: true
+
+                    delegate: Item {
+                        required property string filePath
+                        required property string fileName
+                        width: ListView.view.width
+                        height: 24
+
+                        Drag.active: queueDrag.active
+                        Drag.dragType: Drag.Automatic
+                        Drag.supportedActions: Qt.CopyAction
+                        Drag.proposedAction: Qt.CopyAction
+                        Drag.mimeData: ({
+                            "text/uri-list": "file://" + filePath
+                        })
+
+                        Row {
+                            anchors.fill: parent
+                            spacing: 6
+
+                            Text {
+                                text: "󰈔"
+                                color: StyleTokens.textSecondary
+                                font.family: root.iconFontFamily
+                                font.pixelSize: 13
+                            }
+
+                            Text {
+                                text: fileName
+                                color: StyleTokens.textPrimary
+                                font.family: root.textFontFamily
+                                font.pixelSize: 10
+                                elide: Text.ElideMiddle
+                                width: parent.width - 24
+                            }
+                        }
+
+                        DragHandler {
+                            id: queueDrag
+                            target: null
+                            acceptedButtons: Qt.LeftButton
+                        }
+                    }
+                }
+            }
+        }
+
+        DropArea {
+            id: sendDropArea
+            anchors.fill: parent
+            keys: ["text/uri-list", "application/x-tide-file"]
+            z: 100
+
+            onDropped: drop => {
+                if (!drop.hasUrls || drop.urls.length === 0)
+                    return;
+
+                const targetDevice = localSendPanel.deviceAtPoint(drop.x, drop.y);
+                if (targetDevice) {
+                    LocalSend.sendFile(drop.urls[0].toLocalFile(), targetDevice.deviceNumber);
+                } else {
+                    for (let i = 0; i < drop.urls.length; ++i) {
+                        const path = drop.urls[i].toLocalFile();
+                        if (path)
+                            sendQueueModel.append({ filePath: path, fileName: path.split("/").pop() });
+                    }
+                    if (sendQueueModel.count > 0)
+                        LocalSend.discover(sendQueueModel.get(0).filePath);
+                }
+                drop.acceptProposedAction();
+            }
+        }
+    }
+
+    Rectangle {
+        z: 20
+        x: shelfContentArea.x + 1
+        y: shelfContentArea.y + 1
+        width: Math.max(0, shelfContentArea.width - 2)
+        height: Math.max(0, shelfContentArea.height - 2)
+        radius: StyleTokens.radiusModule
+        color: StyleTokens.transparent
+        border.width: root.externalDropZone === "shelf" ? 3 : 0
+        border.color: StyleTokens.accent
+        visible: root.externalDropZone === "shelf"
+    }
+
+    Rectangle {
+        z: 20
+        x: localSendPanel.x + 1
+        y: localSendPanel.y + 1
+        width: Math.max(0, localSendPanel.width - 2)
+        height: Math.max(0, localSendPanel.height - 2)
+        radius: StyleTokens.radiusModule
+        color: StyleTokens.transparent
+        border.width: root.externalDropZone === "localsend" ? 3 : 0
+        border.color: StyleTokens.accent
+        visible: root.externalDropZone === "localsend"
     }
 }

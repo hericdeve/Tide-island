@@ -39,20 +39,43 @@ Item {
         if (onShelfPage) return 0;
         if (!expandedPageStrip) return 0;
         const stripReqW = expandedPageStrip.requestedContentWidth;
-        return stripReqW > 0 ? (stripReqW + 32) : 0;
+        const horizPadding = (userConfig && userConfig.notchExpandedPaddingHorizontal !== undefined)
+            ? userConfig.notchExpandedPaddingHorizontal * 2 + 16 : 32;
+        return stripReqW > 0 ? (stripReqW + horizPadding) : 0;
     }
 
     readonly property real requestedContentHeight: {
         if (onShelfPage) return 0;
         if (!expandedPageStrip) return 0;
         const stripReqH = expandedPageStrip.requestedContentHeight;
-        return stripReqH > 0 ? (stripReqH + (statusBar ? statusBar.height : 28) + 28) : 0;
+        const vertPadding = (userConfig && userConfig.notchExpandedPaddingVertical !== undefined)
+            ? userConfig.notchExpandedPaddingVertical * 2 + 16 : 28;
+        return stripReqH > 0 ? (stripReqH + (statusBar ? statusBar.height : 28) + vertPadding) : 0;
     }
 
     function grabKeyboardFocus() {
         if (expandedPageStrip) {
             expandedPageStrip.grabKeyboardFocus();
         }
+    }
+
+    function updateExternalDropPoint(point) {
+        if (!expandedPageStrip) {
+            return;
+        }
+        if (!point) {
+            expandedPageStrip.updateExternalDropPoint(null);
+            return;
+        }
+        const stripPoint = expandedPageStrip.mapFromItem(root, point.x, point.y);
+        expandedPageStrip.updateExternalDropPoint(stripPoint);
+    }
+
+    function routeExternalDrop(dropEvent, point) {
+        if (!expandedPageStrip)
+            return false;
+        const stripPoint = expandedPageStrip.mapFromItem(root, point.x, point.y);
+        return expandedPageStrip.routeExternalDrop(dropEvent, stripPoint);
     }
 
     function showPage(pageIdx, immediate) {
@@ -213,10 +236,10 @@ Item {
 
         Column {
             anchors.fill: parent
-            anchors.topMargin: 6
-            anchors.bottomMargin: 6
-            anchors.leftMargin: 8
-            anchors.rightMargin: 8
+            anchors.topMargin: (userConfig && userConfig.notchExpandedPaddingVertical !== undefined) ? userConfig.notchExpandedPaddingVertical : 6
+            anchors.bottomMargin: (userConfig && userConfig.notchExpandedPaddingVertical !== undefined) ? userConfig.notchExpandedPaddingVertical : 6
+            anchors.leftMargin: (userConfig && userConfig.notchExpandedPaddingHorizontal !== undefined) ? userConfig.notchExpandedPaddingHorizontal : 8
+            anchors.rightMargin: (userConfig && userConfig.notchExpandedPaddingHorizontal !== undefined) ? userConfig.notchExpandedPaddingHorizontal : 8
             spacing: 5
 
             // 1. Persistent Top Status Bar
@@ -248,6 +271,12 @@ Item {
                 onDynamicResizeToggleRequested: root.dynamicResizeToastOpen = !root.dynamicResizeToastOpen
                 onSettingsRequested: SystemServices.openConfigApp()
                 onCloseRequested: root.closeRequested()
+                onMovePageRequested: (fromIdx, toIdx) => {
+                    if (userConfig) {
+                        userConfig.movePage("expanded", fromIdx, toIdx);
+                        root.showPage(toIdx + 1, false);
+                    }
+                }
             }
 
             // 2. Unified Viewport: Page 0 is File Shelf, Pages 1+ are Widget Pages
@@ -305,6 +334,12 @@ Item {
                     onDeletePageRequested: (pIdx) => {
                         if (userConfig)
                             userConfig.removePage("expanded", pIdx);
+                    }
+                    onMovePageRequested: (fromIdx, toIdx) => {
+                        if (userConfig) {
+                            userConfig.movePage("expanded", fromIdx, toIdx);
+                            root.showPage(toIdx + 1, false);
+                        }
                     }
                 }
             }

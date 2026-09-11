@@ -56,7 +56,7 @@ Item {
                         representation: "compact"
                         running: false
                         elapsedSeconds: root.elapsedSeconds
-                        colorOverride: StyleTokens.textPrimary
+                      i  colorOverride: StyleTokens.textPrimary
                         widgetContext: root.widgetContext
                     }
                 }

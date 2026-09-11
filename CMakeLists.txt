@@ -260,6 +260,26 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/google_auth_service_tests.cpp")
     )
 endif()
 
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/localsend_backend_tests.cpp")
+    add_executable(localsend_backend_tests
+        tests/localsend_backend_tests.cpp
+        backend/LocalSendBackend.h
+        backend/LocalSendBackend.cpp
+    )
+
+    target_include_directories(localsend_backend_tests PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/backend
+    )
+
+    target_link_libraries(localsend_backend_tests PRIVATE
+        Qt6::Core
+        Qt6::Qml
+        Qt6::Test
+    )
+
+    add_test(NAME localsend_backend COMMAND localsend_backend_tests)
+endif()
+
 add_subdirectory(Tide-island-app)
 
 # Main Backend Module (Combining all C++ components)
@@ -279,6 +299,8 @@ qt_add_qml_module(IslandBackend
         backend/StyleTokensBackend.cpp
         backend/FileShelfModel.h
         backend/FileShelfModel.cpp
+        backend/LocalSendBackend.h
+        backend/LocalSendBackend.cpp
         backend/UserConfigBackend.h
         backend/UserConfigBackend.cpp
         backend/BluetoothPairingAgent.h

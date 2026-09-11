@@ -6,6 +6,7 @@ Item {
 
     property var pageData: null
     property int pageIndex: 0
+    property int totalPages: 1
     property bool isEditMode: false
     property bool cameraMirrorActive: false
     property var widgetContext: null
@@ -17,6 +18,7 @@ Item {
     signal spanChangeRequested(int pageIndex, int slotIndex, int newSpan)
     signal setSlotsRequested(int pageIndex, int newSlotCount)
     signal deletePageRequested(int pageIndex)
+    signal movePageRequested(int fromIndex, int toIndex)
 
     readonly property int slotCount: Math.max(1, Math.min(6, (pageData && pageData.slots !== undefined) ? pageData.slots : 1))
     readonly property var items: (pageData && pageData.items) ? pageData.items : []
@@ -49,17 +51,152 @@ Item {
     onSlotCountChanged: recalculateRequestedSizes()
     onPageDataChanged: recalculateRequestedSizes()
 
-    readonly property bool showEditHeader: root.isEditMode && root.pageData && !root.pageData.isHome
+    readonly property bool showEditHeader: root.isEditMode && root.pageData
 
-    // Edit controls header (shown above slot grid when in edit mode on non-Home pages)
+    // Edit controls header (shown above slot grid when in edit mode)
     Item {
         id: editHeader
         width: parent.width
         height: root.showEditHeader ? 24 : 0
         visible: root.showEditHeader
 
-        // Delete page button (disabled for Home page)
+        // Left controls: Page badge & Reorder controls
+        Row {
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 6
+
+            // Page label pill
+            Rectangle {
+                height: 22
+                width: pageTitleRow.implicitWidth + 16
+                radius: 11
+                color: "#12ffffff"
+                border.width: 1
+                border.color: "#1affffff"
+
+                Row {
+                    id: pageTitleRow
+                    anchors.centerIn: parent
+                    spacing: 5
+
+                    Text {
+                        text: (root.pageData && root.pageData.isHome) ? "󰋜" : "󰍜"
+                        font.family: root.widgetContext ? root.widgetContext.iconFontFamily : "Sans Serif"
+                        font.pixelSize: 11
+                        color: "#8e8e93"
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+
+                    Text {
+                        text: (root.pageData && root.pageData.title) ? root.pageData.title : ("Page " + (root.pageIndex + 1))
+                        font.family: root.widgetContext ? root.widgetContext.textFontFamily : "Sans Serif"
+                        font.pixelSize: 11
+                        font.weight: Font.Medium
+                        color: "#ffffff"
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                }
+            }
+
+            // Move Left Button
+            Rectangle {
+                visible: root.totalPages > 1
+                enabled: root.pageIndex > 0
+                opacity: enabled ? 1.0 : 0.35
+                height: 22
+                width: moveLeftRow.implicitWidth + 14
+                radius: 11
+                color: moveLeftMouse.pressed ? "#38ffffff" : (moveLeftMouse.containsMouse ? "#24ffffff" : "#12ffffff")
+                border.width: 1
+                border.color: moveLeftMouse.containsMouse ? "#33ffffff" : "#1affffff"
+
+                Behavior on color { ColorAnimation { duration: 100 } }
+                Behavior on border.color { ColorAnimation { duration: 100 } }
+
+                Row {
+                    id: moveLeftRow
+                    anchors.centerIn: parent
+                    spacing: 4
+
+                    Text {
+                        text: "󰁍"
+                        font.family: root.widgetContext ? root.widgetContext.iconFontFamily : "Sans Serif"
+                        font.pixelSize: 11
+                        color: moveLeftMouse.containsMouse ? "#ffffff" : "#8e8e93"
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+
+                    Text {
+                        text: "Move Left"
+                        font.family: root.widgetContext ? root.widgetContext.textFontFamily : "Sans Serif"
+                        font.pixelSize: 11
+                        font.weight: Font.Medium
+                        color: moveLeftMouse.containsMouse ? "#ffffff" : "#8e8e93"
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                }
+
+                MouseArea {
+                    id: moveLeftMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: parent.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                    onClicked: root.movePageRequested(root.pageIndex, root.pageIndex - 1)
+                }
+            }
+
+            // Move Right Button
+            Rectangle {
+                visible: root.totalPages > 1
+                enabled: root.pageIndex < root.totalPages - 1
+                opacity: enabled ? 1.0 : 0.35
+                height: 22
+                width: moveRightRow.implicitWidth + 14
+                radius: 11
+                color: moveRightMouse.pressed ? "#38ffffff" : (moveRightMouse.containsMouse ? "#24ffffff" : "#12ffffff")
+                border.width: 1
+                border.color: moveRightMouse.containsMouse ? "#33ffffff" : "#1affffff"
+
+                Behavior on color { ColorAnimation { duration: 100 } }
+                Behavior on border.color { ColorAnimation { duration: 100 } }
+
+                Row {
+                    id: moveRightRow
+                    anchors.centerIn: parent
+                    spacing: 4
+
+                    Text {
+                        text: "Move Right"
+                        font.family: root.widgetContext ? root.widgetContext.textFontFamily : "Sans Serif"
+                        font.pixelSize: 11
+                        font.weight: Font.Medium
+                        color: moveRightMouse.containsMouse ? "#ffffff" : "#8e8e93"
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+
+                    Text {
+                        text: "󰁔"
+                        font.family: root.widgetContext ? root.widgetContext.iconFontFamily : "Sans Serif"
+                        font.pixelSize: 11
+                        color: moveRightMouse.containsMouse ? "#ffffff" : "#8e8e93"
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                }
+
+                MouseArea {
+                    id: moveRightMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: parent.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                    onClicked: root.movePageRequested(root.pageIndex, root.pageIndex + 1)
+                }
+            }
+        }
+
+        // Delete page button (disabled for Home page and single page)
         Rectangle {
+            visible: root.pageData && !root.pageData.isHome && root.totalPages > 1
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
             width: delRow.implicitWidth + 16

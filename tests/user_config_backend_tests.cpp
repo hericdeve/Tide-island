@@ -20,6 +20,8 @@ private slots:
     void notchBorderEnabledDefaultsAndToggles();
     void notchBorderWidthDefaultsAndBounds();
     void setActivePagePersistence();
+    void movePageReordersAndUpdatesActivePage();
+    void movePageInvalidIndicesNoOp();
     void setSlotWidgetClampsSpanToPageSlots();
     void setPageSlotsClampsExistingSpansAndRemovesOutOfBounds();
     void playerRememberLastPaneDefaultsAndPersists();
@@ -30,6 +32,7 @@ private slots:
     void dynamicResizeMaxPctDefaultsAndClamping();
     void circleDynamicOpacityDefaultsAndClamping();
     void islandMarginsDefaultsAndClamping();
+    void notchContentPaddingDefaultsAndClamping();
     void barOverlayDefaultsAndClamping();
     void themeStyleDefaultsAndAssignment();
 };
@@ -171,6 +174,74 @@ void UserConfigBackendTests::setActivePagePersistence()
     UserConfigBackend configReloaded;
     expanded = configReloaded.widgetLayouts().value(QStringLiteral("expanded")).toObject();
     QCOMPARE(expanded.value(QStringLiteral("activePageIndex")).toInt(-1), 1);
+}
+
+void UserConfigBackendTests::movePageReordersAndUpdatesActivePage()
+{
+    UserConfigBackend config;
+    config.resetWidgetLayouts();
+
+    // Add two extra pages: so pages are [Home, Page 2, Page 3]
+    config.addPage(QStringLiteral("expanded"), QStringLiteral("Page 2"), 3);
+    config.addPage(QStringLiteral("expanded"), QStringLiteral("Page 3"), 3);
+
+    QJsonObject expanded = config.widgetLayouts().value(QStringLiteral("expanded")).toObject();
+    QJsonArray pages = expanded.value(QStringLiteral("pages")).toArray();
+    QCOMPARE(pages.size(), 3);
+    QCOMPARE(pages[0].toObject().value(QStringLiteral("title")).toString(), QStringLiteral("Home"));
+    QCOMPARE(pages[1].toObject().value(QStringLiteral("title")).toString(), QStringLiteral("Page 2"));
+    QCOMPARE(pages[2].toObject().value(QStringLiteral("title")).toString(), QStringLiteral("Page 3"));
+
+    // Set active page to Page 2 (index 1)
+    config.setActivePage(QStringLiteral("expanded"), 1);
+    expanded = config.widgetLayouts().value(QStringLiteral("expanded")).toObject();
+    QCOMPARE(expanded.value(QStringLiteral("activePageIndex")).toInt(), 1);
+
+    // Move Page 2 (index 1) to end (index 2): [Home, Page 3, Page 2]
+    config.movePage(QStringLiteral("expanded"), 1, 2);
+    expanded = config.widgetLayouts().value(QStringLiteral("expanded")).toObject();
+    pages = expanded.value(QStringLiteral("pages")).toArray();
+    QCOMPARE(pages[0].toObject().value(QStringLiteral("title")).toString(), QStringLiteral("Home"));
+    QCOMPARE(pages[1].toObject().value(QStringLiteral("title")).toString(), QStringLiteral("Page 3"));
+    QCOMPARE(pages[2].toObject().value(QStringLiteral("title")).toString(), QStringLiteral("Page 2"));
+    // activePageIndex should track Page 2 to index 2
+    QCOMPARE(expanded.value(QStringLiteral("activePageIndex")).toInt(), 2);
+
+    // Now move Page 2 (index 2) to front (index 0): [Page 2, Home, Page 3]
+    config.movePage(QStringLiteral("expanded"), 2, 0);
+    expanded = config.widgetLayouts().value(QStringLiteral("expanded")).toObject();
+    pages = expanded.value(QStringLiteral("pages")).toArray();
+    QCOMPARE(pages[0].toObject().value(QStringLiteral("title")).toString(), QStringLiteral("Page 2"));
+    QCOMPARE(pages[1].toObject().value(QStringLiteral("title")).toString(), QStringLiteral("Home"));
+    QCOMPARE(pages[2].toObject().value(QStringLiteral("title")).toString(), QStringLiteral("Page 3"));
+    // activePageIndex should track Page 2 to index 0
+    QCOMPARE(expanded.value(QStringLiteral("activePageIndex")).toInt(), 0);
+
+    // Verify persistence across new instance
+    UserConfigBackend configReloaded;
+    expanded = configReloaded.widgetLayouts().value(QStringLiteral("expanded")).toObject();
+    pages = expanded.value(QStringLiteral("pages")).toArray();
+    QCOMPARE(pages[0].toObject().value(QStringLiteral("title")).toString(), QStringLiteral("Page 2"));
+    QCOMPARE(pages[1].toObject().value(QStringLiteral("title")).toString(), QStringLiteral("Home"));
+    QCOMPARE(pages[2].toObject().value(QStringLiteral("title")).toString(), QStringLiteral("Page 3"));
+    QCOMPARE(expanded.value(QStringLiteral("activePageIndex")).toInt(), 0);
+}
+
+void UserConfigBackendTests::movePageInvalidIndicesNoOp()
+{
+    UserConfigBackend config;
+    config.resetWidgetLayouts();
+
+    QJsonObject expanded = config.widgetLayouts().value(QStringLiteral("expanded")).toObject();
+    const QJsonArray origPages = expanded.value(QStringLiteral("pages")).toArray();
+
+    config.movePage(QStringLiteral("expanded"), -1, 0);
+    config.movePage(QStringLiteral("expanded"), 0, 99);
+    config.movePage(QStringLiteral("expanded"), 0, 0);
+    config.movePage(QStringLiteral("nonexistent"), 0, 1);
+
+    expanded = config.widgetLayouts().value(QStringLiteral("expanded")).toObject();
+    QCOMPARE(expanded.value(QStringLiteral("pages")).toArray(), origPages);
 }
 
 void UserConfigBackendTests::setSlotWidgetClampsSpanToPageSlots()
@@ -497,6 +568,58 @@ void UserConfigBackendTests::islandMarginsDefaultsAndClamping()
     config.reload();
     QCOMPARE(config.islandTopMargin(), 0);
     QCOMPARE(config.islandSideMargin(), 24);
+}
+
+void UserConfigBackendTests::notchContentPaddingDefaultsAndClamping()
+{
+    UserConfigBackend config;
+    QCOMPARE(config.notchClosedPaddingHorizontal(), 12);
+    QCOMPARE(config.notchExpandedPaddingHorizontal(), 8);
+    QCOMPARE(config.notchExpandedPaddingVertical(), 6);
+
+    const QString configPath = config.userConfigPath();
+    QFile file(configPath);
+    QVERIFY(file.open(QIODevice::ReadWrite));
+    QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+    QJsonObject obj = doc.isObject() ? doc.object() : QJsonObject();
+    obj[QStringLiteral("notchClosedPaddingHorizontal")] = 20;
+    obj[QStringLiteral("notchExpandedPaddingHorizontal")] = 14;
+    obj[QStringLiteral("notchExpandedPaddingVertical")] = 10;
+    file.seek(0);
+    file.resize(0);
+    file.write(QJsonDocument(obj).toJson());
+    file.close();
+
+    config.reload();
+    QCOMPARE(config.notchClosedPaddingHorizontal(), 20);
+    QCOMPARE(config.notchExpandedPaddingHorizontal(), 14);
+    QCOMPARE(config.notchExpandedPaddingVertical(), 10);
+
+    // Test out of bounds clamping: negative values clamp to 0, excessive values clamp to max
+    QVERIFY(file.open(QIODevice::ReadWrite));
+    obj[QStringLiteral("notchClosedPaddingHorizontal")] = -5;
+    obj[QStringLiteral("notchExpandedPaddingHorizontal")] = 100;
+    obj[QStringLiteral("notchExpandedPaddingVertical")] = 80;
+    file.seek(0);
+    file.resize(0);
+    file.write(QJsonDocument(obj).toJson());
+    file.close();
+
+    config.reload();
+    QCOMPARE(config.notchClosedPaddingHorizontal(), 0);
+    QCOMPARE(config.notchExpandedPaddingHorizontal(), 40);
+    QCOMPARE(config.notchExpandedPaddingVertical(), 30);
+
+    // Cleanup to defaults
+    QVERIFY(file.open(QIODevice::ReadWrite));
+    obj[QStringLiteral("notchClosedPaddingHorizontal")] = 12;
+    obj[QStringLiteral("notchExpandedPaddingHorizontal")] = 8;
+    obj[QStringLiteral("notchExpandedPaddingVertical")] = 6;
+    file.seek(0);
+    file.resize(0);
+    file.write(QJsonDocument(obj).toJson());
+    file.close();
+    config.reload();
 }
 
 void UserConfigBackendTests::barOverlayDefaultsAndClamping()

@@ -511,8 +511,10 @@ Item {
                     let extraWidth = 0;
                     let maxH = 0;
                     const basePageWidth = UserConfig ? UserConfig.notchClosedWidth : 185;
+                    const sidePadding = (UserConfig && UserConfig.notchClosedPaddingHorizontal !== undefined)
+                        ? UserConfig.notchClosedPaddingHorizontal * 2 : 24;
                     const totalSpacing = (pageDelegateItem.slotCount - 1) * 8;
-                    const baseSlotWidth = Math.max(50, (basePageWidth - totalSpacing - 24) / Math.max(1, pageDelegateItem.slotCount));
+                    const baseSlotWidth = Math.max(50, (basePageWidth - totalSpacing - sidePadding) / Math.max(1, pageDelegateItem.slotCount));
 
                     for (let i = 0; i < pageSlotsRepeater.count; ++i) {
                         const slot = pageSlotsRepeater.itemAt(i);
@@ -622,8 +624,10 @@ Item {
                             height: pageStrip.height
 
                             readonly property real closedSlotWidth: {
+                                const sidePadding = (UserConfig && UserConfig.notchClosedPaddingHorizontal !== undefined)
+                                    ? UserConfig.notchClosedPaddingHorizontal * 2 : 24;
                                 const totalSpacing = (pageDelegateItem.slotCount - 1) * 8;
-                                return Math.max(50, (pageStrip.width - totalSpacing - 24) / Math.max(1, pageDelegateItem.slotCount));
+                                return Math.max(50, (pageStrip.width - totalSpacing - sidePadding) / Math.max(1, pageDelegateItem.slotCount));
                             }
 
                             // 1. Populated widget container with iOS home screen editing wiggle effect

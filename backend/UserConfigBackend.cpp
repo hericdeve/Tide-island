@@ -841,6 +841,21 @@ int UserConfigBackend::notchBottomCornerRadius() const
     return m_notchBottomCornerRadius;
 }
 
+int UserConfigBackend::notchClosedPaddingHorizontal() const
+{
+    return m_notchClosedPaddingHorizontal;
+}
+
+int UserConfigBackend::notchExpandedPaddingHorizontal() const
+{
+    return m_notchExpandedPaddingHorizontal;
+}
+
+int UserConfigBackend::notchExpandedPaddingVertical() const
+{
+    return m_notchExpandedPaddingVertical;
+}
+
 int UserConfigBackend::notchHoverOpenDelayMs() const
 {
     return m_notchHoverOpenDelayMs;
@@ -1076,11 +1091,18 @@ void UserConfigBackend::addPage(const QString &mode, const QString &title, int s
 void UserConfigBackend::removePage(const QString &mode, int pageIndex)
 {
     QJsonObject layouts = m_widgetLayouts;
+    if (!layouts.contains(mode) || !layouts.value(mode).isObject())
+        return;
+
     QJsonObject modeObj = layouts.value(mode).toObject();
     QJsonArray pages = modeObj.value(QStringLiteral("pages")).toArray();
 
-    if (pageIndex <= 0 || pageIndex >= pages.size()) {
-        // Cannot delete home page (page 0) or invalid index
+    if (pageIndex < 0 || pageIndex >= pages.size() || pages.size() <= 1) {
+        return;
+    }
+
+    if (pages[pageIndex].toObject().value(QStringLiteral("isHome")).toBool(false)) {
+        // Cannot delete home page
         return;
     }
 
@@ -1091,6 +1113,37 @@ void UserConfigBackend::removePage(const QString &mode, int pageIndex)
     if (activePage >= pages.size()) {
         modeObj[QStringLiteral("activePageIndex")] = qMax(0, pages.size() - 1);
     }
+
+    layouts[mode] = modeObj;
+    saveWidgetLayouts(layouts);
+}
+
+void UserConfigBackend::movePage(const QString &mode, int fromIndex, int toIndex)
+{
+    QJsonObject layouts = m_widgetLayouts;
+    if (!layouts.contains(mode) || !layouts.value(mode).isObject())
+        return;
+
+    QJsonObject modeObj = layouts.value(mode).toObject();
+    QJsonArray pages = modeObj.value(QStringLiteral("pages")).toArray();
+
+    if (fromIndex < 0 || fromIndex >= pages.size() || toIndex < 0 || toIndex >= pages.size() || fromIndex == toIndex) {
+        return;
+    }
+
+    QJsonValue page = pages.takeAt(fromIndex);
+    pages.insert(toIndex, page);
+    modeObj[QStringLiteral("pages")] = pages;
+
+    int activePage = modeObj.value(QStringLiteral("activePageIndex")).toInt(0);
+    if (activePage == fromIndex) {
+        activePage = toIndex;
+    } else if (fromIndex < toIndex && activePage > fromIndex && activePage <= toIndex) {
+        activePage--;
+    } else if (fromIndex > toIndex && activePage >= toIndex && activePage < fromIndex) {
+        activePage++;
+    }
+    modeObj[QStringLiteral("activePageIndex")] = activePage;
 
     layouts[mode] = modeObj;
     saveWidgetLayouts(layouts);
@@ -1392,6 +1445,9 @@ void UserConfigBackend::loadConfig()
     updateField(this, m_notchOpenHeight, jsonBoundedInt(configObject, QLatin1String("notchOpenHeight"), 190, 100, 900), &UserConfigBackend::notchOpenHeightChanged);
     updateField(this, m_notchTopCornerRadius, jsonBoundedInt(configObject, QLatin1String("notchTopCornerRadius"), 6, 0, 120), &UserConfigBackend::notchTopCornerRadiusChanged);
     updateField(this, m_notchBottomCornerRadius, jsonBoundedInt(configObject, QLatin1String("notchBottomCornerRadius"), 14, 0, 160), &UserConfigBackend::notchBottomCornerRadiusChanged);
+    updateField(this, m_notchClosedPaddingHorizontal, jsonBoundedInt(configObject, QLatin1String("notchClosedPaddingHorizontal"), 12, 0, 40), &UserConfigBackend::notchClosedPaddingHorizontalChanged);
+    updateField(this, m_notchExpandedPaddingHorizontal, jsonBoundedInt(configObject, QLatin1String("notchExpandedPaddingHorizontal"), 8, 0, 40), &UserConfigBackend::notchExpandedPaddingHorizontalChanged);
+    updateField(this, m_notchExpandedPaddingVertical, jsonBoundedInt(configObject, QLatin1String("notchExpandedPaddingVertical"), 6, 0, 30), &UserConfigBackend::notchExpandedPaddingVerticalChanged);
     updateField(this, m_notchHoverOpenDelayMs, jsonBoundedInt(configObject, QLatin1String("notchHoverOpenDelayMs"), 300, 0, 3000), &UserConfigBackend::notchHoverOpenDelayMsChanged);
     updateField(this, m_notchHoverCloseDelayMs, jsonBoundedInt(configObject, QLatin1String("notchHoverCloseDelayMs"), 100, 0, 3000), &UserConfigBackend::notchHoverCloseDelayMsChanged);
     updateField(this, m_mediaLightingEffectEnabled, jsonBool(configObject, QLatin1String("mediaLightingEffectEnabled"), true), &UserConfigBackend::mediaLightingEffectEnabledChanged);
