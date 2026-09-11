@@ -43,7 +43,8 @@ Item {
         Item {
             id: pageDotsContainer
             height: 24
-            width: pageDotsRow.implicitWidth
+            readonly property int dotCount: 1 + (root.pages ? root.pages.length : 1)
+            width: 14 + (dotCount - 1) * 4 + (dotCount - 1) * 5
 
             Behavior on width { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
 
@@ -85,259 +86,267 @@ Item {
                         }
                     }
                 }
+            }
+        }
 
-                // Integrated [+] Add Page button in edit mode
-                Item {
-                    id: addPageBtn
-                    readonly property bool shouldShow: root.isEditMode
-                    width: shouldShow ? 20 : 0
-                    height: 20
-                    clip: true
-                    opacity: shouldShow ? 1.0 : 0.0
-                    scale: shouldShow ? 1.0 : 0.75
-                    transformOrigin: Item.Center
-                    visible: width > 0 || opacity > 0.001
+        // Integrated [+] Add Page button in edit mode
+        Item {
+            id: addPageBtn
+            readonly property bool shouldShow: root.isEditMode
+            width: shouldShow ? 20 : 0
+            height: 20
+            clip: true
+            opacity: shouldShow ? 1.0 : 0.0
+            scale: shouldShow ? 1.0 : 0.75
+            transformOrigin: Item.Center
+            visible: width > 0 || opacity > 0.001
+            anchors.verticalCenter: parent.verticalCenter
+
+            Behavior on width { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
+            Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+            Behavior on scale {
+                NumberAnimation {
+                    duration: 240
+                    easing.type: addPageBtn.shouldShow ? Easing.OutBack : Easing.InCubic
+                    easing.overshoot: 1.25
+                }
+            }
+
+            Rectangle {
+                anchors.centerIn: parent
+                width: 20
+                height: 20
+                radius: 10
+                color: addPageMouse.pressed
+                    ? "#38ffffff"
+                    : (addPageMouse.containsMouse ? "#24ffffff" : "#14ffffff")
+                border.width: 1
+                border.color: addPageMouse.containsMouse ? "#33ffffff" : "#1affffff"
+
+                Behavior on color { ColorAnimation { duration: 100 } }
+                Behavior on border.color { ColorAnimation { duration: 100 } }
+
+                Text {
+                    anchors.centerIn: parent
+                    text: "󰐕"
+                    color: addPageMouse.containsMouse ? "#ffffff" : "#8e8e93"
+                    font.family: root.iconFontFamily
+                    font.pixelSize: 11
+                    font.weight: Font.Bold
+                }
+
+                MouseArea {
+                    id: addPageMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.addPageRequested()
+                }
+            }
+        }
+
+        // Slot Manager Stepper (shown in edit mode beside Add Page button on widget pages)
+        Rectangle {
+            id: slotStepperCapsule
+            readonly property bool shouldShow: root.isEditMode && root.currentPage > 0
+            readonly property real targetWidth: 76
+            width: shouldShow ? targetWidth : 0
+            height: 20
+            clip: true
+            opacity: shouldShow ? 1.0 : 0.0
+            scale: shouldShow ? 1.0 : 0.82
+            transformOrigin: Item.Center
+            visible: width > 0 || opacity > 0.001
+            anchors.verticalCenter: parent.verticalCenter
+            radius: 10
+            color: "#12ffffff"
+
+            Behavior on width { NumberAnimation { duration: 240; easing.type: Easing.OutCubic } }
+            Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+            Behavior on scale {
+                NumberAnimation {
+                    duration: 250
+                    easing.type: slotStepperCapsule.shouldShow ? Easing.OutBack : Easing.InCubic
+                    easing.overshoot: 1.2
+                }
+            }
+
+            Item {
+                id: stepperRow
+                anchors.fill: parent
+                anchors.leftMargin: 4
+                anchors.rightMargin: 4
+
+                // Decrement slots button (pinned left)
+                Rectangle {
+                    width: 16
+                    height: 16
+                    radius: 8
+                    anchors.left: parent.left
                     anchors.verticalCenter: parent.verticalCenter
+                    color: decMouse.pressed ? "#38ffffff" : (decMouse.containsMouse ? "#24ffffff" : "transparent")
+                    enabled: root.currentSlotCount > 1
+                    opacity: enabled ? 1.0 : 0.35
 
-                    Behavior on width { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
-                    Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
-                    Behavior on scale {
-                        NumberAnimation {
-                            duration: 240
-                            easing.type: addPageBtn.shouldShow ? Easing.OutBack : Easing.InCubic
-                            easing.overshoot: 1.25
-                        }
+                    Text {
+                        anchors.centerIn: parent
+                        text: "−"
+                        font.pixelSize: 11
+                        font.weight: Font.Bold
+                        color: StyleTokens.textPrimary
                     }
 
-                    Rectangle {
+                    MouseArea {
+                        id: decMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: parent.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                        onClicked: root.setSlotsRequested(root.currentPage, root.currentSlotCount - 1)
+                    }
+                }
+
+                Text {
+                    anchors.centerIn: parent
+                    text: root.currentSlotCount + " " + (root.currentSlotCount === 1 ? "Slot" : "Slots")
+                    font.family: root.textFontFamily
+                    font.pixelSize: 10
+                    font.weight: Font.Medium
+                    font.features: { "tnum": 1 }
+                    color: StyleTokens.textSecondary
+                }
+
+                // Increment slots button (pinned right)
+                Rectangle {
+                    width: 16
+                    height: 16
+                    radius: 8
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    color: incMouse.pressed ? "#38ffffff" : (incMouse.containsMouse ? "#24ffffff" : "transparent")
+                    enabled: root.currentSlotCount < 6
+                    opacity: enabled ? 1.0 : 0.35
+
+                    Text {
                         anchors.centerIn: parent
-                        width: 20
-                        height: 20
-                        radius: 10
-                        color: addPageMouse.pressed
-                            ? "#38ffffff"
-                            : (addPageMouse.containsMouse ? "#24ffffff" : "#14ffffff")
-                        border.width: 1
-                        border.color: addPageMouse.containsMouse ? "#33ffffff" : "#1affffff"
+                        text: "+"
+                        font.pixelSize: 11
+                        font.weight: Font.Bold
+                        color: StyleTokens.textPrimary
+                    }
 
-                        Behavior on color { ColorAnimation { duration: 100 } }
-                        Behavior on border.color { ColorAnimation { duration: 100 } }
+                    MouseArea {
+                        id: incMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: parent.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                        onClicked: root.setSlotsRequested(root.currentPage, root.currentSlotCount + 1)
+                    }
+                }
+            }
+        }
 
-                        Text {
-                            anchors.centerIn: parent
-                            text: "󰐕"
-                            color: addPageMouse.containsMouse ? "#ffffff" : "#8e8e93"
-                            font.family: root.iconFontFamily
-                            font.pixelSize: 11
-                            font.weight: Font.Bold
-                        }
+        // Page Reorder Stepper (shown in edit mode beside slot stepper on widget pages when multiple pages exist)
+        Rectangle {
+            id: reorderStepperCapsule
+            readonly property bool shouldShow: root.isEditMode && root.currentPage > 0 && root.pages && root.pages.length > 1
+            readonly property real targetWidth: 86
+            width: shouldShow ? targetWidth : 0
+            height: 20
+            clip: true
+            opacity: shouldShow ? 1.0 : 0.0
+            scale: shouldShow ? 1.0 : 0.82
+            transformOrigin: Item.Center
+            visible: width > 0 || opacity > 0.001
+            anchors.verticalCenter: parent.verticalCenter
+            radius: 10
+            color: "#12ffffff"
 
-                        MouseArea {
-                            id: addPageMouse
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: root.addPageRequested()
+            Behavior on width { NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
+            Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+            Behavior on scale {
+                NumberAnimation {
+                    duration: 260
+                    easing.type: reorderStepperCapsule.shouldShow ? Easing.OutBack : Easing.InCubic
+                    easing.overshoot: 1.2
+                }
+            }
+
+            Item {
+                id: reorderRow
+                anchors.fill: parent
+                anchors.leftMargin: 4
+                anchors.rightMargin: 4
+
+                // Move Left button (pinned left)
+                Rectangle {
+                    width: 16
+                    height: 16
+                    radius: 8
+                    anchors.left: parent.left
+                    anchors.verticalCenter: parent.verticalCenter
+                    color: moveLeftMouse.pressed ? "#38ffffff" : (moveLeftMouse.containsMouse ? "#24ffffff" : "transparent")
+                    enabled: (root.currentPage - 1) > 0
+                    opacity: enabled ? 1.0 : 0.35
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: "󰁍"
+                        font.family: root.iconFontFamily
+                        font.pixelSize: 10
+                        color: StyleTokens.textPrimary
+                    }
+
+                    MouseArea {
+                        id: moveLeftMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: parent.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                        onClicked: {
+                            const fromIdx = root.currentPage - 1;
+                            const toIdx = fromIdx - 1;
+                            root.movePageRequested(fromIdx, toIdx);
                         }
                     }
                 }
 
-                // Slot Manager Stepper (shown in edit mode beside Add Page button on widget pages)
-                Rectangle {
-                    id: slotStepperCapsule
-                    readonly property bool shouldShow: root.isEditMode && root.currentPage > 0
-                    readonly property real targetWidth: stepperRow.implicitWidth + 8
-                    width: shouldShow ? targetWidth : 0
-                    height: 20
-                    clip: true
-                    opacity: shouldShow ? 1.0 : 0.0
-                    scale: shouldShow ? 1.0 : 0.82
-                    transformOrigin: Item.Center
-                    visible: width > 0 || opacity > 0.001
-                    anchors.verticalCenter: parent.verticalCenter
-                    radius: 10
-                    color: "#12ffffff"
-
-                    Behavior on width { NumberAnimation { duration: 240; easing.type: Easing.OutCubic } }
-                    Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
-                    Behavior on scale {
-                        NumberAnimation {
-                            duration: 250
-                            easing.type: slotStepperCapsule.shouldShow ? Easing.OutBack : Easing.InCubic
-                            easing.overshoot: 1.2
-                        }
-                    }
-
-                    Row {
-                        id: stepperRow
-                        anchors.centerIn: parent
-                        spacing: 4
-
-                        // Decrement slots button
-                        Rectangle {
-                            width: 16
-                            height: 16
-                            radius: 8
-                            color: decMouse.pressed ? "#38ffffff" : (decMouse.containsMouse ? "#24ffffff" : "transparent")
-                            enabled: root.currentSlotCount > 1
-                            opacity: enabled ? 1.0 : 0.35
-                            anchors.verticalCenter: parent.verticalCenter
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: "−"
-                                font.pixelSize: 11
-                                font.weight: Font.Bold
-                                color: StyleTokens.textPrimary
-                            }
-
-                            MouseArea {
-                                id: decMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: parent.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-                                onClicked: root.setSlotsRequested(root.currentPage, root.currentSlotCount - 1)
-                            }
-                        }
-
-                        Text {
-                            text: root.currentSlotCount + " " + (root.currentSlotCount === 1 ? "Slot" : "Slots")
-                            font.family: root.textFontFamily
-                            font.pixelSize: 10
-                            font.weight: Font.Medium
-                            color: StyleTokens.textSecondary
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-
-                        // Increment slots button
-                        Rectangle {
-                            width: 16
-                            height: 16
-                            radius: 8
-                            color: incMouse.pressed ? "#38ffffff" : (incMouse.containsMouse ? "#24ffffff" : "transparent")
-                            enabled: root.currentSlotCount < 6
-                            opacity: enabled ? 1.0 : 0.35
-                            anchors.verticalCenter: parent.verticalCenter
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: "+"
-                                font.pixelSize: 11
-                                font.weight: Font.Bold
-                                color: StyleTokens.textPrimary
-                            }
-
-                            MouseArea {
-                                id: incMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: parent.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-                                onClicked: root.setSlotsRequested(root.currentPage, root.currentSlotCount + 1)
-                            }
-                        }
-                    }
+                Text {
+                    anchors.centerIn: parent
+                    text: "Page " + root.currentPage + " of " + (root.pages ? root.pages.length : 1)
+                    font.family: root.textFontFamily
+                    font.pixelSize: 10
+                    font.weight: Font.Medium
+                    font.features: { "tnum": 1 }
+                    color: StyleTokens.textSecondary
                 }
 
-                // Page Reorder Stepper (shown in edit mode beside slot stepper on widget pages when multiple pages exist)
+                // Move Right button (pinned right)
                 Rectangle {
-                    id: reorderStepperCapsule
-                    readonly property bool shouldShow: root.isEditMode && root.currentPage > 0 && root.pages && root.pages.length > 1
-                    readonly property real targetWidth: reorderRow.implicitWidth + 8
-                    width: shouldShow ? targetWidth : 0
-                    height: 20
-                    clip: true
-                    opacity: shouldShow ? 1.0 : 0.0
-                    scale: shouldShow ? 1.0 : 0.82
-                    transformOrigin: Item.Center
-                    visible: width > 0 || opacity > 0.001
+                    width: 16
+                    height: 16
+                    radius: 8
+                    anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
-                    radius: 10
-                    color: "#12ffffff"
+                    color: moveRightMouse.pressed ? "#38ffffff" : (moveRightMouse.containsMouse ? "#24ffffff" : "transparent")
+                    enabled: (root.currentPage - 1) < (root.pages ? root.pages.length - 1 : 0)
+                    opacity: enabled ? 1.0 : 0.35
 
-                    Behavior on width { NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
-                    Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
-                    Behavior on scale {
-                        NumberAnimation {
-                            duration: 260
-                            easing.type: reorderStepperCapsule.shouldShow ? Easing.OutBack : Easing.InCubic
-                            easing.overshoot: 1.2
-                        }
+                    Text {
+                        anchors.centerIn: parent
+                        text: "󰁔"
+                        font.family: root.iconFontFamily
+                        font.pixelSize: 10
+                        color: StyleTokens.textPrimary
                     }
 
-                    Row {
-                        id: reorderRow
-                        anchors.centerIn: parent
-                        spacing: 4
-
-                        // Move Left button
-                        Rectangle {
-                            width: 16
-                            height: 16
-                            radius: 8
-                            color: moveLeftMouse.pressed ? "#38ffffff" : (moveLeftMouse.containsMouse ? "#24ffffff" : "transparent")
-                            enabled: (root.currentPage - 1) > 0
-                            opacity: enabled ? 1.0 : 0.35
-                            anchors.verticalCenter: parent.verticalCenter
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: "󰁍"
-                                font.family: root.iconFontFamily
-                                font.pixelSize: 10
-                                color: StyleTokens.textPrimary
-                            }
-
-                            MouseArea {
-                                id: moveLeftMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: parent.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-                                onClicked: {
-                                    const fromIdx = root.currentPage - 1;
-                                    const toIdx = fromIdx - 1;
-                                    root.movePageRequested(fromIdx, toIdx);
-                                }
-                            }
-                        }
-
-                        Text {
-                            text: "Page " + root.currentPage + " of " + (root.pages ? root.pages.length : 1)
-                            font.family: root.textFontFamily
-                            font.pixelSize: 10
-                            font.weight: Font.Medium
-                            color: StyleTokens.textSecondary
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-
-                        // Move Right button
-                        Rectangle {
-                            width: 16
-                            height: 16
-                            radius: 8
-                            color: moveRightMouse.pressed ? "#38ffffff" : (moveRightMouse.containsMouse ? "#24ffffff" : "transparent")
-                            enabled: (root.currentPage - 1) < (root.pages ? root.pages.length - 1 : 0)
-                            opacity: enabled ? 1.0 : 0.35
-                            anchors.verticalCenter: parent.verticalCenter
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: "󰁔"
-                                font.family: root.iconFontFamily
-                                font.pixelSize: 10
-                                color: StyleTokens.textPrimary
-                            }
-
-                            MouseArea {
-                                id: moveRightMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: parent.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-                                onClicked: {
-                                    const fromIdx = root.currentPage - 1;
-                                    const toIdx = fromIdx + 1;
-                                    root.movePageRequested(fromIdx, toIdx);
-                                }
-                            }
+                    MouseArea {
+                        id: moveRightMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: parent.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                        onClicked: {
+                            const fromIdx = root.currentPage - 1;
+                            const toIdx = fromIdx + 1;
+                            root.movePageRequested(fromIdx, toIdx);
                         }
                     }
                 }
