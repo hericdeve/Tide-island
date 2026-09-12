@@ -509,14 +509,16 @@ Item {
         }
     }
 
-    // Persistent Clock on the left (fixed, unaffected by page slide animations)
+    readonly property real persistentClockLeftX: (UserConfig && UserConfig.notchClosedPaddingHorizontal !== undefined)
+        ? UserConfig.notchClosedPaddingHorizontal : 12
+    readonly property real persistentClockCenterX: Math.round((root.width - persistentClock.width) / 2)
+    readonly property real homeSlideProgress: Math.max(0, Math.min(1.0, root.clampedPageProgress))
+
+    // Persistent Clock on the left (slides gracefully from center on Home to left on other pages)
     Item {
         id: persistentClock
-        visible: root.hasPersistentClock && root.clampedPageProgress > 0.001
-        opacity: Math.max(0, Math.min(1.0, root.clampedPageProgress))
-        anchors.left: parent.left
-        anchors.leftMargin: (UserConfig && UserConfig.notchClosedPaddingHorizontal !== undefined)
-            ? UserConfig.notchClosedPaddingHorizontal : 12
+        visible: root.hasPersistentClock
+        x: Math.round(root.persistentClockCenterX + (root.persistentClockLeftX - root.persistentClockCenterX) * root.homeSlideProgress)
         anchors.verticalCenter: parent.verticalCenter
         anchors.verticalCenterOffset: root.pageCount > 1 ? -2 : 0
         height: parent.height
@@ -533,13 +535,42 @@ Item {
         }
     }
 
+    // Date attached to the left of the persistent clock on Home page
+    Row {
+        id: persistentClockDate
+        anchors.right: persistentClock.left
+        anchors.rightMargin: 6
+        anchors.verticalCenter: persistentClock.verticalCenter
+        spacing: 6
+        visible: root.hasPersistentClock && opacity > 0.001
+        opacity: Math.max(0, 1.0 - root.homeSlideProgress * 2.2)
+        z: 20
+
+        WidgetTextView {
+            text: root.currentDate
+            role: "body"
+            colorOverride: StyleTokens.textPrimary
+            widgetContext: root.sharedWidgetContext
+            anchors.verticalCenter: parent.verticalCenter
+        }
+
+        WidgetTextView {
+            text: "·"
+            role: "body"
+            colorOverride: StyleTokens.textMuted
+            widgetContext: root.sharedWidgetContext
+            anchors.verticalCenter: parent.verticalCenter
+        }
+    }
+
     // 4. Page strip: slides and fades pages interactively according to clampedPageProgress
     Item {
         id: pageStrip
         anchors.top: parent.top
         anchors.bottom: parent.bottom
-        anchors.left: parent.left
-        anchors.right: parent.right
+        anchors.left: root.hasPersistentClock ? undefined : parent.left
+        x: root.hasPersistentClock ? (root.persistentClockLeftX + persistentClock.width + 6) : 0
+        width: root.hasPersistentClock ? Math.max(1, parent.width - x) : parent.width
         clip: true
 
         Repeater {
@@ -660,20 +691,14 @@ Item {
 
                 Item {
                     id: pageContentArea
-                    anchors.top: parent.top
-                    anchors.bottom: parent.bottom
-                    anchors.left: parent.left
-                    anchors.leftMargin: (root.hasPersistentClock && !pageDelegateItem.isHomePage)
-                        ? ((UserConfig && UserConfig.notchClosedPaddingHorizontal !== undefined ? UserConfig.notchClosedPaddingHorizontal : 12) + persistentClock.width + 6)
-                        : 0
-                    anchors.right: parent.right
+                    anchors.fill: parent
 
-                    // Horizontal row of Minimum slots for this page
+                    // Horizontal row of Minimum slots for this page (hidden on offer page, or on Home when persistent clock provides the time)
                     Row {
                         anchors.centerIn: parent
                         anchors.verticalCenterOffset: root.pageCount > 1 ? -2 : 0
                         spacing: 8
-                        visible: !pageDelegateItem.isOfferPage
+                        visible: !pageDelegateItem.isOfferPage && !(pageDelegateItem.isHomePage && root.hasPersistentClock)
 
                         Repeater {
                             id: pageSlotsRepeater
@@ -698,7 +723,7 @@ Item {
                                 height: pageStrip.height
 
                                 readonly property real closedSlotWidth: {
-                                    const sidePadding = (root.hasPersistentClock && !pageDelegateItem.isHomePage)
+                                    const sidePadding = root.hasPersistentClock
                                         ? ((UserConfig && UserConfig.notchClosedPaddingHorizontal !== undefined) ? UserConfig.notchClosedPaddingHorizontal : 12)
                                         : ((UserConfig && UserConfig.notchClosedPaddingHorizontal !== undefined) ? UserConfig.notchClosedPaddingHorizontal * 2 : 24);
                                     const totalSpacing = (pageDelegateItem.slotCount - 1) * 8;
@@ -984,9 +1009,7 @@ Item {
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 2.5
         anchors.horizontalCenter: parent.horizontalCenter
-        anchors.horizontalCenterOffset: (root.hasPersistentClock && root.currentPage > 0)
-            ? Math.round(((UserConfig && UserConfig.notchClosedPaddingHorizontal !== undefined ? UserConfig.notchClosedPaddingHorizontal : 12) + persistentClock.width + 6) / 2)
-            : 0
+        anchors.horizontalCenterOffset: root.hasPersistentClock ? Math.round((pageStrip.x / 2) * root.homeSlideProgress) : 0
         spacing: 4
         z: 10
 
