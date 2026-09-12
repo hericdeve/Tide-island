@@ -512,14 +512,15 @@ Item {
     // Persistent Clock on the left (fixed, unaffected by page slide animations)
     Item {
         id: persistentClock
-        visible: root.hasPersistentClock
+        visible: root.hasPersistentClock && root.clampedPageProgress > 0.001
+        opacity: Math.max(0, Math.min(1.0, root.clampedPageProgress))
         anchors.left: parent.left
         anchors.leftMargin: (UserConfig && UserConfig.notchClosedPaddingHorizontal !== undefined)
             ? UserConfig.notchClosedPaddingHorizontal : 12
         anchors.verticalCenter: parent.verticalCenter
         anchors.verticalCenterOffset: root.pageCount > 1 ? -2 : 0
         height: parent.height
-        width: visible ? (clockDisplay.implicitWidth + 8) : 0
+        width: clockDisplay.implicitWidth + 8
         z: 20
 
         WidgetTimerClock {
@@ -537,8 +538,7 @@ Item {
         id: pageStrip
         anchors.top: parent.top
         anchors.bottom: parent.bottom
-        anchors.left: root.hasPersistentClock ? persistentClock.right : parent.left
-        anchors.leftMargin: root.hasPersistentClock ? 6 : 0
+        anchors.left: parent.left
         anchors.right: parent.right
         clip: true
 
@@ -563,7 +563,11 @@ Item {
                 function recalculateRequestedSizes() {
                     if (pageDelegateItem.isHomePage) {
                         const basePageWidth = UserConfig ? UserConfig.notchClosedWidth : 185;
-                        pageDelegateItem.requestedContentWidth = basePageWidth;
+                        const clockAllowance = root.hasPersistentClock ? 60 : 0;
+                        const slot = pageSlotsRepeater ? pageSlotsRepeater.itemAt(0) : null;
+                        const reqW = (slot && slot.widgetItem && slot.widgetItem.requestedContentWidth !== undefined)
+                            ? Number(slot.widgetItem.requestedContentWidth) : 0;
+                        pageDelegateItem.requestedContentWidth = Math.max(basePageWidth + clockAllowance, reqW);
                         pageDelegateItem.requestedContentHeight = 0;
                         return;
                     }
@@ -654,69 +658,52 @@ Item {
                     }
                 }
 
-                // On Home page when persistent left clock is active, show the date right next to it
-                Row {
-                    id: homeDateRow
-                    anchors.verticalCenter: parent.verticalCenter
-                    anchors.verticalCenterOffset: root.pageCount > 1 ? -2 : 0
+                Item {
+                    id: pageContentArea
+                    anchors.top: parent.top
+                    anchors.bottom: parent.bottom
                     anchors.left: parent.left
-                    anchors.leftMargin: 2
-                    spacing: 6
-                    visible: pageDelegateItem.isHomePage && root.hasPersistentClock
+                    anchors.leftMargin: (root.hasPersistentClock && !pageDelegateItem.isHomePage)
+                        ? ((UserConfig && UserConfig.notchClosedPaddingHorizontal !== undefined ? UserConfig.notchClosedPaddingHorizontal : 12) + persistentClock.width + 6)
+                        : 0
+                    anchors.right: parent.right
 
-                    WidgetTextView {
-                        text: "·"
-                        role: "body"
-                        colorOverride: StyleTokens.textMuted
-                        anchors.verticalCenter: parent.verticalCenter
-                        widgetContext: root.sharedWidgetContext
-                    }
+                    // Horizontal row of Minimum slots for this page
+                    Row {
+                        anchors.centerIn: parent
+                        anchors.verticalCenterOffset: root.pageCount > 1 ? -2 : 0
+                        spacing: 8
+                        visible: !pageDelegateItem.isOfferPage
 
-                    WidgetTextView {
-                        text: root.currentDate
-                        role: "body"
-                        colorOverride: StyleTokens.textPrimary
-                        anchors.verticalCenter: parent.verticalCenter
-                        widgetContext: root.sharedWidgetContext
-                    }
-                }
+                        Repeater {
+                            id: pageSlotsRepeater
+                            model: pageDelegateItem.isOfferPage ? 0 : pageDelegateItem.slotCount
 
-                // Horizontal row of Minimum slots for this page (hidden on offer page, or on Home when persistent clock provides the time)
-                Row {
-                    anchors.centerIn: parent
-                    anchors.verticalCenterOffset: root.pageCount > 1 ? -2 : 0
-                    spacing: 8
-                    visible: !pageDelegateItem.isOfferPage && !(pageDelegateItem.isHomePage && root.hasPersistentClock)
-
-                    Repeater {
-                        id: pageSlotsRepeater
-                        model: pageDelegateItem.isOfferPage ? 0 : pageDelegateItem.slotCount
-
-                        Item {
-                            id: slotItem
-                            readonly property int sIdx: index
-                            readonly property var placedItem: {
-                                const its = pageDelegateItem.items || [];
-                                for (let i = 0; i < its.length; ++i) {
-                                    if (its[i] && its[i].slotIndex === sIdx)
-                                        return its[i];
+                            Item {
+                                id: slotItem
+                                readonly property int sIdx: index
+                                readonly property var placedItem: {
+                                    const its = pageDelegateItem.items || [];
+                                    for (let i = 0; i < its.length; ++i) {
+                                        if (its[i] && its[i].slotIndex === sIdx)
+                                            return its[i];
+                                    }
+                                    return null;
                                 }
-                                return null;
-                            }
-                            readonly property string widgetId: pageDelegateItem.isHomePage ? "clock" : (placedItem ? (placedItem.widgetId || "") : "")
-                            readonly property bool hasWidget: widgetId !== ""
-                            readonly property var widgetItem: widgetLoader.item
+                                readonly property string widgetId: pageDelegateItem.isHomePage ? "clock" : (placedItem ? (placedItem.widgetId || "") : "")
+                                readonly property bool hasWidget: widgetId !== ""
+                                readonly property var widgetItem: widgetLoader.item
 
-                            width: closedSlotWidth
-                            height: pageStrip.height
+                                width: closedSlotWidth
+                                height: pageStrip.height
 
-                            readonly property real closedSlotWidth: {
-                                const sidePadding = root.hasPersistentClock
-                                    ? ((UserConfig && UserConfig.notchClosedPaddingHorizontal !== undefined) ? UserConfig.notchClosedPaddingHorizontal : 12)
-                                    : ((UserConfig && UserConfig.notchClosedPaddingHorizontal !== undefined) ? UserConfig.notchClosedPaddingHorizontal * 2 : 24);
-                                const totalSpacing = (pageDelegateItem.slotCount - 1) * 8;
-                                return Math.max(40, (pageStrip.width - totalSpacing - sidePadding) / Math.max(1, pageDelegateItem.slotCount));
-                            }
+                                readonly property real closedSlotWidth: {
+                                    const sidePadding = (root.hasPersistentClock && !pageDelegateItem.isHomePage)
+                                        ? ((UserConfig && UserConfig.notchClosedPaddingHorizontal !== undefined) ? UserConfig.notchClosedPaddingHorizontal : 12)
+                                        : ((UserConfig && UserConfig.notchClosedPaddingHorizontal !== undefined) ? UserConfig.notchClosedPaddingHorizontal * 2 : 24);
+                                    const totalSpacing = (pageDelegateItem.slotCount - 1) * 8;
+                                    return Math.max(40, (pageContentArea.width - totalSpacing - sidePadding) / Math.max(1, pageDelegateItem.slotCount));
+                                }
 
                             // 1. Populated widget container with iOS home screen editing wiggle effect
                             Item {
@@ -987,6 +974,7 @@ Item {
             }
         }
     }
+}
 
     // 5. Page indicator dots (visible when > 1 page, fades out after 2.5s)
     Row {
@@ -995,7 +983,10 @@ Item {
         opacity: (root.dotsVisible || root.isEditMode) ? 1.0 : 0.0
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 2.5
-        anchors.horizontalCenter: root.hasPersistentClock ? pageStrip.horizontalCenter : parent.horizontalCenter
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.horizontalCenterOffset: (root.hasPersistentClock && root.currentPage > 0)
+            ? Math.round(((UserConfig && UserConfig.notchClosedPaddingHorizontal !== undefined ? UserConfig.notchClosedPaddingHorizontal : 12) + persistentClock.width + 6) / 2)
+            : 0
         spacing: 4
         z: 10
 

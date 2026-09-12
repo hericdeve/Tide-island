@@ -1544,8 +1544,7 @@ PanelWindow {
         }
 
         function sideSwipeNormalRestWidth() {
-            const isClosedHome = (closedWidgetLoader.item && closedWidgetLoader.item.currentPageIndex !== undefined && closedWidgetLoader.item.currentPageIndex === 0);
-            const clockAllowance = (userConfig && userConfig.minimumAlwaysShowClock && userConfig.notchMode !== "circle" && !isClosedHome) ? 60 : 0;
+            const clockAllowance = (userConfig && userConfig.minimumAlwaysShowClock && userConfig.notchMode !== "circle") ? 60 : 0;
             return (islandContainer.currentTrack !== ""
                 ? Math.round(userConfig.notchClosedWidth + 2 * Math.max(0, userConfig.notchClosedHeight - 12) + 20)
                 : userConfig.notchClosedWidth) + clockAllowance;
@@ -2604,8 +2603,7 @@ PanelWindow {
                     switch (currentMode) {
                     case "full": return userConfig ? userConfig.notchOpenWidth : 640;
                     case "minimum":
-                        const isClosedHome = (closedWidgetLoader.item && closedWidgetLoader.item.currentPageIndex !== undefined && closedWidgetLoader.item.currentPageIndex === 0);
-                        const clockAllowance = (userConfig && userConfig.minimumAlwaysShowClock && userConfig.notchMode !== "circle" && !isClosedHome) ? 60 : 0;
+                        const clockAllowance = (userConfig && userConfig.minimumAlwaysShowClock && userConfig.notchMode !== "circle") ? 60 : 0;
                         return (islandContainer.currentTrack !== ""
                             ? Math.round(userConfig.notchClosedWidth + 2 * Math.max(0, userConfig.notchClosedHeight - 12) + 20)
                             : (userConfig ? userConfig.notchClosedWidth : 185)) + clockAllowance;
@@ -2824,8 +2822,7 @@ PanelWindow {
                         Math.min(root.width - 48, notificationLoader.item.maximumWidth, notificationLoader.item.preferredWidth)
                     );
                 default:
-                    const isClosedHome = (closedWidgetLoader.item && closedWidgetLoader.item.currentPageIndex !== undefined && closedWidgetLoader.item.currentPageIndex === 0);
-                    const clockAllowance = (userConfig && userConfig.minimumAlwaysShowClock && userConfig.notchMode !== "circle" && !isClosedHome) ? 60 : 0;
+                    const clockAllowance = (userConfig && userConfig.minimumAlwaysShowClock && userConfig.notchMode !== "circle") ? 60 : 0;
                     const standardClosedWidth = (islandContainer.currentTrack !== ""
                         ? Math.round(userConfig.notchClosedWidth + 2 * Math.max(0, userConfig.notchClosedHeight - 12) + 20)
                         : userConfig.notchClosedWidth) + clockAllowance;
@@ -2891,8 +2888,7 @@ PanelWindow {
                 }
             }
             function sideSwipeWidthForProgress(progressValue) {
-                const isClosedHome = (closedWidgetLoader.item && closedWidgetLoader.item.currentPageIndex !== undefined && closedWidgetLoader.item.currentPageIndex === 0);
-                const clockAllowance = (userConfig && userConfig.minimumAlwaysShowClock && userConfig.notchMode !== "circle" && !isClosedHome) ? 60 : 0;
+                const clockAllowance = (userConfig && userConfig.minimumAlwaysShowClock && userConfig.notchMode !== "circle") ? 60 : 0;
                 const normalWidth = (islandContainer.currentTrack !== ""
                     ? Math.round(userConfig.notchClosedWidth + 2 * Math.max(0, userConfig.notchClosedHeight - 12) + 20)
                     : userConfig.notchClosedWidth) + clockAllowance;
