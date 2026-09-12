@@ -1544,9 +1544,11 @@ PanelWindow {
         }
 
         function sideSwipeNormalRestWidth() {
-            return islandContainer.currentTrack !== ""
+            const isClosedHome = (closedWidgetLoader.item && closedWidgetLoader.item.currentPageIndex !== undefined && closedWidgetLoader.item.currentPageIndex === 0);
+            const clockAllowance = (userConfig && userConfig.minimumAlwaysShowClock && userConfig.notchMode !== "circle" && !isClosedHome) ? 60 : 0;
+            return (islandContainer.currentTrack !== ""
                 ? Math.round(userConfig.notchClosedWidth + 2 * Math.max(0, userConfig.notchClosedHeight - 12) + 20)
-                : userConfig.notchClosedWidth;
+                : userConfig.notchClosedWidth) + clockAllowance;
         }
 
         function sideSwipeRestWidthForProgress(progressValue) {
@@ -2602,9 +2604,11 @@ PanelWindow {
                     switch (currentMode) {
                     case "full": return userConfig ? userConfig.notchOpenWidth : 640;
                     case "minimum":
-                        return islandContainer.currentTrack !== ""
+                        const isClosedHome = (closedWidgetLoader.item && closedWidgetLoader.item.currentPageIndex !== undefined && closedWidgetLoader.item.currentPageIndex === 0);
+                        const clockAllowance = (userConfig && userConfig.minimumAlwaysShowClock && userConfig.notchMode !== "circle" && !isClosedHome) ? 60 : 0;
+                        return (islandContainer.currentTrack !== ""
                             ? Math.round(userConfig.notchClosedWidth + 2 * Math.max(0, userConfig.notchClosedHeight - 12) + 20)
-                            : (userConfig ? userConfig.notchClosedWidth : 185);
+                            : (userConfig ? userConfig.notchClosedWidth : 185)) + clockAllowance;
                     case "circle": return userConfig ? userConfig.notchCircleClosedSize : 44;
                     default: return 0;
                     }
@@ -2820,9 +2824,11 @@ PanelWindow {
                         Math.min(root.width - 48, notificationLoader.item.maximumWidth, notificationLoader.item.preferredWidth)
                     );
                 default:
-                    const standardClosedWidth = islandContainer.currentTrack !== ""
+                    const isClosedHome = (closedWidgetLoader.item && closedWidgetLoader.item.currentPageIndex !== undefined && closedWidgetLoader.item.currentPageIndex === 0);
+                    const clockAllowance = (userConfig && userConfig.minimumAlwaysShowClock && userConfig.notchMode !== "circle" && !isClosedHome) ? 60 : 0;
+                    const standardClosedWidth = (islandContainer.currentTrack !== ""
                         ? Math.round(userConfig.notchClosedWidth + 2 * Math.max(0, userConfig.notchClosedHeight - 12) + 20)
-                        : userConfig.notchClosedWidth;
+                        : userConfig.notchClosedWidth) + clockAllowance;
                     return standardClosedWidth + dynamicResizeEngine.activeExtraWidth;
                 }
             }
@@ -2885,9 +2891,11 @@ PanelWindow {
                 }
             }
             function sideSwipeWidthForProgress(progressValue) {
-                const normalWidth = islandContainer.currentTrack !== ""
+                const isClosedHome = (closedWidgetLoader.item && closedWidgetLoader.item.currentPageIndex !== undefined && closedWidgetLoader.item.currentPageIndex === 0);
+                const clockAllowance = (userConfig && userConfig.minimumAlwaysShowClock && userConfig.notchMode !== "circle" && !isClosedHome) ? 60 : 0;
+                const normalWidth = (islandContainer.currentTrack !== ""
                     ? Math.round(userConfig.notchClosedWidth + 2 * Math.max(0, userConfig.notchClosedHeight - 12) + 20)
-                    : userConfig.notchClosedWidth;
+                    : userConfig.notchClosedWidth) + clockAllowance;
                 if (progressValue < 0)
                     return normalWidth + (islandContainer.customCapsuleWidth - normalWidth)
                         * islandContainer.clamp01(-progressValue);

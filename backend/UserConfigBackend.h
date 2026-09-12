@@ -48,6 +48,7 @@ class UserConfigBackend final : public QObject {
     Q_PROPERTY(bool disableAutoExpandOnTrackChange READ disableAutoExpandOnTrackChange NOTIFY disableAutoExpandOnTrackChangeChanged FINAL)
     Q_PROPERTY(bool playerRememberLastPane READ playerRememberLastPane WRITE setPlayerRememberLastPane NOTIFY playerRememberLastPaneChanged FINAL)
     Q_PROPERTY(bool claudeMinimumShowsLastMessage READ claudeMinimumShowsLastMessage WRITE setClaudeMinimumShowsLastMessage NOTIFY claudeMinimumShowsLastMessageChanged FINAL)
+    Q_PROPERTY(bool minimumAlwaysShowClock READ minimumAlwaysShowClock WRITE setMinimumAlwaysShowClock NOTIFY minimumAlwaysShowClockChanged FINAL)
     Q_PROPERTY(int hoverExpandAction READ hoverExpandAction NOTIFY hoverExpandActionChanged FINAL)
     Q_PROPERTY(bool islandAutoHideEnabled READ islandAutoHideEnabled NOTIFY islandAutoHideEnabledChanged FINAL)
     Q_PROPERTY(int islandAutoHideDelayMs READ islandAutoHideDelayMs NOTIFY islandAutoHideDelayMsChanged FINAL)
@@ -141,6 +142,8 @@ public:
     Q_INVOKABLE void setPlayerRememberLastPane(bool remember);
     bool claudeMinimumShowsLastMessage() const;
     Q_INVOKABLE void setClaudeMinimumShowsLastMessage(bool showsLastMessage);
+    bool minimumAlwaysShowClock() const;
+    Q_INVOKABLE void setMinimumAlwaysShowClock(bool enabled);
     bool dynamicResizeEnabledFull() const;
     Q_INVOKABLE void setDynamicResizeEnabledFull(bool enabled);
     bool dynamicResizeEnabledMinimum() const;
@@ -263,6 +266,7 @@ signals:
     void disableAutoExpandOnTrackChangeChanged();
     void playerRememberLastPaneChanged();
     void claudeMinimumShowsLastMessageChanged();
+    void minimumAlwaysShowClockChanged();
     void dynamicResizeEnabledFullChanged();
     void dynamicResizeEnabledMinimumChanged();
     void dynamicResizeEnabledCircleChanged();
@@ -355,6 +359,7 @@ private:
     bool m_disableAutoExpandOnTrackChange = true;
     bool m_playerRememberLastPane = false;
     bool m_claudeMinimumShowsLastMessage = false;
+    bool m_minimumAlwaysShowClock = false;
     bool m_dynamicResizeEnabledFull = true;
     bool m_dynamicResizeEnabledMinimum = true;
     bool m_dynamicResizeEnabledCircle = false;

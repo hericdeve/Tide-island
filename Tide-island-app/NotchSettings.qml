@@ -366,6 +366,16 @@ PagePanel {
                         maximumValue: 40
                         width: parent.width
                     }
+
+                    SplitLine { width: parent.width }
+
+                    ToggleRow {
+                        title: "Persistent Left Clock"
+                        description: "Keep the clock permanently fixed to the left of minimum widgets, unaffected by page sliding"
+                        keyName: "minimumAlwaysShowClock"
+                        fallbackState: false
+                        width: parent.width
+                    }
                 }
             }
 

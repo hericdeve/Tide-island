@@ -37,6 +37,8 @@ private slots:
     void barOverlayDefaultsAndClamping();
     void themeStyleDefaultsAndAssignment();
     void notchNotificationsEnabledDefaultsAndPersists();
+    void minimumAlwaysShowClockDefaultsAndPersists();
+    void minimumHomePageClockIsFixedAndCannotBeRemoved();
     void styleTokensContrastAndThemeBindings();
 };
 
@@ -388,8 +390,9 @@ void UserConfigBackendTests::differentModesCanHaveSameWidget()
     config.setSlotWidget(QStringLiteral("expanded"), 0, 0, QStringLiteral("pomodoro"), 2);
     // Place pomodoro in circle mode
     config.setSlotWidget(QStringLiteral("circle"), 0, 0, QStringLiteral("pomodoro"), 1);
-    // Place pomodoro in minimum mode
-    config.setSlotWidget(QStringLiteral("minimum"), 0, 0, QStringLiteral("pomodoro"), 1);
+    // Place pomodoro in minimum mode (on page 1, as page 0 is fixed Home clock)
+    config.addPage(QStringLiteral("minimum"), QStringLiteral("Page 2"), 1);
+    config.setSlotWidget(QStringLiteral("minimum"), 1, 0, QStringLiteral("pomodoro"), 1);
 
     // Verify pomodoro exists in all three modes
     const auto hasPomodoro = [&](const QString &mode) {
@@ -720,6 +723,72 @@ void UserConfigBackendTests::notchNotificationsEnabledDefaultsAndPersists()
 
     UserConfigBackend reloaded2;
     QCOMPARE(reloaded2.notchNotificationsEnabled(), true);
+}
+
+void UserConfigBackendTests::minimumAlwaysShowClockDefaultsAndPersists()
+{
+    UserConfigBackend config;
+    QCOMPARE(config.minimumAlwaysShowClock(), false);
+
+    QSignalSpy spy(&config, &UserConfigBackend::minimumAlwaysShowClockChanged);
+
+    config.setMinimumAlwaysShowClock(true);
+    QCOMPARE(config.minimumAlwaysShowClock(), true);
+    QCOMPARE(spy.count(), 1);
+
+    // Setting same value shouldn't emit signal
+    config.setMinimumAlwaysShowClock(true);
+    QCOMPARE(spy.count(), 1);
+
+    // Reload persistence
+    UserConfigBackend reloaded;
+    QCOMPARE(reloaded.minimumAlwaysShowClock(), true);
+
+    // Turn back off
+    reloaded.setMinimumAlwaysShowClock(false);
+    QCOMPARE(reloaded.minimumAlwaysShowClock(), false);
+
+    UserConfigBackend reloaded2;
+    QCOMPARE(reloaded2.minimumAlwaysShowClock(), false);
+}
+
+void UserConfigBackendTests::minimumHomePageClockIsFixedAndCannotBeRemoved()
+{
+    UserConfigBackend config;
+    const QJsonObject layouts = config.widgetLayouts();
+    const QJsonObject minObj = layouts.value(QStringLiteral("minimum")).toObject();
+    const QJsonArray pages = minObj.value(QStringLiteral("pages")).toArray();
+    QVERIFY(!pages.isEmpty());
+    const QJsonObject homePage = pages[0].toObject();
+    QCOMPARE(homePage.value(QStringLiteral("isHome")).toBool(), true);
+    const QJsonArray items = homePage.value(QStringLiteral("items")).toArray();
+    QVERIFY(!items.isEmpty());
+    QCOMPARE(items[0].toObject().value(QStringLiteral("widgetId")).toString(), QStringLiteral("clock"));
+
+    // Attempting to remove slot 0 on page 0 of minimum mode is ignored
+    config.removeSlotWidget(QStringLiteral("minimum"), 0, 0);
+    const QJsonObject layoutsAfterRemove = config.widgetLayouts();
+    const QJsonArray pagesAfterRemove = layoutsAfterRemove.value(QStringLiteral("minimum")).toObject().value(QStringLiteral("pages")).toArray();
+    const QJsonArray itemsAfterRemove = pagesAfterRemove[0].toObject().value(QStringLiteral("items")).toArray();
+    QCOMPARE(itemsAfterRemove[0].toObject().value(QStringLiteral("widgetId")).toString(), QStringLiteral("clock"));
+
+    // Attempting to overwrite slot 0 on page 0 with another widget is rejected
+    config.setSlotWidget(QStringLiteral("minimum"), 0, 0, QStringLiteral("pomodoro"), 1);
+    const QJsonObject layoutsAfterSet = config.widgetLayouts();
+    const QJsonArray pagesAfterSet = layoutsAfterSet.value(QStringLiteral("minimum")).toObject().value(QStringLiteral("pages")).toArray();
+    const QJsonArray itemsAfterSet = pagesAfterSet[0].toObject().value(QStringLiteral("items")).toArray();
+    QCOMPARE(itemsAfterSet[0].toObject().value(QStringLiteral("widgetId")).toString(), QStringLiteral("clock"));
+
+    // Adding another page with another widget does not deduplicate home page clock
+    config.addPage(QStringLiteral("minimum"), QStringLiteral("Custom"), 1);
+    config.setSlotWidget(QStringLiteral("minimum"), 1, 0, QStringLiteral("clock"), 1);
+    const QJsonObject layoutsAfterAdd = config.widgetLayouts();
+    const QJsonArray pagesAfterAdd = layoutsAfterAdd.value(QStringLiteral("minimum")).toObject().value(QStringLiteral("pages")).toArray();
+    const QJsonArray homeItemsAfterAdd = pagesAfterAdd[0].toObject().value(QStringLiteral("items")).toArray();
+    QCOMPARE(homeItemsAfterAdd[0].toObject().value(QStringLiteral("widgetId")).toString(), QStringLiteral("clock"));
+
+    // Clean up added page
+    config.removePage(QStringLiteral("minimum"), 1);
 }
 
 void UserConfigBackendTests::styleTokensContrastAndThemeBindings()

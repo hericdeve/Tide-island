@@ -394,6 +394,43 @@ void UserConfigBackend::setClaudeMinimumShowsLastMessage(bool showsLastMessage)
     }
 }
 
+bool UserConfigBackend::minimumAlwaysShowClock() const
+{
+    return m_minimumAlwaysShowClock;
+}
+
+void UserConfigBackend::setMinimumAlwaysShowClock(bool enabled)
+{
+    if (m_minimumAlwaysShowClock == enabled)
+        return;
+
+    m_minimumAlwaysShowClock = enabled;
+    emit minimumAlwaysShowClockChanged();
+
+    QJsonObject configObject;
+    QFile configFile(m_userConfigPath);
+    if (configFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        const QByteArray bytes = configFile.readAll();
+        configFile.close();
+        if (!bytes.trimmed().isEmpty()) {
+            const QByteArray stripped = stripJsonComments(bytes);
+            QJsonDocument doc = QJsonDocument::fromJson(stripped);
+            if (doc.isObject()) {
+                configObject = doc.object();
+            }
+        }
+    }
+
+    configObject[QStringLiteral("minimumAlwaysShowClock")] = m_minimumAlwaysShowClock;
+
+    QFileInfo(m_userConfigPath).dir().mkpath(QStringLiteral("."));
+    QSaveFile saveFile(m_userConfigPath);
+    if (saveFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        saveFile.write(QJsonDocument(configObject).toJson(QJsonDocument::Indented));
+        saveFile.commit();
+    }
+}
+
 bool UserConfigBackend::dynamicResizeEnabledFull() const
 {
     return m_dynamicResizeEnabledFull;
@@ -1211,9 +1248,20 @@ void UserConfigBackend::setSlotWidget(const QString &mode, int pageIndex, int sl
 
     const QString cleanWidgetId = widgetId.trimmed();
 
+    // Minimum mode page 0 (Home) must always retain the clock widget
+    if (mode == QLatin1String("minimum") && pageIndex == 0) {
+        if (slotIndex != 0 || cleanWidgetId != QLatin1String("clock")) {
+            return;
+        }
+    }
+
     // Deduplicate: remove any prior instances of this widget across all pages in this mode
     if (!cleanWidgetId.isEmpty()) {
         for (int p = 0; p < pages.size(); ++p) {
+            // Never deduplicate the fixed clock from minimum home page
+            if (mode == QLatin1String("minimum") && p == 0 && cleanWidgetId == QLatin1String("clock")) {
+                continue;
+            }
             QJsonObject pageObj = pages[p].toObject();
             QJsonArray pageItems = pageObj.value(QStringLiteral("items")).toArray();
             bool modified = false;
@@ -1259,6 +1307,10 @@ void UserConfigBackend::setSlotWidget(const QString &mode, int pageIndex, int sl
 
 void UserConfigBackend::removeSlotWidget(const QString &mode, int pageIndex, int slotIndex)
 {
+    if (mode == QLatin1String("minimum") && pageIndex == 0) {
+        // Minimum home page clock cannot be removed
+        return;
+    }
     setSlotWidget(mode, pageIndex, slotIndex, QString(), 1);
 }
 
@@ -1416,6 +1468,7 @@ void UserConfigBackend::loadConfig()
     updateField(this, m_disableAutoExpandOnTrackChange, jsonBool(configObject, QLatin1String("disableAutoExpandOnTrackChange"), true), &UserConfigBackend::disableAutoExpandOnTrackChangeChanged);
     updateField(this, m_playerRememberLastPane, jsonBool(configObject, QLatin1String("playerRememberLastPane"), false), &UserConfigBackend::playerRememberLastPaneChanged);
     updateField(this, m_claudeMinimumShowsLastMessage, jsonBool(configObject, QLatin1String("claudeMinimumShowsLastMessage"), false), &UserConfigBackend::claudeMinimumShowsLastMessageChanged);
+    updateField(this, m_minimumAlwaysShowClock, jsonBool(configObject, QLatin1String("minimumAlwaysShowClock"), false), &UserConfigBackend::minimumAlwaysShowClockChanged);
     updateField(this, m_dynamicResizeEnabledFull, jsonBool(configObject, QLatin1String("dynamicResizeEnabledFull"), true), &UserConfigBackend::dynamicResizeEnabledFullChanged);
     updateField(this, m_dynamicResizeEnabledMinimum, jsonBool(configObject, QLatin1String("dynamicResizeEnabledMinimum"), true), &UserConfigBackend::dynamicResizeEnabledMinimumChanged);
     updateField(this, m_dynamicResizeEnabledCircle, jsonBool(configObject, QLatin1String("dynamicResizeEnabledCircle"), false), &UserConfigBackend::dynamicResizeEnabledCircleChanged);
@@ -1538,6 +1591,49 @@ void UserConfigBackend::loadConfig()
                 }
             }
         }
+
+        // Ensure minimum layout page 0 is permanently fixed as Home with clock
+        if (layouts.contains(QStringLiteral("minimum")) && layouts.value(QStringLiteral("minimum")).isObject()) {
+            QJsonObject minObj = layouts.value(QStringLiteral("minimum")).toObject();
+            QJsonArray minPages = minObj.value(QStringLiteral("pages")).toArray();
+            if (!minPages.isEmpty()) {
+                QJsonObject homePage = minPages[0].toObject();
+                bool pageFixed = false;
+                if (!homePage.value(QStringLiteral("isHome")).toBool(false)) {
+                    homePage[QStringLiteral("isHome")] = true;
+                    homePage[QStringLiteral("id")] = QStringLiteral("home");
+                    homePage[QStringLiteral("title")] = QStringLiteral("Home");
+                    pageFixed = true;
+                }
+                QJsonArray items = homePage.value(QStringLiteral("items")).toArray();
+                bool hasClock = false;
+                for (int i = 0; i < items.size(); ++i) {
+                    if (items[i].toObject().value(QStringLiteral("widgetId")).toString().trimmed() == QLatin1String("clock") &&
+                        items[i].toObject().value(QStringLiteral("slotIndex")).toInt() == 0) {
+                        hasClock = true;
+                        break;
+                    }
+                }
+                if (!hasClock) {
+                    items = QJsonArray();
+                    QJsonObject clockItem;
+                    clockItem[QStringLiteral("slotIndex")] = 0;
+                    clockItem[QStringLiteral("widgetId")] = QStringLiteral("clock");
+                    clockItem[QStringLiteral("slotSpan")] = 1;
+                    items.append(clockItem);
+                    homePage[QStringLiteral("items")] = items;
+                    homePage[QStringLiteral("slots")] = 1;
+                    pageFixed = true;
+                }
+                if (pageFixed) {
+                    minPages[0] = homePage;
+                    minObj[QStringLiteral("pages")] = minPages;
+                    layouts[QStringLiteral("minimum")] = minObj;
+                    changed = true;
+                }
+            }
+        }
+
         updateField(this, m_widgetLayouts, layouts, &UserConfigBackend::widgetLayoutsChanged);
         if (changed) {
             saveWidgetLayouts(layouts);

@@ -18,30 +18,16 @@ Item {
 
     anchors.fill: parent
 
-    Row {
-        id: contentRow
+    WidgetTextView {
+        id: eventText
         anchors.centerIn: parent
-        spacing: 7
-
-        WidgetIconGlyph {
-            id: calIcon
-            glyph: "󰸗"
-            size: 14
-            color: StyleTokens.danger
-            widgetContext: root.widgetContext
-            anchors.verticalCenter: parent.verticalCenter
-        }
-
-        WidgetTextView {
-            text: root.eventSummary !== "" ? root.eventSummary : Qt.formatDate(new Date(), "ddd, MMM d")
-            role: "body"
-            overflowMode: "marquee"
-            marqueeSpeed: 25
-            maximumLineCount: 1
-            colorOverride: StyleTokens.textPrimary
-            width: Math.min(measuredWidth, Math.max(0, root.width - calIcon.width - contentRow.spacing - 12))
-            widgetContext: root.widgetContext
-            anchors.verticalCenter: parent.verticalCenter
-        }
+        text: root.eventSummary !== "" ? root.eventSummary : Qt.formatDate(new Date(), "ddd, MMM d")
+        role: "body"
+        overflowMode: "marquee"
+        marqueeSpeed: 25
+        maximumLineCount: 1
+        colorOverride: StyleTokens.textPrimary
+        width: Math.min(measuredWidth, Math.max(0, root.width - 12))
+        widgetContext: root.widgetContext
     }
 }
