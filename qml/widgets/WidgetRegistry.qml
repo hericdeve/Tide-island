@@ -105,6 +105,17 @@ QtObject {
             fullComponent: Qt.resolvedUrl("claude_code/Full.qml"),
             minimumComponent: Qt.resolvedUrl("claude_code/Minimum.qml"),
             circleComponent: Qt.resolvedUrl("claude_code/Circle.qml")
+        },
+        {
+            id: "pixel_pet",
+            name: "Pixel Pet",
+            description: "A sophisticated retro pixel companion that reacts to your music, system load, and daily care",
+            icon: "󰄛",
+            supportedSizes: ["full", "minimum", "circle"],
+            defaultSlotSpan: 1,
+            fullComponent: Qt.resolvedUrl("pixel_pet/Full.qml"),
+            minimumComponent: Qt.resolvedUrl("pixel_pet/Minimum.qml"),
+            circleComponent: Qt.resolvedUrl("pixel_pet/Circle.qml")
         }
     ]
 

@@ -1,0 +1,5 @@
+singleton PixelPetService 1.0 PixelPetService.qml
+PixelSpriteView 1.0 PixelSpriteView.qml
+Full 1.0 Full.qml
+Minimum 1.0 Minimum.qml
+Circle 1.0 Circle.qml

@@ -1,0 +1,18 @@
+{
+  "id": "pixel_pet",
+  "name": "Pixel Pet",
+  "description": "A sophisticated retro pixel companion that reacts to your music, system load, and daily care.",
+  "icon": "󰄛",
+  "supportedSizes": ["full", "minimum", "circle"],
+  "defaultSlotSpan": 1,
+  "elements": [
+    "text_view",
+    "icon_glyph",
+    "action_control",
+    "progress_bar",
+    "progress_ring"
+  ],
+  "capabilities": [
+    "dynamic_resize"
+  ]
+}

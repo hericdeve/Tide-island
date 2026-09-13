@@ -477,6 +477,11 @@ Each widget's `manifest.json` defines its identity, view modes, and element comp
     - `Minimum.qml`: Transfer status pill ("Sending 45%...").
     - `Circle.qml`: Radial transfer progress ring + share glyph.
 
+12. **Pixel Pet Companion**:
+    - `Full.qml`: Interactive pixel habitat stage with click-to-pet, ball toss play minigame, vitals HUD (`WidgetProgressBar`), `WidgetActionButton` action dock, dynamic speech bubbles (`WidgetTextView`), and pet/wardrobe selection drawers.
+    - `Minimum.qml`: Ambient dynamic width morphing pill with animated 16x16 pixel pet and reactive status glyphs.
+    - `Circle.qml`: Radial happiness progress ring (`WidgetProgressRing`) + centered animated pixel pet.
+
 ---
 
 ## 8. Auditing & Inspection CLI
