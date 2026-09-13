@@ -12,7 +12,7 @@ Item {
     property int frameIndex: 0
     property bool flipX: false
     property string accessoryId: "none"
-    property real pixelScale: Math.max(1, Math.floor(Math.min(width, height) / 16.0))
+    property real pixelScale: Math.max(1, Math.floor(Math.min(width, height) / 24.0))
 
     // Particle effect
     property string activeParticle: "" // "heart", "note", "zzz", "sweat", "sparkle", "crumb"
@@ -59,9 +59,11 @@ Item {
             var frame = framesList[root.frameIndex % framesList.length];
             if (!frame || frame.length === 0) return;
 
-            var p = Math.max(1, Math.floor(Math.min(width, height) / 16.0));
-            var spriteW = 16 * p;
-            var spriteH = 16 * p;
+            var gridH = frame.length;
+            var gridW = (frame[0] && frame[0].length > 0) ? frame[0].length : 24;
+            var p = Math.max(1, Math.floor(Math.min(width / gridW, height / gridH)));
+            var spriteW = gridW * p;
+            var spriteH = gridH * p;
             var ox = Math.floor((width - spriteW) / 2.0);
             var oy = Math.floor((height - spriteH) / 2.0);
 
@@ -73,9 +75,9 @@ Item {
             }
 
             var palette = pet.palette || {};
-            for (var y = 0; y < 16 && y < frame.length; ++y) {
+            for (var y = 0; y < gridH; ++y) {
                 var row = frame[y];
-                for (var x = 0; x < 16 && x < row.length; ++x) {
+                for (var x = 0; x < gridW && x < row.length; ++x) {
                     var ch = row.charAt(x);
                     if (ch === ".") continue;
                     var col = palette[ch];
@@ -91,9 +93,10 @@ Item {
                 if (acc && acc.frames && acc.frames.length > 0) {
                     var accFrame = acc.frames[0];
                     var accPalette = acc.palette || {};
-                    for (var ay = 0; ay < accFrame.length && ay < 8; ++ay) {
+                    var accH = accFrame.length;
+                    for (var ay = 0; ay < accH; ++ay) {
                         var arow = accFrame[ay];
-                        for (var ax = 0; ax < arow.length && ax < 16; ++ax) {
+                        for (var ax = 0; ax < arow.length; ++ax) {
                             var ach = arow.charAt(ax);
                             if (ach === ".") continue;
                             var acol = accPalette[ach];

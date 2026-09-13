@@ -137,7 +137,7 @@ Item {
             Rectangle {
                 id: habitatStage
                 width: parent.width
-                height: Math.max(54, Math.min(68, parent.height - 76 - (root.drawerMode !== "none" ? 52 : 0)))
+                height: Math.max(56, Math.min(72, parent.height - 76 - (root.drawerMode !== "none" ? 52 : 0)))
                 radius: 12
                 color: StyleTokens.module
                 border.width: 1
@@ -207,10 +207,10 @@ Item {
                 // The Pixel Pet Avatar
                 PixelSpriteView {
                     id: petAvatar
-                    width: 44
-                    height: 44
+                    width: 48
+                    height: 48
                     anchors.bottom: parent.bottom
-                    anchors.bottomMargin: 4
+                    anchors.bottomMargin: 3
                     x: Math.round(root.petService.roamPosition * Math.max(0, habitatStage.width - width - 8)) + 4
 
                     petId: root.petService.activePetId
