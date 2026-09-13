@@ -211,6 +211,16 @@ PagePanel {
                     CalendarSourcesRow {
                         width: parent.width
                     }
+
+                    SplitLine { width: parent.width }
+
+                    ToggleRow {
+                        title: "Scroll Event Names Only on Hover"
+                        description: "Scroll long overflowing event names only when hovering over them"
+                        keyName: "scrollTextOnlyOnHover"
+                        fallbackState: false
+                        width: parent.width
+                    }
                 }
             }
 

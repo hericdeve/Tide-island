@@ -565,6 +565,24 @@ QVariantList CalendarBackend::eventsForDate(const QDate &date) const {
         calLookup[cal.id] = cal;
     }
 
+    auto formatMinimalPeriod = [](const QDateTime &start, const QDateTime &end, bool allDay) -> QString {
+        if (allDay) {
+            return QStringLiteral("All-day");
+        }
+        auto formatMinimalTime = [](const QTime &t) -> QString {
+            if (t.minute() == 0) {
+                return QString::number(t.hour());
+            }
+            return t.toString(QStringLiteral("H:mm"));
+        };
+        const QString startStr = formatMinimalTime(start.time());
+        if (!end.isValid() || start == end) {
+            return startStr;
+        }
+        const QString endStr = formatMinimalTime(end.time());
+        return QStringLiteral("%1-%2").arg(startStr, endStr);
+    };
+
     for (const auto &ev : m_events) {
         const auto calIt = calLookup.constFind(ev.calendarId);
         if (calIt == calLookup.constEnd() || !calIt->enabled) {
@@ -582,14 +600,7 @@ QVariantList CalendarBackend::eventsForDate(const QDate &date) const {
             map[QStringLiteral("allDay")] = ev.allDay;
             map[QStringLiteral("startTime")] = ev.start;
             map[QStringLiteral("endTime")] = ev.end;
-
-            if (ev.allDay) {
-                map[QStringLiteral("timeString")] = QStringLiteral("All-day");
-            } else {
-                map[QStringLiteral("timeString")] = QStringLiteral("%1 - %2")
-                    .arg(ev.start.time().toString(QStringLiteral("h:mm AP")),
-                         ev.end.time().toString(QStringLiteral("h:mm AP")));
-            }
+            map[QStringLiteral("timeString")] = formatMinimalPeriod(ev.start, ev.end, ev.allDay);
 
             result.append(map);
         }
@@ -618,14 +629,7 @@ QVariantList CalendarBackend::eventsForDate(const QDate &date) const {
             map[QStringLiteral("allDay")] = ev.allDay;
             map[QStringLiteral("startTime")] = ev.start;
             map[QStringLiteral("endTime")] = ev.end;
-
-            if (ev.allDay) {
-                map[QStringLiteral("timeString")] = QStringLiteral("All-day");
-            } else {
-                map[QStringLiteral("timeString")] = QStringLiteral("%1 - %2")
-                    .arg(ev.start.time().toString(QStringLiteral("h:mm AP")),
-                         ev.end.time().toString(QStringLiteral("h:mm AP")));
-            }
+            map[QStringLiteral("timeString")] = formatMinimalPeriod(ev.start, ev.end, ev.allDay);
 
             result.append(map);
         }

@@ -41,12 +41,23 @@ FocusScope {
     property string suppressedOpenUri: ""
     property string externalDropZone: ""
 
-    readonly property int visibleCapacity: 5
-    readonly property real horizontalPadding: 0
-    readonly property real cardWidth: shelfContentArea.height < 200 ? Math.max(80, Math.round(shelfContentArea.height - 16)) : 176
-    readonly property real cardHeight: cardWidth
-    readonly property real overflowCellWidth: cardWidth + 20
+    readonly property real horizontalPadding: 8
+    readonly property real availableTrayWidth: Math.max(100, trayViewport.width - 2 * horizontalPadding)
+    readonly property real maxCardWidth: Math.min(136, Math.max(58, Math.round(shelfContentArea.height - 24)))
+    readonly property real minCardWidth: 58
+    readonly property real minStep: 22
+    readonly property real cardGap: 10
+
+    readonly property real idealCardWidth: FileShelf.count > 0
+        ? (availableTrayWidth - Math.max(0, FileShelf.count - 1) * cardGap) / FileShelf.count
+        : maxCardWidth
+
+    readonly property real cardWidth: Math.max(minCardWidth, Math.min(maxCardWidth, idealCardWidth))
+    readonly property real cardHeight: Math.min(Math.max(60, shelfContentArea.height - 8), Math.round(cardWidth * 1.22))
+
+    readonly property bool isOverlapping: FileShelf.count > 1 && (FileShelf.count * cardWidth > availableTrayWidth)
     readonly property bool isCurrentPage: !showStatusBar ? (currentPage === 0) : true
+    readonly property bool isShelfActive: showCondition && !dropPreviewOnly && isCurrentPage
 
     focus: showCondition && !dropPreviewOnly && isCurrentPage
     activeFocusOnTab: true
@@ -68,8 +79,30 @@ FocusScope {
         normalizeSelection();
         if (!dropPreviewOnly && isCurrentPage)
             grabKeyboardFocus();
-        if (!dropPreviewOnly)
-            LocalSend.discover();
+    }
+
+    onIsShelfActiveChanged: {
+        if (isShelfActive) {
+            const entry = (selectedIndex >= 0 && selectedIndex < FileShelf.count) ? FileShelf.get(selectedIndex) : null;
+            if (entry && entry.filePath)
+                LocalSend.discover(entry.filePath);
+            else
+                LocalSend.discover();
+        } else {
+            LocalSend.stop();
+        }
+    }
+
+    onSelectedIndexChanged: {
+        if (selectedIndex >= 0 && selectedIndex < FileShelf.count) {
+            const entry = FileShelf.get(selectedIndex);
+            if (entry && entry.filePath && isShelfActive)
+                LocalSend.discover(entry.filePath);
+        }
+    }
+
+    Component.onDestruction: {
+        LocalSend.stop();
     }
 
     onCurrentPageChanged: {
@@ -82,11 +115,19 @@ FocusScope {
             grabKeyboardFocus();
     }
 
+    property int previousFileCount: FileShelf.count
+
     Connections {
         target: FileShelf
 
         function onCountChanged() {
-            root.normalizeSelection();
+            if (FileShelf.count > root.previousFileCount) {
+                root.selectedIndex = FileShelf.count - 1;
+                root.ensureSelectedVisible();
+            } else {
+                root.normalizeSelection();
+            }
+            root.previousFileCount = FileShelf.count;
         }
     }
 
@@ -101,14 +142,6 @@ FocusScope {
             if (LocalSend.status === "Sent" && LocalSend.pendingFile) {
                 root.removeByFilePath(LocalSend.pendingFile);
             }
-        }
-    }
-
-    Connections {
-        target: FileShelf
-
-        function onCountChanged() {
-            root.normalizeSelection();
         }
     }
 
@@ -177,7 +210,7 @@ FocusScope {
     }
 
     function ensureSelectedVisible() {
-        if (selectedIndex < 0 || FileShelf.count <= visibleCapacity)
+        if (selectedIndex < 0 || FileShelf.count <= 0 || trayViewport.contentWidth <= trayViewport.width)
             return;
         const center = slotCenter(selectedIndex);
         trayViewport.contentX = Math.max(0, Math.min(
@@ -197,91 +230,45 @@ FocusScope {
         };
     }
 
-    function routeExternalDrop(dropEvent, point) {
-        if (!dropEvent || !localSendPanel.visible)
-            return false;
-
-        const panelPoint = localSendPanel.mapFromItem(root, point.x, point.y);
-        if (panelPoint.x < 0 || panelPoint.y < 0
-                || panelPoint.x > localSendPanel.width
-                || panelPoint.y > localSendPanel.height)
-            return false;
-
-        const paths = localPathsFromDrop(dropEvent);
-        if (paths.length === 0)
-            return true;
-
-        const targetDevice = localSendPanel.deviceAtPoint(panelPoint.x, panelPoint.y);
-        const firstPath = paths[0];
-        if (targetDevice && firstPath) {
-            LocalSend.sendFile(firstPath, targetDevice.deviceNumber);
-            return true;
-        }
-
-        FileShelf.addUrls(paths);
-        let foundIndex = -1;
-        for (let i = 0; i < FileShelf.count; ++i) {
-            const entry = FileShelf.get(i);
-            if (entry && (entry.filePath === firstPath || entry.uri === firstPath)) {
-                foundIndex = i;
-                break;
-            }
-        }
-        if (foundIndex >= 0) {
-            root.selectedIndex = foundIndex;
-            root.ensureSelectedVisible();
-        } else if (FileShelf.count > 0) {
-            root.selectedIndex = FileShelf.count - 1;
-            root.ensureSelectedVisible();
-        }
-        const entry = FileShelf.get(root.selectedIndex);
-        if (entry && entry.filePath)
-            LocalSend.discover(entry.filePath);
-        return true;
+    function isPointInShelfContent(point) {
+        if (!point) return false;
+        const leftBound = panelSeparator && panelSeparator.visible ? panelSeparator.x : (localSendPanel && localSendPanel.visible ? localSendPanel.x : parent.width);
+        return point.x >= 0 && point.x < leftBound;
     }
 
-    function localPathsFromDrop(dropEvent) {
-        const paths = [];
-        if (dropEvent.urls) {
-            for (let i = 0; i < dropEvent.urls.length; ++i) {
-                const candidate = dropEvent.urls[i];
-                const path = candidate && candidate.toLocalFile
-                    ? candidate.toLocalFile()
-                    : String(candidate || "").startsWith("file://")
-                        ? decodeURIComponent(String(candidate).slice(7))
-                        : String(candidate || "");
-                if (path)
-                    paths.push(path);
+    function isPointInLocalSend(point) {
+        if (!localSendPanel || !localSendPanel.visible || !point)
+            return false;
+        const leftBound = panelSeparator && panelSeparator.visible ? panelSeparator.x : localSendPanel.x;
+        return point.x >= leftBound;
+    }
+
+    function selectByFilePath(filePath) {
+        if (!filePath || FileShelf.count === 0)
+            return false;
+        for (let i = 0; i < FileShelf.count; ++i) {
+            const entry = FileShelf.get(i);
+            if (entry && (entry.filePath === filePath || entry.uri === filePath)) {
+                root.selectedIndex = i;
+                root.ensureSelectedVisible();
+                return true;
             }
         }
+        return false;
+    }
 
-        if (paths.length > 0)
-            return paths;
-
-        const formats = dropEvent.formats || [];
-        const uriFormat = formats.indexOf("text/uri-list") >= 0
-            ? "text/uri-list"
-            : (formats.indexOf("x-special/gnome-copied-files") >= 0
-                ? "x-special/gnome-copied-files" : "");
-        const payload = uriFormat && dropEvent.getDataAsString
-            ? dropEvent.getDataAsString(uriFormat)
-            : (dropEvent.text || "");
-        const lines = payload.split(/\r?\n/);
-        for (let i = 0; i < lines.length; ++i) {
-            const line = lines[i].trim();
-            if (!line || line.startsWith("#") || line === "copy" || line === "cut")
-                continue;
-            try {
-                const path = line.startsWith("file://")
-                    ? decodeURIComponent(line.slice(7))
-                    : (line.startsWith("/") ? line : "");
-                if (path)
-                    paths.push(path);
-            } catch (error) {
-                console.warn("[FileShelfLayer] Could not decode dropped file URI:", line);
-            }
+    function selectByUrls(urls) {
+        if (!urls || FileShelf.count === 0)
+            return false;
+        const list = Array.isArray(urls) ? urls : [urls];
+        for (let i = 0; i < list.length; ++i) {
+            const u = list[i];
+            const path = u && u.toLocalFile ? u.toLocalFile() : String(u || "");
+            const cleanPath = path.startsWith("file://") ? decodeURIComponent(path.slice(7)) : path;
+            if (selectByFilePath(cleanPath) || selectByFilePath(path))
+                return true;
         }
-        return paths;
+        return false;
     }
 
     function updateExternalDropPoint(point) {
@@ -290,31 +277,33 @@ FocusScope {
             return;
         }
 
-        const inContent = point.x >= shelfContentArea.x
-            && point.x <= shelfContentArea.x + shelfContentArea.width
-            && point.y >= shelfContentArea.y
-            && point.y <= shelfContentArea.y + shelfContentArea.height;
-        const inLocalSend = point.x >= localSendPanel.x
-            && point.x <= localSendPanel.x + localSendPanel.width
-            && point.y >= localSendPanel.y
-            && point.y <= localSendPanel.y + localSendPanel.height;
-        externalDropZone = inLocalSend ? "localsend" : (inContent ? "shelf" : "");
+        const inContent = isPointInShelfContent(point);
+        externalDropZone = inContent ? "shelf" : "";
 
-        if ((inContent || inLocalSend) && !LocalSend.busy && LocalSend.count === 0) {
+        if (inContent && !LocalSend.busy && LocalSend.count === 0) {
             LocalSend.discover();
         }
     }
 
     function slotStep() {
-        if (FileShelf.count <= visibleCapacity)
-            return trayViewport.width / Math.max(1, FileShelf.count + 1);
-        return overflowCellWidth;
+        if (!isOverlapping)
+            return cardWidth + cardGap;
+        if (FileShelf.count <= 1)
+            return cardWidth;
+        const naturalStep = (availableTrayWidth - cardWidth) / (FileShelf.count - 1);
+        return Math.max(minStep, naturalStep);
     }
 
     function slotCenter(index) {
-        if (FileShelf.count <= visibleCapacity)
-            return trayViewport.width * (index + 1) / Math.max(1, FileShelf.count + 1);
-        return overflowCellWidth * index + overflowCellWidth / 2;
+        if (FileShelf.count <= 0)
+            return 0;
+        if (!isOverlapping) {
+            const totalWidth = FileShelf.count * cardWidth + (FileShelf.count - 1) * cardGap;
+            const startX = horizontalPadding + (availableTrayWidth - totalWidth) / 2 + cardWidth / 2;
+            return startX + index * (cardWidth + cardGap);
+        }
+        const startX = horizontalPadding + cardWidth / 2;
+        return startX + index * slotStep();
     }
 
     function beginReorder(index) {
@@ -422,7 +411,7 @@ FocusScope {
     Timer {
         interval: 16
         repeat: true
-        running: root.reorderActive && FileShelf.count > root.visibleCapacity
+        running: root.reorderActive && trayViewport.contentWidth > trayViewport.width
 
         onTriggered: {
             const edgeSize = 54;
@@ -531,9 +520,9 @@ FocusScope {
         anchors.top: root.showStatusBar ? statusBar.bottom : parent.top
         anchors.bottom: parent.bottom
         anchors.left: parent.left
-        anchors.right: localSendPanel.left
+        anchors.right: panelSeparator.visible ? panelSeparator.left : parent.right
         anchors.topMargin: root.showStatusBar ? 5 : 0
-        anchors.rightMargin: 8
+        anchors.rightMargin: panelSeparator.visible ? 10 : 0
         anchors.bottomMargin: 0
 
         Column {
@@ -577,12 +566,18 @@ FocusScope {
             anchors.rightMargin: root.horizontalPadding
             visible: !root.dropPreviewOnly && FileShelf.count > 0
             clip: true
-            contentWidth: FileShelf.count <= root.visibleCapacity
-                ? width : FileShelf.count * root.overflowCellWidth
+            contentWidth: (FileShelf.count <= 0 || !root.isOverlapping)
+                ? width
+                : Math.max(width, root.cardWidth + (FileShelf.count - 1) * root.slotStep() + 2 * root.horizontalPadding)
             contentHeight: height
-            interactive: !root.reorderActive && FileShelf.count > root.visibleCapacity
+            interactive: !root.reorderActive && contentWidth > width + 1
             boundsBehavior: Flickable.StopAtBounds
             flickDeceleration: 1800
+
+            onContentWidthChanged: {
+                if (contentWidth <= width)
+                    contentX = 0;
+            }
 
         Repeater {
             model: FileShelf
@@ -608,17 +603,29 @@ FocusScope {
                 y: Math.max(0, (trayViewport.height - height) / 2)
                 width: root.cardWidth
                 height: root.cardHeight
-                z: reorderSource ? 12 : selected ? 4 : 2
+                z: (fileDrag.active || fileDelegate.reorderSource) ? 100
+                    : (fileArea.containsMouse ? 70 : (fileDelegate.selected ? 60 : index + 2))
+
+                Behavior on x {
+                    enabled: !root.reorderActive && !root.reorderCommitting
+                    NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
+                }
+                Behavior on width {
+                    NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
+                }
+                Behavior on height {
+                    NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
+                }
 
                 Item {
                     id: fileItem
 
                     anchors.centerIn: parent
                     width: parent.width
-                    height: 166
+                    height: parent.height
                     scale: fileDrag.active ? 1.07
                         : fileArea.pressed ? 0.95
-                        : (fileDelegate.selected || fileArea.containsMouse ? 1.035 : 1)
+                        : (fileDelegate.selected || fileArea.containsMouse ? 1.04 : 1)
 
                     Drag.dragType: Drag.Automatic
                     Drag.supportedActions: Qt.CopyAction
@@ -645,18 +652,39 @@ FocusScope {
                         NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
                     }
 
+                    Rectangle {
+                        id: cardBackground
+                        anchors.fill: parent
+                        radius: StyleTokens.radiusModule
+                        color: fileDelegate.selected
+                            ? StyleTokens.moduleHover
+                            : (fileArea.containsMouse ? StyleTokens.buttonFill : StyleTokens.module)
+                        border.width: fileDelegate.selected ? 1.5 : (fileArea.containsMouse ? 1 : (root.isOverlapping ? 1 : 0))
+                        border.color: fileDelegate.selected
+                            ? StyleTokens.accent
+                            : (fileArea.containsMouse ? StyleTokens.borderHover : StyleTokens.track)
+                        opacity: root.isOverlapping
+                            ? 0.96
+                            : (fileDelegate.selected || fileArea.containsMouse ? 0.9 : 0.0)
+
+                        Behavior on color { ColorAnimation { duration: 120 } }
+                        Behavior on border.color { ColorAnimation { duration: 120 } }
+                        Behavior on opacity { NumberAnimation { duration: 120 } }
+                    }
+
                     Item {
                         id: iconBox
                         anchors.top: parent.top
+                        anchors.topMargin: Math.max(4, Math.round(parent.height * 0.06))
                         anchors.horizontalCenter: parent.horizontalCenter
-                        width: 122
-                        height: 122
+                        width: Math.round(parent.width * 0.65)
+                        height: width
 
                         Image {
                             id: systemIcon
                             anchors.centerIn: parent
-                            width: 108
-                            height: 108
+                            width: Math.round(parent.width * 0.92)
+                            height: width
                             sourceSize.width: 256
                             sourceSize.height: 256
                             source: fileDelegate.iconSource !== ""
@@ -675,23 +703,26 @@ FocusScope {
                             text: fileDelegate.directory ? "\uf07b" : "\uf15b"
                             color: StyleTokens.textSecondary
                             font.family: root.iconFontFamily
-                            font.pixelSize: 68
+                            font.pixelSize: Math.round(systemIcon.width * 0.65)
                         }
                     }
 
                     Text {
                         anchors.top: iconBox.bottom
-                        anchors.topMargin: 7
+                        anchors.topMargin: Math.max(2, Math.round(parent.height * 0.03))
+                        anchors.bottom: parent.bottom
+                        anchors.bottomMargin: Math.max(3, Math.round(parent.height * 0.04))
                         anchors.left: parent.left
                         anchors.right: parent.right
-                        anchors.leftMargin: 9
-                        anchors.rightMargin: 9
+                        anchors.leftMargin: Math.max(3, Math.round(parent.width * 0.06))
+                        anchors.rightMargin: Math.max(3, Math.round(parent.width * 0.06))
                         text: fileDelegate.displayName
                         color: fileDelegate.selected ? StyleTokens.textPrimary : StyleTokens.textDim
                         horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
                         elide: Text.ElideMiddle
                         font.family: root.textFontFamily
-                        font.pixelSize: 11
+                        font.pixelSize: Math.max(9, Math.min(11, Math.round(parent.width * 0.095)))
                         font.weight: fileDelegate.selected ? Font.Medium : Font.Normal
                     }
                 }
@@ -712,13 +743,13 @@ FocusScope {
                 Rectangle {
                     id: deleteButton
 
-                    z: 20
+                    z: 25
                     anchors.top: parent.top
                     anchors.right: parent.right
                     anchors.topMargin: 2
-                    anchors.rightMargin: 16
-                    width: 26
-                    height: 26
+                    anchors.rightMargin: Math.max(2, Math.round(parent.width * 0.04))
+                    width: Math.min(22, Math.max(16, Math.round(parent.width * 0.22)))
+                    height: width
                     radius: width / 2
                     color: "white"
                     opacity: (fileArea.containsMouse || deleteArea.containsMouse)
@@ -734,8 +765,8 @@ FocusScope {
 
                     Item {
                         anchors.centerIn: parent
-                        width: 11
-                        height: 11
+                        width: Math.round(parent.width * 0.45)
+                        height: width
                         rotation: 45
 
                         Rectangle {
@@ -823,6 +854,20 @@ FocusScope {
     }
     }
 
+    Rectangle {
+        id: panelSeparator
+        visible: localSendPanel.visible
+        anchors.right: localSendPanel.left
+        anchors.rightMargin: 10
+        anchors.top: shelfContentArea.top
+        anchors.topMargin: 4
+        anchors.bottom: shelfContentArea.bottom
+        anchors.bottomMargin: 4
+        width: 1
+        color: StyleTokens.track
+        opacity: 0.35
+    }
+
     Item {
         id: localSendPanel
         visible: !root.dropPreviewOnly
@@ -832,20 +877,6 @@ FocusScope {
         anchors.bottom: shelfContentArea.bottom
         width: Math.max(250, parent.width * 0.42)
         anchors.rightMargin: 0
-
-        function deviceAtPoint(x, y) {
-            if (!deviceListView) return null;
-            for (let i = 0; i < deviceListView.count; ++i) {
-                const deviceItem = deviceListView.itemAtIndex(i);
-                if (!deviceItem)
-                    continue;
-                const topLeft = deviceItem.mapToItem(localSendPanel, 0, 0);
-                if (x >= topLeft.x && x <= topLeft.x + deviceItem.width
-                        && y >= topLeft.y && y <= topLeft.y + deviceItem.height)
-                    return deviceItem;
-            }
-            return null;
-        }
 
         Rectangle {
             anchors.fill: parent
@@ -864,18 +895,10 @@ FocusScope {
                 width: parent.width
                 spacing: 8
 
-                Text {
-                    text: "󰀄"
-                    color: StyleTokens.accent
-                    font.family: root.iconFontFamily
-                    font.pixelSize: 15
-                    anchors.verticalCenter: parent.verticalCenter
-                }
-
                 Column {
                     spacing: 1
                     anchors.verticalCenter: parent.verticalCenter
-                    width: Math.max(0, parent.width - 28 - 28)
+                    width: Math.max(0, parent.width - 24)
 
                     Text {
                         text: "LocalSend"
@@ -915,9 +938,9 @@ FocusScope {
                             const idx = root.selectedIndex >= 0 ? root.selectedIndex : 0;
                             const entry = FileShelf.get(idx);
                             if (entry && entry.filePath)
-                                LocalSend.discover(entry.filePath);
+                                LocalSend.discover(entry.filePath, true);
                             else
-                                LocalSend.discover();
+                                LocalSend.discover("", true);
                         }
                     }
                 }
@@ -978,16 +1001,14 @@ FocusScope {
                 height: Math.max(82, parent.height - y)
                 radius: StyleTokens.radiusPrompt
                 color: StyleTokens.transparent
-                border.width: 1
-                border.color: sendDropArea.containsDrag ? StyleTokens.accent : StyleTokens.track
-
-                Behavior on border.color {
-                    ColorAnimation { duration: StyleTokens.durationFast }
-                }
+                border.width: 0
 
                 Column {
                     anchors.fill: parent
-                    anchors.margins: 8
+                    anchors.leftMargin: 0
+                    anchors.rightMargin: 0
+                    anchors.topMargin: 4
+                    anchors.bottomMargin: 0
                     spacing: 6
 
                     Text {
@@ -1027,16 +1048,16 @@ FocusScope {
                             required property string deviceName
                             required property string deviceAddress
                             required property string deviceType
-                            readonly property bool isHighlighted: devMouse.containsMouse || devDrop.containsDrag
-                            readonly property color devFgColor: devDrop.containsDrag ? StyleTokens.textOnSecondary : (devMouse.containsMouse ? StyleTokens.textOnButtonFill : StyleTokens.textPrimary)
-                            readonly property color devIconColor: devDrop.containsDrag ? StyleTokens.textOnSecondary : (devMouse.containsMouse ? StyleTokens.textOnButtonFill : StyleTokens.accent)
-                            readonly property color devSubColor: devDrop.containsDrag ? StyleTokens.textOnSecondary : (devMouse.containsMouse ? StyleTokens.textOnButtonFill : StyleTokens.textTertiary)
+                            readonly property bool isHighlighted: devMouse.containsMouse
+                            readonly property color devFgColor: devMouse.containsMouse ? StyleTokens.textOnButtonFill : StyleTokens.textPrimary
+                            readonly property color devIconColor: devMouse.containsMouse ? StyleTokens.textOnButtonFill : StyleTokens.accent
+                            readonly property color devSubColor: devMouse.containsMouse ? StyleTokens.textOnButtonFill : StyleTokens.textTertiary
 
                             width: ListView.view.width
                             height: 38
                             radius: StyleTokens.radiusButton
-                            color: devDrop.containsDrag ? StyleTokens.accentSoft : (devMouse.containsMouse ? StyleTokens.buttonFill : StyleTokens.moduleHover)
-                            border.width: devDrop.containsDrag ? 1 : 0
+                            color: devMouse.containsMouse ? StyleTokens.buttonFill : StyleTokens.moduleHover
+                            border.width: 0
                             border.color: StyleTokens.accent
 
                             Behavior on color {
@@ -1094,75 +1115,9 @@ FocusScope {
                                     }
                                 }
                             }
-
-                            DropArea {
-                                id: devDrop
-                                anchors.fill: parent
-                                z: 1
-                                keys: ["text/uri-list", "application/x-tide-file"]
-                                onDropped: drop => {
-                                    if (drop.hasUrls && drop.urls.length > 0) {
-                                        const path = drop.urls[0].toLocalFile();
-                                        if (path) {
-                                            LocalSend.sendFile(path, devDelegate.deviceNumber);
-                                            drop.acceptProposedAction();
-                                        }
-                                    }
-                                }
-                            }
                         }
                     }
                 }
-            }
-        }
-
-        DropArea {
-            id: sendDropArea
-            anchors.fill: parent
-            keys: ["text/uri-list", "application/x-tide-file"]
-            z: 0
-
-            onDropped: drop => {
-                if (!drop.hasUrls || drop.urls.length === 0)
-                    return;
-
-                const targetDevice = localSendPanel.deviceAtPoint(drop.x, drop.y);
-                if (targetDevice) {
-                    const firstUrl = drop.urls[0];
-                    const firstPath = firstUrl.toLocalFile ? firstUrl.toLocalFile() : firstUrl.toString();
-                    if (firstPath)
-                        LocalSend.sendFile(firstPath, targetDevice.deviceNumber);
-                } else {
-                    const paths = [];
-                    for (let i = 0; i < drop.urls.length; ++i) {
-                        const u = drop.urls[i];
-                        const path = u.toLocalFile ? u.toLocalFile() : u.toString();
-                        if (path)
-                            paths.push(path);
-                    }
-                    if (paths.length > 0) {
-                        FileShelf.addUrls(drop.urls);
-                        let foundIndex = -1;
-                        for (let i = 0; i < FileShelf.count; ++i) {
-                            const entry = FileShelf.get(i);
-                            if (entry && (entry.filePath === paths[0] || entry.uri === paths[0])) {
-                                foundIndex = i;
-                                break;
-                            }
-                        }
-                        if (foundIndex >= 0) {
-                            root.selectedIndex = foundIndex;
-                            root.ensureSelectedVisible();
-                        } else if (FileShelf.count > 0) {
-                            root.selectedIndex = FileShelf.count - 1;
-                            root.ensureSelectedVisible();
-                        }
-                        const entry = FileShelf.get(root.selectedIndex);
-                        if (entry && entry.filePath)
-                            LocalSend.discover(entry.filePath);
-                    }
-                }
-                drop.acceptProposedAction();
             }
         }
     }
@@ -1178,18 +1133,5 @@ FocusScope {
         border.width: root.externalDropZone === "shelf" ? 3 : 0
         border.color: StyleTokens.accent
         visible: root.externalDropZone === "shelf"
-    }
-
-    Rectangle {
-        z: 20
-        x: localSendPanel.x + 1
-        y: localSendPanel.y + 1
-        width: Math.max(0, localSendPanel.width - 2)
-        height: Math.max(0, localSendPanel.height - 2)
-        radius: StyleTokens.radiusModule
-        color: StyleTokens.transparent
-        border.width: root.externalDropZone === "localsend" ? 3 : 0
-        border.color: StyleTokens.accent
-        visible: root.externalDropZone === "localsend"
     }
 }

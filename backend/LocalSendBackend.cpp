@@ -1,5 +1,7 @@
 #include "LocalSendBackend.h"
 
+#include <QDir>
+#include <QDirIterator>
 #include <QFileInfo>
 #include <QRegularExpression>
 #include <QSocketNotifier>
@@ -42,19 +44,33 @@ LocalSendBackend::LocalSendBackend(QObject *parent)
                     setTransferProgress(100);
                     emit fileSent(sentFile);
                 } else if (exitCode != 0) {
-                    if (m_outputBuffer.contains(QStringLiteral("rejected"), Qt::CaseInsensitive)
-                        || m_outputBuffer.contains(QStringLiteral("declined"), Qt::CaseInsensitive)) {
+                    QString normalizedOutput = m_outputBuffer;
+                    normalizedOutput.remove(QRegularExpression(QStringLiteral("\\x1b\\[[0-9;?]*[ -/]*[@-~]")));
+                    normalizedOutput.remove(QRegularExpression(QStringLiteral("\\x1b\\([A-Za-z0-9]")));
+
+                    if (normalizedOutput.contains(QStringLiteral("rejected"), Qt::CaseInsensitive)
+                        || normalizedOutput.contains(QStringLiteral("declined"), Qt::CaseInsensitive)) {
                         setError(QStringLiteral("Transfer declined by recipient"));
                         setStatus(QStringLiteral("Declined"));
-                    } else if (m_outputBuffer.contains(QStringLiteral("No network interface"), Qt::CaseInsensitive)) {
+                    } else if (normalizedOutput.contains(QStringLiteral("No network interface"), Qt::CaseInsensitive)) {
                         setError(QStringLiteral("No network interface found for LocalSend"));
                         setStatus(QStringLiteral("Offline"));
-                    } else if (m_outputBuffer.contains(QStringLiteral("Address already in use"), Qt::CaseInsensitive)) {
+                    } else if (normalizedOutput.contains(QStringLiteral("Address already in use"), Qt::CaseInsensitive)) {
                         setError(QStringLiteral("Port 53317 in use by another instance"));
                         setStatus(QStringLiteral("Port busy"));
-                    } else if (!m_pendingFile.isEmpty()) {
-                        setError(QStringLiteral("LocalSend exited with code %1").arg(exitCode));
-                        setStatus(QStringLiteral("Failed"));
+                    } else if (normalizedOutput.contains(QStringLiteral("Not a file"), Qt::CaseInsensitive)) {
+                        setError(QStringLiteral("Target is not a valid file"));
+                        setStatus(QStringLiteral("Invalid file"));
+                    } else {
+                        static const QRegularExpression errRegex(QStringLiteral("Error:\\s*([^\r\n]+)"));
+                        auto errMatch = errRegex.match(normalizedOutput);
+                        if (errMatch.hasMatch()) {
+                            setError(errMatch.captured(1).trimmed());
+                            setStatus(QStringLiteral("Failed"));
+                        } else if (!m_pendingFile.isEmpty()) {
+                            setError(QStringLiteral("LocalSend exited with code %1").arg(exitCode));
+                            setStatus(QStringLiteral("Failed"));
+                        }
                     }
                 }
             });
@@ -123,8 +139,59 @@ QVariantList LocalSendBackend::devices() const
     return result;
 }
 
-void LocalSendBackend::discover(const QString &filePath)
+QStringList LocalSendBackend::resolveTransferFiles(const QString &filePath, int maxFiles)
 {
+    if (filePath.isEmpty())
+        return {};
+
+    const QFileInfo fileInfo(filePath);
+    if (!fileInfo.exists())
+        return {};
+
+    if (fileInfo.isFile() && !fileInfo.isDir()) {
+        const QString canonical = fileInfo.canonicalFilePath();
+        if (!canonical.isEmpty() && QFileInfo(canonical).isFile())
+            return {canonical};
+        return {fileInfo.absoluteFilePath()};
+    }
+
+    if (fileInfo.isDir()) {
+        QStringList files;
+        QDirIterator it(filePath, QDir::Files, QDirIterator::Subdirectories);
+        while (it.hasNext()) {
+            const QString currentPath = it.next();
+            const QFileInfo currentInfo(currentPath);
+            if (currentInfo.exists() && currentInfo.isFile() && !currentInfo.isDir()) {
+                const QString canonical = currentInfo.canonicalFilePath();
+                if (!canonical.isEmpty() && QFileInfo(canonical).isFile()) {
+                    files.append(canonical);
+                } else if (currentInfo.isReadable()) {
+                    files.append(currentInfo.absoluteFilePath());
+                }
+                if (files.size() >= maxFiles)
+                    break;
+            }
+        }
+        return files;
+    }
+
+    return {};
+}
+
+void LocalSendBackend::discover(const QString &filePath, bool force)
+{
+    // If process is already actively discovering and not in an error state or transferring,
+    // avoid restarting localsend-cli and clearing discovered devices unless forced.
+    if (!force && m_process.state() == QProcess::Running && m_pendingDeviceNumber == 0
+        && m_transferProgress < 0 && !m_waitingForAcceptance && m_error.isEmpty()) {
+        setPendingFile(filePath);
+        if (!m_devices.isEmpty()) {
+            setStatus(filePath.isEmpty() ? QStringLiteral("Choose a device")
+                                         : QStringLiteral("Choose a device to send"));
+        }
+        return;
+    }
+
     stopProcess();
     m_pendingDeviceNumber = 0;
     m_pendingDeviceName.clear();
@@ -141,9 +208,9 @@ void LocalSendBackend::discover(const QString &filePath)
     setWaitingForAcceptance(false);
     setTransferProgress(-1);
     setStatus(QStringLiteral("Discovering devices"));
-    startProcess(filePath.isEmpty()
-        ? QStringList{}
-        : QStringList{QStringLiteral("--file"), filePath});
+
+    // Launch in pure discovery mode; file selection is committed when sendFile() is invoked.
+    startProcess(QStringList{});
 }
 
 void LocalSendBackend::sendFile(const QString &filePath, int deviceNumber)
@@ -155,9 +222,21 @@ void LocalSendBackend::sendFile(const QString &filePath, int deviceNumber)
     }
 
     const QFileInfo fileInfo(filePath);
-    if (!fileInfo.isFile()) {
-        setError(QStringLiteral("File does not exist: %1").arg(filePath));
+    if (!fileInfo.exists()) {
+        setError(QStringLiteral("File or folder does not exist: %1").arg(filePath));
         setStatus(QStringLiteral("Send failed"));
+        return;
+    }
+
+    const QStringList files = resolveTransferFiles(filePath);
+    if (files.isEmpty()) {
+        if (fileInfo.isDir()) {
+            setError(QStringLiteral("Folder is empty: %1").arg(fileInfo.fileName()));
+            setStatus(QStringLiteral("Folder is empty"));
+        } else {
+            setError(QStringLiteral("Cannot send file: %1").arg(fileInfo.fileName()));
+            setStatus(QStringLiteral("Send failed"));
+        }
         return;
     }
 
@@ -185,7 +264,13 @@ void LocalSendBackend::sendFile(const QString &filePath, int deviceNumber)
     setWaitingForAcceptance(false);
     setTransferProgress(-1);
     setStatus(QStringLiteral("Connecting to device..."));
-    startProcess({QStringLiteral("--file"), filePath});
+
+    QStringList arguments;
+    for (const QString &file : files) {
+        arguments.append(QStringLiteral("--file"));
+        arguments.append(file);
+    }
+    startProcess(arguments);
 }
 
 void LocalSendBackend::cancel()
@@ -200,6 +285,28 @@ void LocalSendBackend::cancel()
     setBusy(false);
     setWaitingForAcceptance(false);
     setStatus(QStringLiteral("Cancelled"));
+    setTransferProgress(-1);
+}
+
+void LocalSendBackend::stop()
+{
+    m_pendingDeviceNumber = 0;
+    m_pendingDeviceName.clear();
+    setPendingFile({});
+    if (m_masterFd >= 0) {
+        ::write(m_masterFd, "\x03", 1); // Ctrl+C
+    }
+    stopProcess();
+    setBusy(false);
+    setWaitingForAcceptance(false);
+    if (!m_devices.isEmpty()) {
+        beginResetModel();
+        m_devices.clear();
+        endResetModel();
+        emit countChanged();
+        emit devicesChanged();
+    }
+    setStatus(QStringLiteral("Offline"));
     setTransferProgress(-1);
 }
 
@@ -288,8 +395,10 @@ void LocalSendBackend::cleanupMasterFd()
 void LocalSendBackend::stopProcess()
 {
     cleanupMasterFd();
-    if (m_process.state() == QProcess::NotRunning)
+    if (m_process.state() == QProcess::NotRunning) {
+        ::system("pkill -9 -x localsend-cli 2>/dev/null");
         return;
+    }
     const qint64 pid = m_process.processId();
     if (pid > 0) {
         ::kill(-static_cast<pid_t>(pid), SIGTERM);
@@ -304,6 +413,7 @@ void LocalSendBackend::stopProcess()
         m_process.kill();
         m_process.waitForFinished(50);
     }
+    ::system("pkill -9 -x localsend-cli 2>/dev/null");
 }
 
 void LocalSendBackend::parseOutput(const QByteArray &output)

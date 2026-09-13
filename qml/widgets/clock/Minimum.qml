@@ -10,7 +10,7 @@ Item {
     property bool isEditMode: false
     property string currentDate: ""
 
-    readonly property real requestedContentWidth: Math.max(185, Math.ceil((clockSegment.width / 2 + dateInfo.implicitWidth + 14) * 2))
+    readonly property real requestedContentWidth: Math.max(185, Math.ceil(widgetRow.implicitWidth + 24))
     readonly property real requestedContentHeight: 0
 
     Timer {
@@ -30,43 +30,39 @@ Item {
         id: contentRow
         anchors.fill: parent
 
-        Item {
-            id: clockSegment
-            width: clockDisplay.implicitWidth
-            height: clockDisplay.implicitHeight
-            anchors.centerIn: parent
-
-            WidgetTimerClock {
-                id: clockDisplay
-                anchors.centerIn: parent
-                mode: "clock"
-                clockFormat: (UserConfig && UserConfig.clockFormat === "12h") ? "h:mm" : "hh:mm"
-                representation: "compact"
-                widgetContext: root.widgetContext
-            }
-        }
-
         Row {
-            id: dateInfo
-            anchors.right: clockSegment.left
-            anchors.rightMargin: 6
-            anchors.verticalCenter: clockSegment.verticalCenter
+            id: widgetRow
+            anchors.centerIn: parent
             spacing: 6
 
-            WidgetTextView {
-                text: root.currentDate
-                role: "body"
-                colorOverride: StyleTokens.textPrimary
-                widgetContext: root.widgetContext
+            Row {
+                id: dateInfo
                 anchors.verticalCenter: parent.verticalCenter
+                spacing: 6
+
+                WidgetTextView {
+                    text: root.currentDate
+                    role: "body"
+                    colorOverride: StyleTokens.textPrimary
+                    widgetContext: root.widgetContext
+                    anchors.verticalCenter: parent.verticalCenter
+                }
             }
 
-            WidgetTextView {
-                text: "·"
-                role: "body"
-                colorOverride: StyleTokens.textMuted
+            Item {
+                id: clockSegment
+                width: clockDisplay.implicitWidth
+                height: clockDisplay.implicitHeight
                 anchors.verticalCenter: parent.verticalCenter
-                widgetContext: root.widgetContext
+
+                WidgetTimerClock {
+                    id: clockDisplay
+                    anchors.centerIn: parent
+                    mode: "clock"
+                    clockFormat: (UserConfig && UserConfig.clockFormat === "12h") ? "h:mm" : "hh:mm"
+                    representation: "compact"
+                    widgetContext: root.widgetContext
+                }
             }
         }
     }

@@ -94,8 +94,12 @@ import "../components"
   | `horizontalAlignment` | `int` | `Text.AlignLeft` | Horizontal alignment (`Text.AlignLeft`, `Text.AlignHCenter`, `Text.AlignRight`, `Text.AlignJustify`) |
   | `verticalAlignment` | `int` | `overflowMode === "wrap" ? Text.AlignTop : Text.AlignVCenter` | Vertical alignment (`Text.AlignTop`, `Text.AlignVCenter`, `Text.AlignBottom`) |
   | `tabularFigures` | `bool` | `role === "metric" \|\| role === "hero"` | OpenType tabular figures (`tnum: 1`) to eliminate character jitter during number updates |
-  | `marqueeSpeed` | `real` | `30` | Scrolling speed in pixels/second |
+  | `marqueeSpeed` | `real` | `UserConfig.textScrollSpeed` (17) | Scrolling speed in pixels/second (dynamically bound to `UserConfig.textScrollSpeed`) |
   | `colorOverride` | `color` | `transparent` | Custom color override |
+  | `fontFamilyOverride` | `string` | `""` | Custom font family override |
+  | `fontSizeOverride` | `int` | `0` | Custom font size override in pixels (0 = use role default) |
+  | `fontWeightOverride` | `int` | `0` | Custom font weight override (0 = use role default) |
+  | `hoveredOverride` | `bool` | `false` | Externally driven hover state from parent row/card |
   | `measureOnly` | `bool` | `false` | Used for calculating off-screen geometry |
   | `widgetContext` | `var` | `null` | Context object for font family and scaling |
 - **Typography Roles**:
@@ -113,6 +117,7 @@ import "../components"
 - **Marquee Scrolling Behavior**:
   - Automatically activates when `overflowMode === "marquee"` and text width exceeds container width (`root.width > 0`).
   - Seamless ticker reset: When `text` or container `width` updates dynamically, the marquee animation automatically pauses, resets its position to `x = 0`, and recalculates its travel distance and loop timing cleanly without jumping or desynchronizing.
+  - **Hover-Only Scrolling**: Respects `UserConfig.scrollTextOnlyOnHover`. When enabled, marquee scrolling runs only when hovered (either directly over the text via internal `HoverHandler` or via parent row `hoveredOverride`). On pointer exit, it pauses and smoothly slides back to `x = 0`. When disabled (default), it loops continuously.
 - **Tabular Figures (`tabularFigures`)**:
   - Enabled by default for `"metric"` and `"hero"` roles.
   - Can be explicitly enabled on any role (e.g. `role: "body", tabularFigures: true`) when presenting dynamic numbers, timestamps, or counters to prevent layout jiggle.

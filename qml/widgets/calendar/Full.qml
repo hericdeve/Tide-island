@@ -15,6 +15,7 @@ Item {
 
     BoringCalendarTile {
         anchors.fill: parent
+        widgetContext: root.widgetContext
         textFontFamily: root.widgetContext ? root.widgetContext.textFontFamily : (userConfig ? userConfig.textFontFamily : "Sans Serif")
         iconFontFamily: root.widgetContext ? root.widgetContext.iconFontFamily : (userConfig ? userConfig.iconFontFamily : "Sans Serif")
     }

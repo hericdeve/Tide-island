@@ -86,7 +86,8 @@ class UserConfigBackend final : public QObject {
     Q_PROPERTY(int bodyFontSize READ bodyFontSize NOTIFY bodyFontSizeChanged FINAL)
     Q_PROPERTY(int titleFontSize READ titleFontSize NOTIFY titleFontSizeChanged FINAL)
     Q_PROPERTY(int iconFontSize READ iconFontSize NOTIFY iconFontSizeChanged FINAL)
-    Q_PROPERTY(int claudeCodeScrollSpeed READ claudeCodeScrollSpeed NOTIFY claudeCodeScrollSpeedChanged FINAL)
+    Q_PROPERTY(int textScrollSpeed READ textScrollSpeed WRITE setTextScrollSpeed NOTIFY textScrollSpeedChanged FINAL)
+    Q_PROPERTY(int claudeCodeScrollSpeed READ claudeCodeScrollSpeed WRITE setClaudeCodeScrollSpeed NOTIFY claudeCodeScrollSpeedChanged FINAL)
     Q_PROPERTY(QJsonObject widgetLayouts READ widgetLayouts NOTIFY widgetLayoutsChanged FINAL)
 
     Q_PROPERTY(bool dynamicResizeEnabledFull READ dynamicResizeEnabledFull WRITE setDynamicResizeEnabledFull NOTIFY dynamicResizeEnabledFullChanged FINAL)
@@ -103,6 +104,14 @@ class UserConfigBackend final : public QObject {
     Q_PROPERTY(int barOverlayHeight READ barOverlayHeight WRITE setBarOverlayHeight NOTIFY barOverlayHeightChanged FINAL)
     Q_PROPERTY(bool barOverlayOnlyWhenMaximized READ barOverlayOnlyWhenMaximized WRITE setBarOverlayOnlyWhenMaximized NOTIFY barOverlayOnlyWhenMaximizedChanged FINAL)
     Q_PROPERTY(QString themeStyle READ themeStyle WRITE setThemeStyle NOTIFY themeStyleChanged FINAL)
+
+    Q_PROPERTY(bool statusBarShowBattery READ statusBarShowBattery WRITE setStatusBarShowBattery NOTIFY statusBarShowBatteryChanged FINAL)
+    Q_PROPERTY(bool statusBarShowCamera READ statusBarShowCamera WRITE setStatusBarShowCamera NOTIFY statusBarShowCameraChanged FINAL)
+    Q_PROPERTY(bool statusBarShowNotchMode READ statusBarShowNotchMode WRITE setStatusBarShowNotchMode NOTIFY statusBarShowNotchModeChanged FINAL)
+    Q_PROPERTY(bool statusBarShowDynamicResize READ statusBarShowDynamicResize WRITE setStatusBarShowDynamicResize NOTIFY statusBarShowDynamicResizeChanged FINAL)
+    Q_PROPERTY(bool statusBarShowEditMode READ statusBarShowEditMode WRITE setStatusBarShowEditMode NOTIFY statusBarShowEditModeChanged FINAL)
+    Q_PROPERTY(bool statusBarShowSettings READ statusBarShowSettings WRITE setStatusBarShowSettings NOTIFY statusBarShowSettingsChanged FINAL)
+    Q_PROPERTY(bool scrollTextOnlyOnHover READ scrollTextOnlyOnHover WRITE setScrollTextOnlyOnHover NOTIFY scrollTextOnlyOnHoverChanged FINAL)
 
 public:
     explicit UserConfigBackend(QObject *parent = nullptr);
@@ -173,6 +182,21 @@ public:
     QString themeStyle() const;
     Q_INVOKABLE void setThemeStyle(const QString &style);
 
+    bool statusBarShowBattery() const;
+    Q_INVOKABLE void setStatusBarShowBattery(bool show);
+    bool statusBarShowCamera() const;
+    Q_INVOKABLE void setStatusBarShowCamera(bool show);
+    bool statusBarShowNotchMode() const;
+    Q_INVOKABLE void setStatusBarShowNotchMode(bool show);
+    bool statusBarShowDynamicResize() const;
+    Q_INVOKABLE void setStatusBarShowDynamicResize(bool show);
+    bool statusBarShowEditMode() const;
+    Q_INVOKABLE void setStatusBarShowEditMode(bool show);
+    bool statusBarShowSettings() const;
+    Q_INVOKABLE void setStatusBarShowSettings(bool show);
+    bool scrollTextOnlyOnHover() const;
+    Q_INVOKABLE void setScrollTextOnlyOnHover(bool enabled);
+
     int hoverExpandAction() const;
     bool islandShowWorkspaceOnAutoHide() const;
     bool islandAutoHideEnabled() const;
@@ -214,7 +238,10 @@ public:
     int bodyFontSize() const;
     int titleFontSize() const;
     int iconFontSize() const;
+    int textScrollSpeed() const;
+    void setTextScrollSpeed(int speed);
     int claudeCodeScrollSpeed() const;
+    void setClaudeCodeScrollSpeed(int speed);
     QJsonObject widgetLayouts() const;
     QJsonObject defaultWidgetLayouts() const;
     void setDefaultWallpaperPath(const QString &path);
@@ -315,8 +342,16 @@ signals:
     void bodyFontSizeChanged();
     void titleFontSizeChanged();
     void iconFontSizeChanged();
+    void textScrollSpeedChanged();
     void claudeCodeScrollSpeedChanged();
     void widgetLayoutsChanged();
+    void statusBarShowBatteryChanged();
+    void statusBarShowCameraChanged();
+    void statusBarShowNotchModeChanged();
+    void statusBarShowDynamicResizeChanged();
+    void statusBarShowEditModeChanged();
+    void statusBarShowSettingsChanged();
+    void scrollTextOnlyOnHoverChanged();
 
 private:
     void scheduleReload();
@@ -403,11 +438,18 @@ private:
     int m_bodyFontSize = 16;
     int m_titleFontSize = 20;
     int m_iconFontSize = 18;
-    int m_claudeCodeScrollSpeed = 17;
+    int m_textScrollSpeed = 17;
     bool m_barBackgroundOverlayEnabled = false;
     int m_barOverlayHeight = 40;
     bool m_barOverlayOnlyWhenMaximized = true;
     QString m_themeStyle = QStringLiteral("black");
+    bool m_statusBarShowBattery = true;
+    bool m_statusBarShowCamera = true;
+    bool m_statusBarShowNotchMode = true;
+    bool m_statusBarShowDynamicResize = true;
+    bool m_statusBarShowEditMode = true;
+    bool m_statusBarShowSettings = true;
+    bool m_scrollTextOnlyOnHover = false;
     QJsonObject m_widgetLayouts;
 
     QFileSystemWatcher m_watcher;

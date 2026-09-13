@@ -72,11 +72,15 @@ Item {
         expandedPageStrip.updateExternalDropPoint(stripPoint);
     }
 
-    function routeExternalDrop(dropEvent, point) {
-        if (!expandedPageStrip)
+    function selectByUrls(urls) {
+        return expandedPageStrip && expandedPageStrip.selectByUrls ? expandedPageStrip.selectByUrls(urls) : false;
+    }
+
+    function isPointInLocalSend(point) {
+        if (!expandedPageStrip || !point)
             return false;
         const stripPoint = expandedPageStrip.mapFromItem(root, point.x, point.y);
-        return expandedPageStrip.routeExternalDrop(dropEvent, stripPoint);
+        return expandedPageStrip.isPointInLocalSend ? expandedPageStrip.isPointInLocalSend(stripPoint) : false;
     }
 
     function showPage(pageIdx, immediate) {
@@ -132,7 +136,8 @@ Item {
         bodyFontSize: root.userConfig ? root.userConfig.bodyFontSize : 16,
         titleFontSize: root.userConfig ? root.userConfig.titleFontSize : 20,
         iconFontSize: root.userConfig ? root.userConfig.iconFontSize : 18,
-        claudeCodeScrollSpeed: root.userConfig ? root.userConfig.claudeCodeScrollSpeed : 17,
+        textScrollSpeed: root.userConfig ? root.userConfig.textScrollSpeed : 17,
+        claudeCodeScrollSpeed: root.userConfig ? root.userConfig.textScrollSpeed : 17,
         uiScale: root.uiScale,
         isEditMode: root.isEditMode
     })

@@ -40,6 +40,9 @@ private slots:
     void minimumAlwaysShowClockDefaultsAndPersists();
     void minimumHomePageClockIsFixedAndCannotBeRemoved();
     void styleTokensContrastAndThemeBindings();
+    void statusBarItemsDefaultsAndPersists();
+    void scrollTextOnlyOnHoverDefaultsAndPersists();
+    void textScrollSpeedDefaultsAndPersists();
 };
 
 void UserConfigBackendTests::initTestCase()
@@ -832,6 +835,115 @@ void UserConfigBackendTests::styleTokensContrastAndThemeBindings()
     // Clean up
     config.setThemeStyle(QStringLiteral("black"));
     tokens.reloadTheme();
+}
+
+void UserConfigBackendTests::statusBarItemsDefaultsAndPersists()
+{
+    UserConfigBackend config;
+
+    // Check defaults
+    QCOMPARE(config.statusBarShowBattery(), true);
+    QCOMPARE(config.statusBarShowCamera(), true);
+    QCOMPARE(config.statusBarShowNotchMode(), true);
+    QCOMPARE(config.statusBarShowDynamicResize(), true);
+    QCOMPARE(config.statusBarShowEditMode(), true);
+    QCOMPARE(config.statusBarShowSettings(), true);
+
+    QSignalSpy batterySpy(&config, &UserConfigBackend::statusBarShowBatteryChanged);
+    QSignalSpy cameraSpy(&config, &UserConfigBackend::statusBarShowCameraChanged);
+    QSignalSpy notchModeSpy(&config, &UserConfigBackend::statusBarShowNotchModeChanged);
+
+    config.setStatusBarShowBattery(false);
+    QCOMPARE(batterySpy.count(), 1);
+    QCOMPARE(config.statusBarShowBattery(), false);
+
+    config.setStatusBarShowCamera(false);
+    QCOMPARE(cameraSpy.count(), 1);
+    QCOMPARE(config.statusBarShowCamera(), false);
+
+    config.setStatusBarShowNotchMode(false);
+    QCOMPARE(notchModeSpy.count(), 1);
+    QCOMPARE(config.statusBarShowNotchMode(), false);
+
+    // Verify persistence across new instance
+    UserConfigBackend reloaded;
+    QCOMPARE(reloaded.statusBarShowBattery(), false);
+    QCOMPARE(reloaded.statusBarShowCamera(), false);
+    QCOMPARE(reloaded.statusBarShowNotchMode(), false);
+    QCOMPARE(reloaded.statusBarShowDynamicResize(), true);
+
+    // Restore defaults
+    config.setStatusBarShowBattery(true);
+    config.setStatusBarShowCamera(true);
+    config.setStatusBarShowNotchMode(true);
+    QCOMPARE(config.statusBarShowBattery(), true);
+    QCOMPARE(config.statusBarShowCamera(), true);
+    QCOMPARE(config.statusBarShowNotchMode(), true);
+}
+
+void UserConfigBackendTests::scrollTextOnlyOnHoverDefaultsAndPersists()
+{
+    UserConfigBackend config;
+
+    // Check default
+    QCOMPARE(config.scrollTextOnlyOnHover(), false);
+
+    QSignalSpy spy(&config, &UserConfigBackend::scrollTextOnlyOnHoverChanged);
+
+    config.setScrollTextOnlyOnHover(true);
+    QCOMPARE(spy.count(), 1);
+    QCOMPARE(config.scrollTextOnlyOnHover(), true);
+
+    // Verify persistence across reload
+    UserConfigBackend reloaded;
+    QCOMPARE(reloaded.scrollTextOnlyOnHover(), true);
+
+    // Restore default
+    config.setScrollTextOnlyOnHover(false);
+    QCOMPARE(config.scrollTextOnlyOnHover(), false);
+}
+
+void UserConfigBackendTests::textScrollSpeedDefaultsAndPersists()
+{
+    UserConfigBackend config;
+
+    // Check default
+    QCOMPARE(config.textScrollSpeed(), 17);
+    QCOMPARE(config.claudeCodeScrollSpeed(), 17);
+
+    QSignalSpy textSpy(&config, &UserConfigBackend::textScrollSpeedChanged);
+    QSignalSpy claudeSpy(&config, &UserConfigBackend::claudeCodeScrollSpeedChanged);
+
+    // Test setting via textScrollSpeed
+    config.setTextScrollSpeed(35);
+    QCOMPARE(config.textScrollSpeed(), 35);
+    QCOMPARE(config.claudeCodeScrollSpeed(), 35);
+    QCOMPARE(textSpy.count(), 1);
+    QCOMPARE(claudeSpy.count(), 1);
+
+    // Clamping: minimum 1
+    config.setTextScrollSpeed(0);
+    QCOMPARE(config.textScrollSpeed(), 1);
+    QCOMPARE(config.claudeCodeScrollSpeed(), 1);
+
+    // Clamping: maximum 100
+    config.setTextScrollSpeed(150);
+    QCOMPARE(config.textScrollSpeed(), 100);
+    QCOMPARE(config.claudeCodeScrollSpeed(), 100);
+
+    // Setting via legacy claudeCodeScrollSpeed alias
+    config.setClaudeCodeScrollSpeed(42);
+    QCOMPARE(config.textScrollSpeed(), 42);
+    QCOMPARE(config.claudeCodeScrollSpeed(), 42);
+
+    // Verify persistence across reload
+    UserConfigBackend reloaded;
+    QCOMPARE(reloaded.textScrollSpeed(), 42);
+    QCOMPARE(reloaded.claudeCodeScrollSpeed(), 42);
+
+    // Restore default
+    config.setTextScrollSpeed(17);
+    QCOMPARE(config.textScrollSpeed(), 17);
 }
 
 QTEST_MAIN(UserConfigBackendTests)

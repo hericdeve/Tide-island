@@ -644,6 +644,111 @@ void UserConfigBackend::setThemeStyle(const QString &style)
     writeConfigJsonField(m_userConfigPath, QStringLiteral("themeStyle"), m_themeStyle);
 }
 
+bool UserConfigBackend::statusBarShowBattery() const
+{
+    return m_statusBarShowBattery;
+}
+
+void UserConfigBackend::setStatusBarShowBattery(bool show)
+{
+    if (m_statusBarShowBattery == show)
+        return;
+
+    m_statusBarShowBattery = show;
+    emit statusBarShowBatteryChanged();
+    writeConfigJsonField(m_userConfigPath, QStringLiteral("statusBarShowBattery"), m_statusBarShowBattery);
+}
+
+bool UserConfigBackend::statusBarShowCamera() const
+{
+    return m_statusBarShowCamera;
+}
+
+void UserConfigBackend::setStatusBarShowCamera(bool show)
+{
+    if (m_statusBarShowCamera == show)
+        return;
+
+    m_statusBarShowCamera = show;
+    emit statusBarShowCameraChanged();
+    writeConfigJsonField(m_userConfigPath, QStringLiteral("statusBarShowCamera"), m_statusBarShowCamera);
+}
+
+bool UserConfigBackend::statusBarShowNotchMode() const
+{
+    return m_statusBarShowNotchMode;
+}
+
+void UserConfigBackend::setStatusBarShowNotchMode(bool show)
+{
+    if (m_statusBarShowNotchMode == show)
+        return;
+
+    m_statusBarShowNotchMode = show;
+    emit statusBarShowNotchModeChanged();
+    writeConfigJsonField(m_userConfigPath, QStringLiteral("statusBarShowNotchMode"), m_statusBarShowNotchMode);
+}
+
+bool UserConfigBackend::statusBarShowDynamicResize() const
+{
+    return m_statusBarShowDynamicResize;
+}
+
+void UserConfigBackend::setStatusBarShowDynamicResize(bool show)
+{
+    if (m_statusBarShowDynamicResize == show)
+        return;
+
+    m_statusBarShowDynamicResize = show;
+    emit statusBarShowDynamicResizeChanged();
+    writeConfigJsonField(m_userConfigPath, QStringLiteral("statusBarShowDynamicResize"), m_statusBarShowDynamicResize);
+}
+
+bool UserConfigBackend::statusBarShowEditMode() const
+{
+    return m_statusBarShowEditMode;
+}
+
+void UserConfigBackend::setStatusBarShowEditMode(bool show)
+{
+    if (m_statusBarShowEditMode == show)
+        return;
+
+    m_statusBarShowEditMode = show;
+    emit statusBarShowEditModeChanged();
+    writeConfigJsonField(m_userConfigPath, QStringLiteral("statusBarShowEditMode"), m_statusBarShowEditMode);
+}
+
+bool UserConfigBackend::statusBarShowSettings() const
+{
+    return m_statusBarShowSettings;
+}
+
+void UserConfigBackend::setStatusBarShowSettings(bool show)
+{
+    if (m_statusBarShowSettings == show)
+        return;
+
+    m_statusBarShowSettings = show;
+    emit statusBarShowSettingsChanged();
+    writeConfigJsonField(m_userConfigPath, QStringLiteral("statusBarShowSettings"), m_statusBarShowSettings);
+}
+
+bool UserConfigBackend::scrollTextOnlyOnHover() const
+{
+    return m_scrollTextOnlyOnHover;
+}
+
+void UserConfigBackend::setScrollTextOnlyOnHover(bool enabled)
+{
+    if (m_scrollTextOnlyOnHover == enabled)
+        return;
+
+    m_scrollTextOnlyOnHover = enabled;
+    emit scrollTextOnlyOnHoverChanged();
+    writeConfigJsonField(m_userConfigPath, QStringLiteral("scrollTextOnlyOnHover"), m_scrollTextOnlyOnHover);
+}
+
 int UserConfigBackend::hoverExpandAction() const
 {
     return m_hoverExpandAction;
@@ -978,9 +1083,30 @@ int UserConfigBackend::iconFontSize() const
     return m_iconFontSize;
 }
 
+int UserConfigBackend::textScrollSpeed() const
+{
+    return m_textScrollSpeed;
+}
+
+void UserConfigBackend::setTextScrollSpeed(int speed)
+{
+    const int clamped = qBound(1, speed, 100);
+    if (m_textScrollSpeed == clamped)
+        return;
+    m_textScrollSpeed = clamped;
+    emit textScrollSpeedChanged();
+    emit claudeCodeScrollSpeedChanged();
+    writeConfigJsonField(m_userConfigPath, QStringLiteral("textScrollSpeed"), m_textScrollSpeed);
+}
+
 int UserConfigBackend::claudeCodeScrollSpeed() const
 {
-    return m_claudeCodeScrollSpeed;
+    return textScrollSpeed();
+}
+
+void UserConfigBackend::setClaudeCodeScrollSpeed(int speed)
+{
+    setTextScrollSpeed(speed);
 }
 
 QJsonObject UserConfigBackend::widgetLayouts() const
@@ -1540,7 +1666,24 @@ void UserConfigBackend::loadConfig()
     updateField(this, m_bodyFontSize, jsonInt(configObject, QLatin1String("bodyFontSize"), 16), &UserConfigBackend::bodyFontSizeChanged);
     updateField(this, m_titleFontSize, jsonInt(configObject, QLatin1String("titleFontSize"), 20), &UserConfigBackend::titleFontSizeChanged);
     updateField(this, m_iconFontSize, jsonInt(configObject, QLatin1String("iconFontSize"), 18), &UserConfigBackend::iconFontSizeChanged);
-    updateField(this, m_claudeCodeScrollSpeed, jsonBoundedInt(configObject, QLatin1String("claudeCodeScrollSpeed"), 17, 1, 100), &UserConfigBackend::claudeCodeScrollSpeedChanged);
+    int scrollSpeedVal = 17;
+    if (configObject.contains(QLatin1String("textScrollSpeed"))) {
+        scrollSpeedVal = jsonBoundedInt(configObject, QLatin1String("textScrollSpeed"), 17, 1, 100);
+    } else if (configObject.contains(QLatin1String("claudeCodeScrollSpeed"))) {
+        scrollSpeedVal = jsonBoundedInt(configObject, QLatin1String("claudeCodeScrollSpeed"), 17, 1, 100);
+    }
+    if (m_textScrollSpeed != scrollSpeedVal) {
+        m_textScrollSpeed = scrollSpeedVal;
+        emit textScrollSpeedChanged();
+        emit claudeCodeScrollSpeedChanged();
+    }
+    updateField(this, m_statusBarShowBattery, jsonBool(configObject, QLatin1String("statusBarShowBattery"), true), &UserConfigBackend::statusBarShowBatteryChanged);
+    updateField(this, m_statusBarShowCamera, jsonBool(configObject, QLatin1String("statusBarShowCamera"), true), &UserConfigBackend::statusBarShowCameraChanged);
+    updateField(this, m_statusBarShowNotchMode, jsonBool(configObject, QLatin1String("statusBarShowNotchMode"), true), &UserConfigBackend::statusBarShowNotchModeChanged);
+    updateField(this, m_statusBarShowDynamicResize, jsonBool(configObject, QLatin1String("statusBarShowDynamicResize"), true), &UserConfigBackend::statusBarShowDynamicResizeChanged);
+    updateField(this, m_statusBarShowEditMode, jsonBool(configObject, QLatin1String("statusBarShowEditMode"), true), &UserConfigBackend::statusBarShowEditModeChanged);
+    updateField(this, m_statusBarShowSettings, jsonBool(configObject, QLatin1String("statusBarShowSettings"), true), &UserConfigBackend::statusBarShowSettingsChanged);
+    updateField(this, m_scrollTextOnlyOnHover, jsonBool(configObject, QLatin1String("scrollTextOnlyOnHover"), false), &UserConfigBackend::scrollTextOnlyOnHoverChanged);
 
     if (configObject.contains(QLatin1String("widgetLayouts")) && configObject.value(QLatin1String("widgetLayouts")).isObject()) {
         QJsonObject layouts = configObject.value(QLatin1String("widgetLayouts")).toObject();

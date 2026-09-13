@@ -170,7 +170,8 @@ Item {
         bodyFontSize: root.userConfig ? root.userConfig.bodyFontSize : 16,
         titleFontSize: root.userConfig ? root.userConfig.titleFontSize : 20,
         iconFontSize: root.userConfig ? root.userConfig.iconFontSize : 18,
-        claudeCodeScrollSpeed: root.userConfig ? root.userConfig.claudeCodeScrollSpeed : 17,
+        textScrollSpeed: root.userConfig ? root.userConfig.textScrollSpeed : 17,
+        claudeCodeScrollSpeed: root.userConfig ? root.userConfig.textScrollSpeed : 17,
         uiScale: 1.0,
         isEditMode: root.isEditMode
     })
@@ -511,14 +512,15 @@ Item {
 
     readonly property real persistentClockLeftX: (UserConfig && UserConfig.notchClosedPaddingHorizontal !== undefined)
         ? UserConfig.notchClosedPaddingHorizontal : 12
-    readonly property real persistentClockCenterX: Math.round((root.width - persistentClock.width) / 2)
+    readonly property real homeWidgetWidth: (persistentClockDate.width > 0 ? (persistentClockDate.width + 6) : 0) + persistentClock.width
+    readonly property real persistentClockHomeX: Math.round((root.width - homeWidgetWidth) / 2) + (persistentClockDate.width > 0 ? (persistentClockDate.width + 6) : 0)
     readonly property real homeSlideProgress: Math.max(0, Math.min(1.0, root.clampedPageProgress))
 
     // Persistent Clock on the left (slides gracefully from center on Home to left on other pages)
     Item {
         id: persistentClock
         visible: root.hasPersistentClock
-        x: Math.round(root.persistentClockCenterX + (root.persistentClockLeftX - root.persistentClockCenterX) * root.homeSlideProgress)
+        x: Math.round(root.persistentClockHomeX + (root.persistentClockLeftX - root.persistentClockHomeX) * root.homeSlideProgress)
         anchors.verticalCenter: parent.verticalCenter
         anchors.verticalCenterOffset: root.pageCount > 1 ? -2 : 0
         height: parent.height
@@ -550,14 +552,6 @@ Item {
             text: root.currentDate
             role: "body"
             colorOverride: StyleTokens.textPrimary
-            widgetContext: root.sharedWidgetContext
-            anchors.verticalCenter: parent.verticalCenter
-        }
-
-        WidgetTextView {
-            text: "·"
-            role: "body"
-            colorOverride: StyleTokens.textMuted
             widgetContext: root.sharedWidgetContext
             anchors.verticalCenter: parent.verticalCenter
         }

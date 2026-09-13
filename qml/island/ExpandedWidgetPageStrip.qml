@@ -15,12 +15,23 @@ Item {
     property bool isDraggingWidget: false
 
     function updateExternalDropPoint(point) {
-        if (fileShelfItem)
-            fileShelfItem.updateExternalDropPoint(point);
+        if (!fileShelfItem) return;
+        if (!point) {
+            fileShelfItem.updateExternalDropPoint(null);
+            return;
+        }
+        const shelfPoint = fileShelfItem.mapFromItem(root, point.x, point.y);
+        fileShelfItem.updateExternalDropPoint(shelfPoint);
     }
 
-    function routeExternalDrop(dropEvent, point) {
-        return fileShelfItem ? fileShelfItem.routeExternalDrop(dropEvent, point) : false;
+    function isPointInLocalSend(point) {
+        if (!fileShelfItem || !point) return false;
+        const shelfPoint = fileShelfItem.mapFromItem(root, point.x, point.y);
+        return fileShelfItem.isPointInLocalSend ? fileShelfItem.isPointInLocalSend(shelfPoint) : false;
+    }
+
+    function selectByUrls(urls) {
+        return fileShelfItem && fileShelfItem.selectByUrls ? fileShelfItem.selectByUrls(urls) : false;
     }
 
     // Shelf integration properties

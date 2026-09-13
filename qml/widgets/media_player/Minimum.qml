@@ -36,7 +36,6 @@ Item {
             text: root.currentTrack !== "" ? (root.currentArtist !== "" ? root.currentTrack + " • " + root.currentArtist : root.currentTrack) : "Music"
             role: "body"
             overflowMode: "marquee"
-            marqueeSpeed: 25
             maximumLineCount: 1
             colorOverride: StyleTokens.textPrimary
             width: Math.min(measuredWidth, Math.max(0, root.width - mediaIcon.width - contentRow.spacing - 12))

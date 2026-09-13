@@ -52,7 +52,7 @@ PagePanel {
         Item {
             id: content
             width: scroller.width
-            height: dynamicResizePanel.y + dynamicResizePanel.height + 40
+            height: statusBarPanel.y + statusBarPanel.height + 40
 
             Text {
                 id: title
@@ -608,6 +608,105 @@ PagePanel {
                         numeric: true
                         minimumValue: 10
                         maximumValue: 200
+                        width: parent.width
+                    }
+                }
+            }
+
+            // 7. Status Bar Items
+            Text {
+                id: statusBarTitle
+                text: "Status Bar Items"
+                anchors.top: dynamicResizePanel.bottom
+                anchors.topMargin: 34
+                anchors.left: parent.left
+                anchors.leftMargin: 32
+                anchors.right: parent.right
+                anchors.rightMargin: 40
+                font.family: Theme.titleFontFamily
+                font.pixelSize: 23
+                color: Theme.textColor
+            }
+
+            Rectangle {
+                id: statusBarPanel
+                color: Theme.cardBgColor
+                radius: 16
+                border.width: 1
+                border.color: Theme.splitLineColor
+                anchors.top: statusBarTitle.bottom
+                anchors.topMargin: 15
+                anchors.left: parent.left
+                anchors.leftMargin: 30
+                anchors.right: parent.right
+                anchors.rightMargin: 40
+                height: statusBarColumn.implicitHeight + 36
+
+                Column {
+                    id: statusBarColumn
+                    anchors.top: parent.top
+                    anchors.topMargin: 18
+                    anchors.left: parent.left
+                    anchors.leftMargin: 18
+                    anchors.right: parent.right
+                    anchors.rightMargin: 18
+                    spacing: 16
+
+                    ToggleRow {
+                        title: "Battery Indicator"
+                        description: "Show battery level percentage and charging icon in the status bar"
+                        keyName: "statusBarShowBattery"
+                        fallbackState: true
+                        width: parent.width
+                    }
+
+                    SplitLine { width: parent.width }
+
+                    ToggleRow {
+                        title: "Camera Mirror Button"
+                        description: "Show quick camera mirror toggle button in the status bar"
+                        keyName: "statusBarShowCamera"
+                        fallbackState: true
+                        width: parent.width
+                    }
+
+                    SplitLine { width: parent.width }
+
+                    ToggleRow {
+                        title: "Notch Mode Switcher"
+                        description: "Show closed notch style switcher button (Notch / Pill / Circle)"
+                        keyName: "statusBarShowNotchMode"
+                        fallbackState: true
+                        width: parent.width
+                    }
+
+                    SplitLine { width: parent.width }
+
+                    ToggleRow {
+                        title: "Dynamic Resizing Toggle"
+                        description: "Show quick-access dynamic resizing configuration button"
+                        keyName: "statusBarShowDynamicResize"
+                        fallbackState: true
+                        width: parent.width
+                    }
+
+                    SplitLine { width: parent.width }
+
+                    ToggleRow {
+                        title: "Edit Mode Toggle"
+                        description: "Show pencil button to toggle widget page and slot editing"
+                        keyName: "statusBarShowEditMode"
+                        fallbackState: true
+                        width: parent.width
+                    }
+
+                    SplitLine { width: parent.width }
+
+                    ToggleRow {
+                        title: "Settings Shortcut"
+                        description: "Show gear button to open the Tide Island Settings application"
+                        keyName: "statusBarShowSettings"
+                        fallbackState: true
                         width: parent.width
                     }
                 }

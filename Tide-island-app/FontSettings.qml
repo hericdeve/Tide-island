@@ -187,9 +187,9 @@ PagePanel {
                     SplitLine { width: parent.width }
 
                     ConfigRow {
-                        title: "Claude Code Scroll Speed"
-                        description: "Claude Code overflow text speed in pixels per second"
-                        keyName: "claudeCodeScrollSpeed"
+                        title: "Text Scroll Speed"
+                        description: "General overflow text scroll speed in pixels per second"
+                        keyName: "textScrollSpeed"
                         fallbackText: "17"
                         numeric: true
                         minimumValue: 1

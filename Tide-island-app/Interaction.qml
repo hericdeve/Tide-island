@@ -370,6 +370,16 @@ PagePanel {
                         maximumValue: 3000
                         width: parent.width
                     }
+
+                    SplitLine { width: parent.width }
+
+                    ToggleRow {
+                        title: "Scroll Text Only on Hover"
+                        description: "Scroll overflowing marquee text (calendar events, song titles) only when hovering over them"
+                        keyName: "scrollTextOnlyOnHover"
+                        fallbackState: false
+                        width: parent.width
+                    }
                 }
             }
 
@@ -948,6 +958,92 @@ PagePanel {
                     cursorShape: Qt.PointingHandCursor
 
                     onClicked: group.selected(modelData.value)
+                }
+            }
+        }
+    }
+
+    component ToggleRow: Item {
+        id: toggleRow
+
+        property string title: ""
+        property string description: ""
+        property string keyName: ""
+        property bool fallbackState: false
+        property bool invert: false
+        property bool checkedState: {
+            const val = root.boolValue(keyName, fallbackState)
+            return invert ? !val : val
+        }
+
+        height: 49
+
+        Text {
+            id: toggleRowTitle
+            text: toggleRow.title
+            font.family: Theme.textFontFamily
+            font.pixelSize: 18
+            color: Theme.textColor
+            anchors.top: parent.top
+            anchors.left: parent.left
+        }
+
+        Text {
+            text: toggleRow.description
+            font.family: Theme.textFontFamily
+            font.pixelSize: 14
+            anchors.top: toggleRowTitle.bottom
+            anchors.topMargin: 5
+            anchors.left: toggleRowTitle.left
+            width: Math.max(80, parent.width - toggleSwitch.width - 28)
+            elide: Text.ElideRight
+            color: Theme.subtleTextColor
+        }
+
+        Item {
+            id: toggleSwitch
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            width: 48
+            height: 26
+
+            Rectangle {
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: 40
+                height: 24
+                radius: 12
+                color: toggleRow.checkedState ? Theme.accentColor : Theme.componentBgColor
+                border.width: 1
+                border.color: toggleRow.checkedState ? Theme.accentColor : Theme.inputBorderColor
+
+                Behavior on color {
+                    ColorAnimation { duration: 180; easing.type: Easing.InOutQuad }
+                }
+            }
+
+            Rectangle {
+                width: 18
+                height: 18
+                radius: 9
+                x: toggleRow.checkedState ? 22 : 6
+                y: 4
+                color: Theme.cardBgColor
+
+                Behavior on x {
+                    NumberAnimation { duration: 180; easing.type: Easing.InOutQuad }
+                }
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: {
+                    const next = !toggleRow.checkedState
+                    toggleRow.checkedState = next
+                    ConfigStore.setValue(toggleRow.keyName, toggleRow.invert ? !next : next)
+                    ConfigStore.save()
                 }
             }
         }

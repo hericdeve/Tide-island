@@ -23,6 +23,7 @@ private slots:
     void addsTextSnippetAsFileEntry();
     void rejectsEmptyTextSnippet();
     void pasteFromClipboardSafelyReturnsZeroWithoutGui();
+    void addsLocalFilesFromRawPathStrings();
 };
 
 namespace {
@@ -219,6 +220,25 @@ void FileShelfModelTests::pasteFromClipboardSafelyReturnsZeroWithoutGui()
 {
     FileShelfModel model;
     QCOMPARE(model.pasteFromClipboard(), 0);
+}
+
+void FileShelfModelTests::addsLocalFilesFromRawPathStrings()
+{
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+
+    const QString filePath = createFile(directory.filePath(QStringLiteral("raw_path.txt")));
+    QVERIFY(!filePath.isEmpty());
+
+    FileShelfModel model;
+    // Pass raw string path instead of QUrl
+    const QVariantList stringList{filePath, directory.path()};
+    QCOMPARE(model.addUrls(stringList), 2);
+    QCOMPARE(model.rowCount(), 2);
+
+    const QVariantMap entry = model.get(0);
+    QCOMPARE(entry.value(QStringLiteral("filePath")).toString(), filePath);
+    QVERIFY(entry.value(QStringLiteral("exists")).toBool());
 }
 
 QTEST_GUILESS_MAIN(FileShelfModelTests)

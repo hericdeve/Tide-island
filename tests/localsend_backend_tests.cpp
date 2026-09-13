@@ -1,6 +1,8 @@
 #include "LocalSendBackend.h"
 
+#include <QFile>
 #include <QSignalSpy>
+#include <QTemporaryDir>
 #include <QTest>
 
 class LocalSendBackendTests final : public QObject {
@@ -14,6 +16,12 @@ private slots:
     void emptyFileSendSetsError();
     void fileSentSignalDeclared();
     void parseOutputDeduplicationAndStability();
+    void stopResetsStateAndClearsDevices();
+    void resolveTransferFilesSingleFile();
+    void resolveTransferFilesFolderRecursive();
+    void resolveTransferFilesEmptyFolder();
+    void sendEmptyFolderSetsFriendlyError();
+    void sendNonExistentPathSetsError();
 };
 
 void LocalSendBackendTests::initialProperties()
@@ -95,6 +103,96 @@ void LocalSendBackendTests::parseOutputDeduplicationAndStability()
     QCOMPARE(backend.count(), 1);
     QCOMPARE(devicesSpy.count(), 0);
     QCOMPARE(backend.data(backend.index(0), LocalSendBackend::DeviceAddressRole).toString(), QStringLiteral("192.168.1.50"));
+}
+
+void LocalSendBackendTests::stopResetsStateAndClearsDevices()
+{
+    LocalSendBackend backend;
+    backend.parseOutput("[1] Phone (192.168.1.55)\r\n");
+    QCOMPARE(backend.count(), 1);
+
+    QSignalSpy statusSpy(&backend, &LocalSendBackend::statusChanged);
+    QSignalSpy countSpy(&backend, &LocalSendBackend::countChanged);
+
+    backend.stop();
+    QCOMPARE(backend.status(), QStringLiteral("Offline"));
+    QCOMPARE(backend.count(), 0);
+    QCOMPARE(backend.transferProgress(), -1);
+    QCOMPARE(backend.waitingForAcceptance(), false);
+    QVERIFY(statusSpy.count() >= 1);
+    QVERIFY(countSpy.count() >= 1);
+}
+
+void LocalSendBackendTests::resolveTransferFilesSingleFile()
+{
+    QTemporaryDir tempDir;
+    QVERIFY(tempDir.isValid());
+    const QString filePath = tempDir.filePath(QStringLiteral("test.txt"));
+    QFile file(filePath);
+    QVERIFY(file.open(QIODevice::WriteOnly));
+    file.write("hello");
+    file.close();
+
+    const QStringList resolved = LocalSendBackend::resolveTransferFiles(filePath);
+    QCOMPARE(resolved.size(), 1);
+    QCOMPARE(resolved.first(), filePath);
+}
+
+void LocalSendBackendTests::resolveTransferFilesFolderRecursive()
+{
+    QTemporaryDir tempDir;
+    QVERIFY(tempDir.isValid());
+
+    const QString subDir = tempDir.filePath(QStringLiteral("nested"));
+    QDir().mkpath(subDir);
+
+    const QString file1 = tempDir.filePath(QStringLiteral("a.txt"));
+    const QString file2 = tempDir.filePath(QStringLiteral("nested/b.png"));
+
+    QFile f1(file1);
+    QVERIFY(f1.open(QIODevice::WriteOnly));
+    f1.write("file1");
+    f1.close();
+
+    QFile f2(file2);
+    QVERIFY(f2.open(QIODevice::WriteOnly));
+    f2.write("file2");
+    f2.close();
+
+    const QStringList resolved = LocalSendBackend::resolveTransferFiles(tempDir.path());
+    QCOMPARE(resolved.size(), 2);
+    QVERIFY(resolved.contains(file1));
+    QVERIFY(resolved.contains(file2));
+}
+
+void LocalSendBackendTests::resolveTransferFilesEmptyFolder()
+{
+    QTemporaryDir tempDir;
+    QVERIFY(tempDir.isValid());
+
+    const QStringList resolved = LocalSendBackend::resolveTransferFiles(tempDir.path());
+    QVERIFY(resolved.isEmpty());
+}
+
+void LocalSendBackendTests::sendEmptyFolderSetsFriendlyError()
+{
+    QTemporaryDir tempDir;
+    QVERIFY(tempDir.isValid());
+
+    LocalSendBackend backend;
+    backend.sendFile(tempDir.path(), 1);
+    QCOMPARE(backend.status(), QStringLiteral("Folder is empty"));
+    QVERIFY(backend.error().contains(QStringLiteral("Folder is empty")));
+    QCOMPARE(backend.busy(), false);
+}
+
+void LocalSendBackendTests::sendNonExistentPathSetsError()
+{
+    LocalSendBackend backend;
+    backend.sendFile(QStringLiteral("/path/does/not/exist_12345"), 1);
+    QCOMPARE(backend.status(), QStringLiteral("Send failed"));
+    QVERIFY(backend.error().contains(QStringLiteral("does not exist")));
+    QCOMPARE(backend.busy(), false);
 }
 
 QTEST_GUILESS_MAIN(LocalSendBackendTests)

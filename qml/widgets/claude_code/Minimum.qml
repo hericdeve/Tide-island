@@ -13,7 +13,7 @@ Item {
     readonly property string textFontFamily: widgetContext ? widgetContext.textFontFamily : "Sans Serif"
     readonly property int bodyFontSize: widgetContext ? widgetContext.bodyFontSize : 16
     readonly property int iconFontSize: widgetContext ? widgetContext.iconFontSize : 18
-    readonly property real scrollSpeed: widgetContext ? widgetContext.claudeCodeScrollSpeed : 17
+    readonly property real scrollSpeed: widgetContext ? (widgetContext.textScrollSpeed || widgetContext.claudeCodeScrollSpeed || 17) : 17
 
     readonly property string state: ClaudeCodeBackend.sessionState
     readonly property bool isWaitingConsent: state === "waiting_consent" || (ClaudeCodeBackend.pendingConsentId !== "")
@@ -125,7 +125,6 @@ Item {
             text: root.displayText
             role: "body"
             overflowMode: "marquee"
-            marqueeSpeed: root.scrollSpeed
             colorOverride: root.isWaitingConsent ? StyleTokens.warning : (root.state === "error" ? StyleTokens.danger : StyleTokens.textPrimary)
             widgetContext: root.widgetContext
         }

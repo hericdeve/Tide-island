@@ -362,13 +362,23 @@ Item {
 
         // Camera Mirror button
         Rectangle {
-            width: 24
+            id: camBtn
+            readonly property bool shouldShow: !root.fileShelfActive && ((userConfig && userConfig.statusBarShowCamera !== undefined) ? userConfig.statusBarShowCamera : true)
+            width: shouldShow ? 24 : 0
             height: 24
             radius: 12
+            clip: true
+            opacity: shouldShow ? 1.0 : 0.0
+            scale: shouldShow ? 1.0 : 0.85
+            transformOrigin: Item.Center
+            visible: width > 0 || opacity > 0.001
             color: root.cameraMirrorActive ? "#38ffffff" : (camMouse.pressed ? "#38ffffff" : (camMouse.containsMouse ? "#1fffffff" : "transparent"))
             border.width: 1
             border.color: root.cameraMirrorActive ? "#4dffffff" : (camMouse.containsMouse ? "#2effffff" : "transparent")
 
+            Behavior on width { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+            Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+            Behavior on scale { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
             Behavior on color { ColorAnimation { duration: 120 } }
             Behavior on border.color { ColorAnimation { duration: 120 } }
 
@@ -385,6 +395,7 @@ Item {
                 anchors.fill: parent
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
+                enabled: camBtn.shouldShow
                 onClicked: root.cameraToggleRequested()
             }
         }
@@ -392,6 +403,7 @@ Item {
         // Edit Mode Toggle button (pencil icon beside settings)
         Rectangle {
             id: editBtnRect
+            visible: (userConfig && userConfig.statusBarShowEditMode !== undefined) ? userConfig.statusBarShowEditMode : true
             width: 24
             height: 24
             radius: 12
@@ -426,6 +438,7 @@ Item {
         // Closed Notch Style Toggle (Notch vs. Pill vs. Circle)
         Rectangle {
             id: notchModeToggleBtn
+            visible: (userConfig && userConfig.statusBarShowNotchMode !== undefined) ? userConfig.statusBarShowNotchMode : true
             width: 24
             height: 24
             radius: 12
@@ -531,6 +544,7 @@ Item {
         // Dynamic Resize Quick-Access Toggle button
         Rectangle {
             id: resizeToggleBtn
+            visible: (userConfig && userConfig.statusBarShowDynamicResize !== undefined) ? userConfig.statusBarShowDynamicResize : true
             width: 24
             height: 24
             radius: 12
@@ -589,6 +603,7 @@ Item {
 
         // Settings gear icon
         Rectangle {
+            visible: (userConfig && userConfig.statusBarShowSettings !== undefined) ? userConfig.statusBarShowSettings : true
             width: 24
             height: 24
             radius: 12
@@ -620,7 +635,7 @@ Item {
         Row {
             anchors.verticalCenter: parent.verticalCenter
             spacing: 4
-            visible: root.batteryCapacity >= 0
+            visible: (root.batteryCapacity >= 0) && ((userConfig && userConfig.statusBarShowBattery !== undefined) ? userConfig.statusBarShowBattery : true)
 
             Text {
                 text: root.batteryCapacity + "%"

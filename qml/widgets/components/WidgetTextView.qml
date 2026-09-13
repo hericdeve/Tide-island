@@ -8,7 +8,13 @@ Item {
     property string role: "body" // "hero" | "title" | "body" | "caption" | "metric" | "code"
     property string overflowMode: "elide" // "elide" | "marquee" | "wrap" | "clip"
     property int maximumLineCount: overflowMode === "wrap" ? 0 : 1
-    property real marqueeSpeed: 30 // pixels per second
+    property real marqueeSpeed: (typeof UserConfig !== "undefined" && UserConfig && UserConfig.textScrollSpeed > 0)
+        ? UserConfig.textScrollSpeed
+        : ((widgetContext && widgetContext.textScrollSpeed > 0)
+            ? widgetContext.textScrollSpeed
+            : ((widgetContext && widgetContext.claudeCodeScrollSpeed > 0)
+                ? widgetContext.claudeCodeScrollSpeed
+                : 17))
     property color colorOverride: StyleTokens.transparent
     property bool measureOnly: false
     property var widgetContext: null
@@ -16,8 +22,21 @@ Item {
     property int verticalAlignment: overflowMode === "wrap" ? Text.AlignTop : Text.AlignVCenter
     property bool tabularFigures: role === "metric" || role === "hero"
 
+    property string fontFamilyOverride: ""
+    property int fontSizeOverride: 0
+    property int fontWeightOverride: 0
+    property bool hoveredOverride: false
+
+    HoverHandler {
+        id: hoverHandler
+        enabled: root.overflowMode === "marquee"
+    }
+
+    readonly property bool effectiveHovered: hoverHandler.hovered || hoveredOverride
+
     onTextChanged: if (overflowMode === "marquee") marqueeContainer.resetMarquee()
     onWidthChanged: if (overflowMode === "marquee") marqueeContainer.resetMarquee()
+    onMarqueeSpeedChanged: if (overflowMode === "marquee") marqueeContainer.resetMarquee()
 
     readonly property string iconFont: widgetContext ? widgetContext.iconFontFamily : "monospace"
     readonly property string textFont: widgetContext ? widgetContext.textFontFamily : "sans-serif"
@@ -27,6 +46,8 @@ Item {
 
     // Font family by role
     readonly property string computedFontFamily: {
+        if (fontFamilyOverride !== "")
+            return fontFamilyOverride;
         switch (role) {
         case "hero": return heroFont;
         case "code": return iconFont;
@@ -36,6 +57,8 @@ Item {
 
     // Font size by role
     readonly property int computedFontSize: {
+        if (fontSizeOverride > 0)
+            return fontSizeOverride;
         switch (role) {
         case "hero": return Math.round(26 * bodyFontSize / 16.0);
         case "title": return Math.round(titleFontSize);
@@ -49,6 +72,8 @@ Item {
 
     // Font weight by role
     readonly property int computedFontWeight: {
+        if (fontWeightOverride > 0)
+            return fontWeightOverride;
         switch (role) {
         case "hero": return Font.Bold;
         case "title": return Font.DemiBold;
@@ -145,12 +170,42 @@ Item {
 
         readonly property bool needsScroll: probeText.implicitWidth > root.width && root.width > 0
         readonly property real textGap: 28
+        readonly property bool scrollOnlyOnHover: !!(typeof UserConfig !== "undefined" && UserConfig && UserConfig.scrollTextOnlyOnHover)
+        readonly property bool canScroll: needsScroll && (!scrollOnlyOnHover || root.effectiveHovered)
 
         function resetMarquee() {
             marqueeAnim.stop();
             scrollCanvas.x = 0;
-            if (needsScroll && root.visible) {
+            if (canScroll && root.visible) {
                 marqueeAnim.restart();
+            }
+        }
+
+        Connections {
+            target: root
+            function onEffectiveHoveredChanged() {
+                if (marqueeContainer.scrollOnlyOnHover && root.overflowMode === "marquee") {
+                    if (root.effectiveHovered) {
+                        marqueeContainer.resetMarquee();
+                    } else {
+                        marqueeAnim.stop();
+                        scrollCanvas.x = 0;
+                    }
+                }
+            }
+        }
+
+        Connections {
+            target: marqueeContainer
+            function onScrollOnlyOnHoverChanged() {
+                if (root.overflowMode === "marquee") {
+                    if (marqueeContainer.scrollOnlyOnHover && !root.effectiveHovered) {
+                        marqueeAnim.stop();
+                        scrollCanvas.x = 0;
+                    } else {
+                        marqueeContainer.resetMarquee();
+                    }
+                }
             }
         }
 
@@ -159,6 +214,14 @@ Item {
             width: probeText.implicitWidth * 2 + marqueeContainer.textGap
             height: parent.height
             x: 0
+
+            Behavior on x {
+                enabled: !marqueeAnim.running
+                NumberAnimation {
+                    duration: 250
+                    easing.type: Easing.OutQuad
+                }
+            }
 
             Text {
                 id: mainMarqueeText
@@ -188,7 +251,7 @@ Item {
 
             SequentialAnimation {
                 id: marqueeAnim
-                running: marqueeContainer.needsScroll && root.visible
+                running: marqueeContainer.canScroll && root.visible
                 loops: Animation.Infinite
 
                 PauseAnimation { duration: 1200 }

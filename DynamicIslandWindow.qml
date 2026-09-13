@@ -1135,6 +1135,8 @@ PanelWindow {
         property string preNotificationIslandState: "normal"
         property int preNotificationMinimumPage: -1
         property int preNotificationCirclePage: -1
+        property int targetMinimumPageOnClose: -1
+        property int targetCirclePageOnClose: -1
         readonly property bool controlCenterLayerVisible: !root.overviewVisible && islandState === "control_center"
         readonly property bool notificationCenterLayerVisible: !root.overviewVisible && islandState === "notification_center"
         readonly property bool wallpaperPickerLayerVisible: !root.overviewVisible && islandState === "wallpaper_picker"
@@ -1884,6 +1886,9 @@ PanelWindow {
                 return;
             }
 
+            const wasExpanded = islandState === "expanded";
+            const targetMinPage = (wasExpanded && normalizedRestingState === "normal") ? resolveMinimumTargetPage() : -1;
+
             abortSideTransientMode();
             prepareRestingCapsuleGeometry();
             islandState = normalizedRestingState;
@@ -1891,6 +1896,28 @@ PanelWindow {
             applyRestingVisuals();
             expandedByPlayerAutoOpen = false;
             stopAutoHideTimer();
+
+            if (targetMinPage >= 0) {
+                if (userConfig && userConfig.notchMode === "circle") {
+                    targetCirclePageOnClose = targetMinPage;
+                    if (userConfig) userConfig.setActivePage("circle", targetMinPage);
+                    if (circleClosedLoader && circleClosedLoader.item) {
+                        if (circleClosedLoader.item.setPageDirect)
+                            circleClosedLoader.item.setPageDirect(targetMinPage);
+                        else
+                            circleClosedLoader.item.currentPageIndex = targetMinPage;
+                    }
+                } else {
+                    targetMinimumPageOnClose = targetMinPage;
+                    if (userConfig) userConfig.setActivePage("minimum", targetMinPage);
+                    if (closedWidgetLoader && closedWidgetLoader.item) {
+                        if (closedWidgetLoader.item.setPageDirect)
+                            closedWidgetLoader.item.setPageDirect(targetMinPage);
+                        else
+                            closedWidgetLoader.item.currentPageIndex = targetMinPage;
+                    }
+                }
+            }
         }
 
         function setRestingState(nextState) {
@@ -1951,6 +1978,67 @@ PanelWindow {
             setRestingState(nextState);
             restoreRestingCapsule();
             stopAutoHideTimer();
+        }
+
+        function resolveMinimumTargetPage(explicitPage) {
+            let curExpPage = explicitPage;
+            if (curExpPage === undefined || curExpPage === null || curExpPage < 0) {
+                curExpPage = (expandedPlayerLoader && expandedPlayerLoader.item && expandedPlayerLoader.item.currentPage !== undefined)
+                    ? expandedPlayerLoader.item.currentPage
+                    : targetExpandedPage;
+            }
+
+            let candidateWidgetIds = [];
+            if (curExpPage === 0) {
+                candidateWidgetIds.push("media_player");
+            } else {
+                const expPages = (userConfig && userConfig.widgetLayouts && userConfig.widgetLayouts.expanded && userConfig.widgetLayouts.expanded.pages) || [];
+                const pIdx = curExpPage - 1;
+                if (pIdx >= 0 && pIdx < expPages.length) {
+                    const items = expPages[pIdx].items || [];
+                    for (let i = 0; i < items.length; ++i) {
+                        if (items[i] && items[i].widgetId) {
+                            candidateWidgetIds.push(items[i].widgetId);
+                        }
+                    }
+                }
+            }
+
+            if (candidateWidgetIds.length === 0)
+                return -1;
+
+            if (userConfig && userConfig.notchMode === "circle") {
+                const circlePages = (userConfig.widgetLayouts && userConfig.widgetLayouts.circle && userConfig.widgetLayouts.circle.pages) || [];
+                for (let w = 0; w < candidateWidgetIds.length; ++w) {
+                    const wid = candidateWidgetIds[w];
+                    for (let cIdx = 0; cIdx < circlePages.length; ++cIdx) {
+                        const items = circlePages[cIdx].items || [];
+                        for (let i = 0; i < items.length; ++i) {
+                            if (items[i] && items[i].widgetId === wid) {
+                                return cIdx;
+                            }
+                        }
+                    }
+                }
+            } else {
+                const minPages = (userConfig.widgetLayouts && userConfig.widgetLayouts.minimum && userConfig.widgetLayouts.minimum.pages) || [];
+                for (let w = 0; w < candidateWidgetIds.length; ++w) {
+                    const wid = candidateWidgetIds[w];
+                    for (let mIdx = 0; mIdx < minPages.length; ++mIdx) {
+                        const items = minPages[mIdx].items || [];
+                        for (let i = 0; i < items.length; ++i) {
+                            if (items[i] && items[i].widgetId === wid) {
+                                return mIdx;
+                            }
+                        }
+                    }
+                    if (wid === "clock" && minPages.length > 0) {
+                        return 0;
+                    }
+                }
+            }
+
+            return -1;
         }
 
         function resolveExpandedTargetPage() {
@@ -2089,7 +2177,8 @@ PanelWindow {
             bodyFontSize: root.bodyFontSize,
             titleFontSize: root.titleFontSize,
             iconFontSize: root.iconFontSize,
-            claudeCodeScrollSpeed: userConfig.claudeCodeScrollSpeed,
+            textScrollSpeed: userConfig.textScrollSpeed,
+            claudeCodeScrollSpeed: userConfig.textScrollSpeed,
             faceScale: 0.85,
             circleDiameter: 48,
             uiScale: 1.0,
@@ -3397,6 +3486,12 @@ PanelWindow {
                                 item.setPageDirect(islandContainer.preNotificationMinimumPage);
                             else
                                 item.currentPageIndex = islandContainer.preNotificationMinimumPage;
+                        } else if (islandContainer.targetMinimumPageOnClose >= 0) {
+                            if (item.setPageDirect)
+                                item.setPageDirect(islandContainer.targetMinimumPageOnClose);
+                            else
+                                item.currentPageIndex = islandContainer.targetMinimumPageOnClose;
+                            islandContainer.targetMinimumPageOnClose = -1;
                         }
                     }
                     dynamicResizeEngine.updateRequestedSizes();
@@ -3461,6 +3556,12 @@ PanelWindow {
                                 item.setPageDirect(islandContainer.preNotificationCirclePage);
                             else
                                 item.currentPageIndex = islandContainer.preNotificationCirclePage;
+                        } else if (islandContainer.targetCirclePageOnClose >= 0) {
+                            if (item.setPageDirect)
+                                item.setPageDirect(islandContainer.targetCirclePageOnClose);
+                            else
+                                item.currentPageIndex = islandContainer.targetCirclePageOnClose;
+                            islandContainer.targetCirclePageOnClose = -1;
                         }
                     }
                     dynamicResizeEngine.updateRequestedSizes();
@@ -3888,7 +3989,6 @@ PanelWindow {
                         return;
                     }
 
-                    drag.accept(Qt.CopyAction);
                     if (!islandContainer.expandedLayerVisible || (expandedPlayerLoader.item && expandedPlayerLoader.item.currentPage !== 0))
                         islandContainer.showExpandedPlayer(false, 0);
                     root.showAutoHiddenIsland("state");
@@ -3898,10 +3998,19 @@ PanelWindow {
                     if (expanded && expanded.currentPage === 0) {
                         const expandedPoint = islandFileDropArea.mapToItem(expanded, drag.x, drag.y);
                         expanded.updateExternalDropPoint(expandedPoint);
+                        if (expanded.isPointInLocalSend && expanded.isPointInLocalSend(expandedPoint)) {
+                            drag.accepted = false;
+                            return;
+                        }
                     } else if (shelf) {
                         const shelfPoint = islandFileDropArea.mapToItem(shelf, drag.x, drag.y);
                         shelf.updateExternalDropPoint(shelfPoint);
+                        if (shelf.isPointInLocalSend && shelf.isPointInLocalSend(shelfPoint)) {
+                            drag.accepted = false;
+                            return;
+                        }
                     }
+                    drag.accept(Qt.CopyAction);
                 }
 
                 onPositionChanged: drag => {
@@ -3910,10 +4019,19 @@ PanelWindow {
                     if (expanded && expanded.currentPage === 0) {
                         const expandedPoint = islandFileDropArea.mapToItem(expanded, drag.x, drag.y);
                         expanded.updateExternalDropPoint(expandedPoint);
+                        if (expanded.isPointInLocalSend && expanded.isPointInLocalSend(expandedPoint)) {
+                            drag.accepted = false;
+                            return;
+                        }
                     } else if (shelf) {
                         const shelfPoint = islandFileDropArea.mapToItem(shelf, drag.x, drag.y);
                         shelf.updateExternalDropPoint(shelfPoint);
+                        if (shelf.isPointInLocalSend && shelf.isPointInLocalSend(shelfPoint)) {
+                            drag.accepted = false;
+                            return;
+                        }
                     }
+                    drag.accept(Qt.CopyAction);
                 }
 
                 onExited: {
@@ -3936,25 +4054,30 @@ PanelWindow {
                     const shelf = fileShelfLoader.item;
                     if (expanded && expanded.currentPage === 0) {
                         const expandedPoint = islandFileDropArea.mapToItem(expanded, drop.x, drop.y);
-                        expanded.updateExternalDropPoint(expandedPoint);
-                        if (expanded.routeExternalDrop(drop, expandedPoint)) {
-                            drop.accept(Qt.CopyAction);
-                            islandContainer.fileShelfOpenedManually = true;
-                            islandContainer.stopAutoHideTimer();
+                        if (expanded.isPointInLocalSend && expanded.isPointInLocalSend(expandedPoint)) {
+                            drop.accepted = false;
                             return;
                         }
                     } else if (shelf) {
                         const shelfPoint = islandFileDropArea.mapToItem(shelf, drop.x, drop.y);
-                        shelf.updateExternalDropPoint(shelfPoint);
-                        if (shelf.routeExternalDrop(drop, shelfPoint)) {
-                            drop.accept(Qt.CopyAction);
-                            islandContainer.fileShelfOpenedManually = true;
-                            islandContainer.stopAutoHideTimer();
+                        if (shelf.isPointInLocalSend && shelf.isPointInLocalSend(shelfPoint)) {
+                            drop.accepted = false;
                             return;
                         }
                     }
 
-                    root.addFilesFromDrop(drop);
+                    if (expanded)
+                        expanded.updateExternalDropPoint(null);
+                    if (shelf)
+                        shelf.updateExternalDropPoint(null);
+
+                    const added = root.addFilesFromDrop(drop);
+                    if (added === 0 && drop.hasUrls) {
+                        const targetShelf = (expanded && expanded.currentPage === 0) ? expanded : shelf;
+                        if (targetShelf && targetShelf.selectByUrls)
+                            targetShelf.selectByUrls(drop.urls);
+                    }
+
                     drop.accept(Qt.CopyAction);
                     islandContainer.fileShelfOpenedManually = true;
                     islandContainer.stopAutoHideTimer();

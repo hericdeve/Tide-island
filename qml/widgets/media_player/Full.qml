@@ -141,7 +141,6 @@ Item {
                         text: root.currentTrack !== "" ? root.currentTrack : "No Media Playing"
                         role: "title"
                         overflowMode: "marquee"
-                        marqueeSpeed: 28
                         widgetContext: root.widgetContext
                     }
 

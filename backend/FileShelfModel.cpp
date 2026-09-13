@@ -279,7 +279,9 @@ QList<QUrl> FileShelfModel::urlsFromVariant(const QVariant &value)
 
     if (value.canConvert<QUrl>() && value.metaType().id() != QMetaType::QStringList
         && value.metaType().id() != QMetaType::QVariantList) {
-        const QUrl url = value.toUrl();
+        QUrl url = value.toUrl();
+        if (url.isEmpty() || (!url.isLocalFile() && url.scheme().isEmpty()))
+            url = QUrl::fromUserInput(value.toString(), QDir::currentPath(), QUrl::AssumeLocalFile);
         if (url.isValid())
             urls.append(url);
         return urls;
@@ -288,7 +290,7 @@ QList<QUrl> FileShelfModel::urlsFromVariant(const QVariant &value)
     const QVariantList values = value.toList();
     for (const QVariant &item : values) {
         QUrl url = item.toUrl();
-        if (url.isEmpty())
+        if (url.isEmpty() || (!url.isLocalFile() && url.scheme().isEmpty()))
             url = QUrl::fromUserInput(item.toString(), QDir::currentPath(), QUrl::AssumeLocalFile);
         if (url.isValid())
             urls.append(url);
@@ -308,7 +310,9 @@ QList<QUrl> FileShelfModel::urlsFromUriList(const QString &uriList)
             continue;
         }
 
-        const QUrl url = QUrl::fromEncoded(line.toUtf8(), QUrl::StrictMode);
+        QUrl url = QUrl::fromEncoded(line.toUtf8(), QUrl::StrictMode);
+        if (url.isEmpty() || (!url.isLocalFile() && url.scheme().isEmpty()))
+            url = QUrl::fromUserInput(line, QDir::currentPath(), QUrl::AssumeLocalFile);
         if (url.isValid())
             urls.append(url);
     }

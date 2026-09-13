@@ -46,9 +46,12 @@ public:
     int transferProgress() const;
     bool waitingForAcceptance() const;
 
-    Q_INVOKABLE void discover(const QString &filePath = QString());
+    Q_INVOKABLE void discover(const QString &filePath = QString(), bool force = false);
     Q_INVOKABLE void sendFile(const QString &filePath, int deviceNumber);
     Q_INVOKABLE void cancel();
+    Q_INVOKABLE void stop();
+
+    static QStringList resolveTransferFiles(const QString &filePath, int maxFiles = 250);
 
 signals:
     void countChanged();
