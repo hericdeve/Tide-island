@@ -40,6 +40,113 @@ static bool isFileFlockActive(const QString &filePath)
     return false;
 }
 
+static QString stripQuotes(QString str)
+{
+    str = str.trimmed();
+    if (str.startsWith(QLatin1Char('"')) && str.endsWith(QLatin1Char('"')) && str.size() >= 2) {
+        str = str.mid(1, str.size() - 2);
+    }
+    return str.trimmed();
+}
+
+static void parseAntigravityTranscript(const QString &convId, QString &currentTool, QString &toolAction, QString &toolDetail, QString &toolTarget, QString &lastMessage, QString &thinking)
+{
+    const QString transcriptPath = QDir::homePath() + QStringLiteral("/.gemini/antigravity-cli/brain/") + convId + QStringLiteral("/.system_generated/logs/transcript.jsonl");
+    QFile file(transcriptPath);
+    if (!file.exists() || !file.open(QIODevice::ReadOnly | QIODevice::Text))
+        return;
+
+    const qint64 sz = file.size();
+    if (sz > 50000) {
+        file.seek(sz - 50000);
+    }
+    const QByteArray chunk = file.readAll();
+    file.close();
+
+    const QList<QByteArray> lines = chunk.split('\n');
+    for (int i = lines.size() - 1; i >= 0; --i) {
+        const QByteArray line = lines.at(i).trimmed();
+        if (line.isEmpty())
+            continue;
+
+        const QJsonDocument doc = QJsonDocument::fromJson(line);
+        if (!doc.isObject())
+            continue;
+
+        const QJsonObject obj = doc.object();
+        const QString type = obj.value(QStringLiteral("type")).toString();
+
+        if (type == QLatin1String("PLANNER_RESPONSE")) {
+            const QJsonArray toolCalls = obj.value(QStringLiteral("tool_calls")).toArray();
+            if (!toolCalls.isEmpty() && currentTool.isEmpty()) {
+                const QJsonObject tc = toolCalls.last().toObject();
+                const QString tName = tc.value(QStringLiteral("name")).toString();
+                const QJsonObject args = tc.value(QStringLiteral("args")).toObject();
+
+                QString action = stripQuotes(args.value(QStringLiteral("toolAction")).toVariant().toString());
+                if (action.isEmpty())
+                    action = stripQuotes(args.value(QStringLiteral("toolSummary")).toVariant().toString());
+
+                QString path = stripQuotes(args.value(QStringLiteral("AbsolutePath")).toVariant().toString());
+                if (path.isEmpty())
+                    path = stripQuotes(args.value(QStringLiteral("TargetFile")).toVariant().toString());
+
+                QString cmd = stripQuotes(args.value(QStringLiteral("CommandLine")).toVariant().toString());
+                QString query = stripQuotes(args.value(QStringLiteral("Query")).toVariant().toString());
+                QString desc = stripQuotes(args.value(QStringLiteral("Description")).toVariant().toString());
+
+                currentTool = tName;
+                if (tName == QLatin1String("view_file")) {
+                    const QString fn = QFileInfo(path).fileName();
+                    toolAction = !action.isEmpty() ? action : QStringLiteral("Reading %1").arg(fn);
+                    const int sLine = args.value(QStringLiteral("StartLine")).toVariant().toInt();
+                    const int eLine = args.value(QStringLiteral("EndLine")).toVariant().toInt();
+                    if (sLine > 0 && eLine > 0) {
+                        toolDetail = QStringLiteral("%1 (lines %2-%3)").arg(fn).arg(sLine).arg(eLine);
+                    } else {
+                        toolDetail = path;
+                    }
+                    toolTarget = path;
+                } else if (tName == QLatin1String("run_command")) {
+                    toolAction = !action.isEmpty() ? action : QStringLiteral("Running command");
+                    toolDetail = cmd;
+                    toolTarget = cmd;
+                } else if (tName == QLatin1String("replace_file_content") || tName == QLatin1String("write_to_file")) {
+                    const QString fn = QFileInfo(path).fileName();
+                    toolAction = !action.isEmpty() ? action : (!desc.isEmpty() ? desc : QStringLiteral("Editing %1").arg(fn));
+                    toolDetail = path;
+                    toolTarget = path;
+                } else if (tName == QLatin1String("grep_search") || tName == QLatin1String("find_by_name")) {
+                    toolAction = !action.isEmpty() ? action : QStringLiteral("Searching codebase");
+                    toolDetail = !query.isEmpty() ? query : args.value(QStringLiteral("Pattern")).toVariant().toString();
+                    toolTarget = toolDetail;
+                } else {
+                    toolAction = !action.isEmpty() ? action : tName;
+                    toolDetail = !cmd.isEmpty() ? cmd : (!path.isEmpty() ? path : query);
+                    toolTarget = toolDetail;
+                }
+            }
+
+            if (lastMessage.isEmpty()) {
+                const QString c = obj.value(QStringLiteral("content")).toString().trimmed();
+                if (!c.isEmpty()) {
+                    lastMessage = c;
+                }
+            }
+
+            if (thinking.isEmpty()) {
+                const QString th = obj.value(QStringLiteral("thinking")).toString().trimmed();
+                if (!th.isEmpty()) {
+                    thinking = th;
+                }
+            }
+
+            if (!currentTool.isEmpty() && !lastMessage.isEmpty())
+                break;
+        }
+    }
+}
+
 AIAgentsBackend::AIAgentsBackend(QObject *parent)
     : QObject(parent)
 {
@@ -146,7 +253,12 @@ QVariantList AIAgentsBackend::runningSessions() const
         map[QStringLiteral("gitBranch")] = s.gitBranch;
         map[QStringLiteral("state")] = s.sessionState;
         map[QStringLiteral("tool")] = s.currentTool;
+        map[QStringLiteral("currentTool")] = s.currentTool;
+        map[QStringLiteral("toolAction")] = s.toolAction;
         map[QStringLiteral("toolDetail")] = s.toolDetail;
+        map[QStringLiteral("toolTarget")] = s.toolTarget;
+        map[QStringLiteral("lastMessage")] = s.lastMessage;
+        map[QStringLiteral("thinking")] = s.thinking;
         map[QStringLiteral("preview")] = s.preview;
         map[QStringLiteral("isSelected")] = (s.sessionId == m_activeSessionId);
         map[QStringLiteral("pid")] = s.pid;
@@ -237,51 +349,73 @@ void AIAgentsBackend::setDemoState(const QString &state)
         m_pendingConsentTool = QStringLiteral("Bash");
         m_pendingConsentDetail = QStringLiteral("cmake --build build -j16");
         m_currentTool = QStringLiteral("Bash");
+        m_toolAction = QStringLiteral("Running command");
         m_toolDetail = QStringLiteral("cmake --build build -j16");
+        m_toolTarget = m_toolDetail;
         m_lastMessage = QStringLiteral("Awaiting confirmation to run build command.");
+        m_preview = m_lastMessage;
     } else if (state == QLatin1String("thinking")) {
         m_pendingConsentId.clear();
         m_pendingConsentTool.clear();
         m_pendingConsentDetail.clear();
         m_currentTool.clear();
+        m_toolAction.clear();
         m_toolDetail.clear();
-        m_lastMessage = QStringLiteral("Analyzing architectural refactor and AST nodes...");
+        m_toolTarget.clear();
+        m_lastMessage = QStringLiteral("Analyzing architectural refactor and AST nodes across codebase...");
+        m_preview = m_lastMessage;
     } else if (state == QLatin1String("running_tool")) {
         m_pendingConsentId.clear();
         m_pendingConsentTool.clear();
         m_pendingConsentDetail.clear();
         m_currentTool = QStringLiteral("grep_search");
-        m_toolDetail = QStringLiteral("Searching for active agent processes");
-        m_lastMessage = QStringLiteral("Executing search in project workspace.");
+        m_toolAction = QStringLiteral("Searching codebase");
+        m_toolDetail = QStringLiteral("ControlCenterLayer");
+        m_toolTarget = m_toolDetail;
+        m_lastMessage = QStringLiteral("Searching for ControlCenterLayer occurrences across the codebase.");
+        m_preview = m_lastMessage;
     } else if (state == QLatin1String("error")) {
         m_pendingConsentId.clear();
         m_pendingConsentTool.clear();
         m_pendingConsentDetail.clear();
         m_currentTool.clear();
+        m_toolAction.clear();
         m_toolDetail.clear();
+        m_toolTarget.clear();
         m_lastMessage = QStringLiteral("Process terminated unexpectedly with exit code 1");
+        m_preview = m_lastMessage;
     } else if (state == QLatin1String("done")) {
         m_pendingConsentId.clear();
         m_pendingConsentTool.clear();
         m_pendingConsentDetail.clear();
         m_currentTool.clear();
+        m_toolAction.clear();
         m_toolDetail.clear();
+        m_toolTarget.clear();
         m_lastMessage = QStringLiteral("Refactoring complete: All specifications and tests passing.");
+        m_preview = m_lastMessage;
     } else {
         m_sessionState = QStringLiteral("idle");
         m_pendingConsentId.clear();
         m_pendingConsentTool.clear();
         m_pendingConsentDetail.clear();
         m_currentTool.clear();
+        m_toolAction.clear();
         m_toolDetail.clear();
+        m_toolTarget.clear();
         m_lastMessage = QStringLiteral("Ready to assist with coding and execution.");
+        m_preview = m_lastMessage;
     }
 
     emit sessionStateChanged();
     emit consentChanged();
     emit currentToolChanged();
+    emit toolActionChanged();
     emit toolDetailChanged();
+    emit toolTargetChanged();
     emit lastMessageChanged();
+    emit previewChanged();
+    emit thinkingProcessChanged();
 }
 
 void AIAgentsBackend::clearError()
@@ -360,12 +494,28 @@ void AIAgentsBackend::updateClaudeState()
                 s.gitBranch = obj.value(QStringLiteral("branch")).toString();
                 s.currentTool = obj.value(QStringLiteral("tool")).toString();
                 s.toolDetail = obj.value(QStringLiteral("toolDetail")).toString();
+                s.toolTarget = s.toolDetail;
+                if (s.currentTool == QLatin1String("View")) {
+                    s.toolAction = QStringLiteral("Reading %1").arg(QFileInfo(s.toolDetail).fileName());
+                } else if (s.currentTool == QLatin1String("Edit")) {
+                    s.toolAction = QStringLiteral("Editing %1").arg(QFileInfo(s.toolDetail).fileName());
+                } else if (s.currentTool == QLatin1String("Bash")) {
+                    s.toolAction = QStringLiteral("Running command");
+                } else if (s.currentTool == QLatin1String("Grep") || s.currentTool == QLatin1String("Glob")) {
+                    s.toolAction = QStringLiteral("Searching codebase");
+                } else {
+                    s.toolAction = s.currentTool;
+                }
                 s.inputTokens = obj.value(QStringLiteral("inputTokens")).toInt(0);
                 s.outputTokens = obj.value(QStringLiteral("outputTokens")).toInt(0);
                 s.cacheReadTokens = obj.value(QStringLiteral("cacheReadTokens")).toInt(0);
                 s.contextUsagePercent = obj.value(QStringLiteral("contextUsagePercent")).toDouble(0.0);
                 s.estimatedCost = obj.value(QStringLiteral("estimatedCost")).toDouble(0.0);
-                s.preview = cleanFirstMeaningfulLine(obj.value(QStringLiteral("lastMessage")).toString());
+                s.lastMessage = obj.value(QStringLiteral("lastMessage")).toString().trimmed();
+                s.preview = cleanFirstMeaningfulLine(s.lastMessage);
+                if (s.lastMessage.isEmpty()) {
+                    s.lastMessage = s.preview;
+                }
                 s.title = s.projectName;
                 s.lastModifiedSec = QFileInfo(path).lastModified().toSecsSinceEpoch();
                 m_claudeSessions.append(s);
@@ -410,6 +560,7 @@ void AIAgentsBackend::updateClaudeState()
                             const QString st = obj.value(QStringLiteral("status")).toString();
                             s.sessionState = (st == QLatin1String("active") || st == QLatin1String("busy")) ? QStringLiteral("running_tool") : QStringLiteral("idle");
                             s.title = obj.value(QStringLiteral("name")).toString(s.projectName);
+                            s.lastMessage = s.title;
                             s.preview = s.title;
                             s.lastModifiedSec = sf.lastModified().toSecsSinceEpoch();
                             m_claudeSessions.append(s);
@@ -444,8 +595,12 @@ void AIAgentsBackend::updateClaudeState()
         m_claudeState.gitBranch = chosen.gitBranch;
         m_claudeState.modelName = QStringLiteral("Claude 3.7 Sonnet");
         m_claudeState.currentTool = chosen.currentTool;
+        m_claudeState.toolAction = chosen.toolAction;
         m_claudeState.toolDetail = chosen.toolDetail;
-        m_claudeState.lastMessage = chosen.preview;
+        m_claudeState.toolTarget = chosen.toolTarget;
+        m_claudeState.lastMessage = chosen.lastMessage;
+        m_claudeState.preview = chosen.preview;
+        m_claudeState.thinking = chosen.thinking;
         m_claudeState.inputTokens = chosen.inputTokens;
         m_claudeState.outputTokens = chosen.outputTokens;
         m_claudeState.cacheReadTokens = chosen.cacheReadTokens;
@@ -512,7 +667,61 @@ void AIAgentsBackend::updateOpenCodeState()
                 }
 
                 s.preview = cleanFirstMeaningfulLine(!s.title.isEmpty() ? s.title : s.projectName);
+                s.lastMessage = s.preview;
                 s.toolDetail = s.preview;
+
+                QProcess pProc;
+                pProc.start(QStringLiteral("sqlite3"), {
+                    dbPath,
+                    QStringLiteral("SELECT data FROM part WHERE session_id = '%1' ORDER BY time_created DESC LIMIT 6;").arg(s.sessionId)
+                });
+                if (pProc.waitForFinished(300)) {
+                    const QString pOut = QString::fromUtf8(pProc.readAllStandardOutput());
+                    const QStringList pRows = pOut.split(QLatin1Char('\n'), Qt::SkipEmptyParts);
+                    for (const QString &pRow : pRows) {
+                        const QJsonDocument pDoc = QJsonDocument::fromJson(pRow.toUtf8());
+                        if (!pDoc.isObject()) continue;
+                        const QJsonObject pObj = pDoc.object();
+                        const QString pType = pObj.value(QStringLiteral("type")).toString();
+
+                        if (pType == QLatin1String("tool") && s.currentTool.isEmpty()) {
+                            const QString tool = pObj.value(QStringLiteral("tool")).toString();
+                            s.currentTool = tool;
+                            const QJsonObject stateObj = pObj.value(QStringLiteral("state")).toObject();
+                            const QJsonObject inputObj = stateObj.value(QStringLiteral("input")).toObject();
+                            const QString cmd = inputObj.value(QStringLiteral("command")).toString();
+                            const QString fPath = inputObj.value(QStringLiteral("filePath")).toString();
+
+                            if (tool == QLatin1String("read")) {
+                                s.toolAction = QStringLiteral("Reading %1").arg(QFileInfo(fPath).fileName());
+                                s.toolDetail = fPath;
+                            } else if (tool == QLatin1String("bash")) {
+                                s.toolAction = QStringLiteral("Running command");
+                                s.toolDetail = cmd;
+                            } else if (tool == QLatin1String("write") || tool == QLatin1String("edit")) {
+                                s.toolAction = QStringLiteral("Editing %1").arg(QFileInfo(fPath).fileName());
+                                s.toolDetail = fPath;
+                            } else {
+                                s.toolAction = tool;
+                                s.toolDetail = !cmd.isEmpty() ? cmd : fPath;
+                            }
+                            s.toolTarget = s.toolDetail;
+                        } else if (pType == QLatin1String("text") && s.lastMessage == s.preview) {
+                            const QString t = pObj.value(QStringLiteral("text")).toString().trimmed();
+                            if (!t.isEmpty()) {
+                                s.lastMessage = t;
+                                s.preview = cleanFirstMeaningfulLine(t);
+                            }
+                        }
+                        if (!s.currentTool.isEmpty() && s.lastMessage != s.preview)
+                            break;
+                    }
+                }
+
+                if (ocRunning && recentlyActive && !s.currentTool.isEmpty()) {
+                    s.sessionState = QStringLiteral("running_tool");
+                }
+
                 m_openCodeSessions.append(s);
             }
         }
@@ -542,8 +751,12 @@ void AIAgentsBackend::updateOpenCodeState()
         m_openCodeState.gitBranch = chosen.gitBranch;
         m_openCodeState.modelName = QStringLiteral("OpenCode");
         m_openCodeState.currentTool = chosen.currentTool;
+        m_openCodeState.toolAction = chosen.toolAction;
         m_openCodeState.toolDetail = chosen.toolDetail;
-        m_openCodeState.lastMessage = chosen.preview;
+        m_openCodeState.toolTarget = chosen.toolTarget;
+        m_openCodeState.lastMessage = chosen.lastMessage;
+        m_openCodeState.preview = chosen.preview;
+        m_openCodeState.thinking = chosen.thinking;
         m_openCodeState.inputTokens = chosen.inputTokens;
         m_openCodeState.outputTokens = chosen.outputTokens;
         m_openCodeState.cacheReadTokens = chosen.cacheReadTokens;
@@ -648,18 +861,29 @@ void AIAgentsBackend::updateAntigravityState()
                     s.projectName = QStringLiteral("Tide-island");
                 }
 
+                parseAntigravityTranscript(s.sessionId, s.currentTool, s.toolAction, s.toolDetail, s.toolTarget, s.lastMessage, s.thinking);
+
+                if (s.lastMessage.isEmpty()) {
+                    s.lastMessage = !fields.at(2).isEmpty() ? fields.at(2) : s.title;
+                }
+                if (s.preview.isEmpty()) {
+                    s.preview = cleanFirstMeaningfulLine(s.lastMessage);
+                }
+
                 if (status == QLatin1String("CASCADE_RUN_STATUS_WAITING_FOR_USER")) {
                     s.sessionState = QStringLiteral("waiting_consent");
-                    s.toolDetail = QStringLiteral("User Confirmation Needed");
+                    if (s.toolDetail.isEmpty()) s.toolDetail = QStringLiteral("User Confirmation Needed");
+                } else if (agyRunning && !s.currentTool.isEmpty()) {
+                    s.sessionState = QStringLiteral("running_tool");
                 } else if (agyRunning && (notFullyIdle || status == QLatin1String("CASCADE_RUN_STATUS_RUNNING"))) {
                     s.sessionState = QStringLiteral("thinking");
-                    s.toolDetail = s.preview;
+                    if (s.toolDetail.isEmpty()) s.toolDetail = s.preview;
                 } else if (agyRunning) {
                     s.sessionState = QStringLiteral("idle");
-                    s.toolDetail = s.preview;
+                    if (s.toolDetail.isEmpty()) s.toolDetail = s.preview;
                 } else {
                     s.sessionState = QStringLiteral("done");
-                    s.toolDetail = s.preview;
+                    if (s.toolDetail.isEmpty()) s.toolDetail = s.preview;
                 }
 
                 m_antigravitySessions.append(s);
@@ -701,8 +925,12 @@ void AIAgentsBackend::updateAntigravityState()
         m_antigravityState.gitBranch = chosen.gitBranch;
         m_antigravityState.modelName = QStringLiteral("Gemini 2.5 Pro");
         m_antigravityState.currentTool = chosen.currentTool;
+        m_antigravityState.toolAction = chosen.toolAction;
         m_antigravityState.toolDetail = chosen.toolDetail;
-        m_antigravityState.lastMessage = chosen.preview;
+        m_antigravityState.toolTarget = chosen.toolTarget;
+        m_antigravityState.lastMessage = chosen.lastMessage;
+        m_antigravityState.preview = chosen.preview;
+        m_antigravityState.thinking = chosen.thinking;
         m_antigravityState.inputTokens = chosen.inputTokens;
         m_antigravityState.outputTokens = chosen.outputTokens;
         m_antigravityState.contextUsagePercent = chosen.contextUsagePercent;
@@ -885,9 +1113,25 @@ void AIAgentsBackend::applyProviderState(const ProviderState &st)
         m_currentTool = st.currentTool;
         emit currentToolChanged();
     }
+    if (m_toolAction != st.toolAction) {
+        m_toolAction = st.toolAction;
+        emit toolActionChanged();
+    }
     if (m_toolDetail != st.toolDetail) {
         m_toolDetail = st.toolDetail;
         emit toolDetailChanged();
+    }
+    if (m_toolTarget != st.toolTarget) {
+        m_toolTarget = st.toolTarget;
+        emit toolTargetChanged();
+    }
+    if (m_preview != st.preview) {
+        m_preview = st.preview;
+        emit previewChanged();
+    }
+    if (m_thinking != st.thinking) {
+        m_thinking = st.thinking;
+        emit thinkingProcessChanged();
     }
     if (m_lastMessage != st.lastMessage) {
         m_lastMessage = st.lastMessage;

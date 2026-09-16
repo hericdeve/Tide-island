@@ -26,7 +26,11 @@ class AIAgentsBackend final : public QObject {
     Q_PROPERTY(QString gitBranch READ gitBranch NOTIFY gitBranchChanged FINAL)
     Q_PROPERTY(QString modelName READ modelName NOTIFY modelNameChanged FINAL)
     Q_PROPERTY(QString currentTool READ currentTool NOTIFY currentToolChanged FINAL)
+    Q_PROPERTY(QString toolAction READ toolAction NOTIFY toolActionChanged FINAL)
     Q_PROPERTY(QString toolDetail READ toolDetail NOTIFY toolDetailChanged FINAL)
+    Q_PROPERTY(QString toolTarget READ toolTarget NOTIFY toolTargetChanged FINAL)
+    Q_PROPERTY(QString preview READ preview NOTIFY previewChanged FINAL)
+    Q_PROPERTY(QString thinkingProcess READ thinkingProcess NOTIFY thinkingProcessChanged FINAL)
     Q_PROPERTY(int inputTokens READ inputTokens NOTIFY tokenMetricsChanged FINAL)
     Q_PROPERTY(int outputTokens READ outputTokens NOTIFY tokenMetricsChanged FINAL)
     Q_PROPERTY(int cacheReadTokens READ cacheReadTokens NOTIFY tokenMetricsChanged FINAL)
@@ -61,7 +65,11 @@ public:
     QString gitBranch() const { return m_gitBranch; }
     QString modelName() const { return m_modelName; }
     QString currentTool() const { return m_currentTool; }
+    QString toolAction() const { return m_toolAction; }
     QString toolDetail() const { return m_toolDetail; }
+    QString toolTarget() const { return m_toolTarget; }
+    QString preview() const { return m_preview; }
+    QString thinkingProcess() const { return m_thinking; }
     int inputTokens() const { return m_inputTokens; }
     int outputTokens() const { return m_outputTokens; }
     int cacheReadTokens() const { return m_cacheReadTokens; }
@@ -88,13 +96,13 @@ public:
 
     Q_INVOKABLE void allowConsent(bool always = false);
     Q_INVOKABLE void denyConsent();
-    Q_INVOKABLE void openTerminal();
-    Q_INVOKABLE void sendQuickPrompt(const QString &prompt);
     Q_INVOKABLE void clearError();
-    Q_INVOKABLE bool installHook();
-    Q_INVOKABLE void refresh();
+    Q_INVOKABLE void sendQuickPrompt(const QString &text);
+    Q_INVOKABLE void openTerminal();
     Q_INVOKABLE void setDemoMode(bool enabled);
     Q_INVOKABLE void setDemoState(const QString &state);
+    Q_INVOKABLE void refresh();
+    Q_INVOKABLE bool installHook();
 
     static QString cleanFirstMeaningfulLine(const QString &text);
 
@@ -108,7 +116,11 @@ signals:
     void gitBranchChanged();
     void modelNameChanged();
     void currentToolChanged();
+    void toolActionChanged();
     void toolDetailChanged();
+    void toolTargetChanged();
+    void previewChanged();
+    void thinkingProcessChanged();
     void tokenMetricsChanged();
     void activeSessionCountChanged();
     void consentChanged();
@@ -134,7 +146,11 @@ private:
         QString gitBranch;
         QString sessionState = QStringLiteral("idle");
         QString currentTool;
+        QString toolAction;
         QString toolDetail;
+        QString toolTarget;
+        QString lastMessage;
+        QString thinking;
         QString preview;
         int inputTokens = 0;
         int outputTokens = 0;
@@ -153,8 +169,12 @@ private:
         QString gitBranch;
         QString modelName;
         QString currentTool;
+        QString toolAction;
         QString toolDetail;
+        QString toolTarget;
         QString lastMessage;
+        QString thinking;
+        QString preview;
         int inputTokens = 0;
         int outputTokens = 0;
         int cacheReadTokens = 0;
@@ -200,7 +220,12 @@ private:
     QString m_gitBranch = QStringLiteral("main");
     QString m_modelName = QStringLiteral("Claude 3.7 Sonnet");
     QString m_currentTool;
+    QString m_toolAction;
     QString m_toolDetail;
+    QString m_toolTarget;
+    QString m_lastMessage;
+    QString m_thinking;
+    QString m_preview;
     int m_inputTokens = 0;
     int m_outputTokens = 0;
     int m_cacheReadTokens = 0;
@@ -210,7 +235,6 @@ private:
     QString m_pendingConsentId;
     QString m_pendingConsentTool;
     QString m_pendingConsentDetail;
-    QString m_lastMessage;
     bool m_hookInstalled = false;
     bool m_demoMode = false;
     bool m_minimumShowsLastMessage = false;

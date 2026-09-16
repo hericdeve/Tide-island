@@ -38,7 +38,7 @@ Item {
         }
         switch (root.state) {
         case "thinking": return "Thinking...";
-        case "running_tool": return (AIAgentsBackend.currentTool ? AIAgentsBackend.currentTool : "Working");
+        case "running_tool": return (AIAgentsBackend.toolAction ? AIAgentsBackend.toolAction : (AIAgentsBackend.currentTool ? AIAgentsBackend.currentTool : "Working"));
         case "error": return "Error";
         case "done": return "Done";
         case "idle": default:

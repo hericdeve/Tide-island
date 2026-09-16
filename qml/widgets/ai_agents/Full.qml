@@ -61,10 +61,19 @@ Item {
 
         const bannerH = bannerTextMeasure.implicitHeight;
         if (bannerH > 22) {
-            const extraH = Math.min(120, bannerH - 18);
+            const extraH = Math.min(160, bannerH - 18);
             return baseSlotHeight + extraH;
         }
         return 0;
+    }
+
+    function toolIcon() {
+        const t = (AIAgentsBackend.currentTool || "").toLowerCase();
+        if (t.includes("view") || t.includes("read")) return "󰈙";
+        if (t.includes("edit") || t.includes("write") || t.includes("replace")) return "󰏫";
+        if (t.includes("bash") || t.includes("cmd") || t.includes("command") || t.includes("run")) return "󰞷";
+        if (t.includes("grep") || t.includes("find") || t.includes("search") || t.includes("glob")) return "󰘑";
+        return "󰞷";
     }
 
     function stateColor() {
@@ -84,7 +93,7 @@ Item {
         switch (root.state) {
         case "waiting_consent": return "Approval Required";
         case "thinking": return "Thinking...";
-        case "running_tool": return AIAgentsBackend.currentTool ? ("Running " + AIAgentsBackend.currentTool) : "Running Tool";
+        case "running_tool": return AIAgentsBackend.toolAction || (AIAgentsBackend.currentTool ? ("Running " + AIAgentsBackend.currentTool) : "Running Tool");
         case "error": return "Error";
         case "done": return "Finished";
         case "idle": default: return "Ready";
@@ -465,61 +474,91 @@ Item {
                 border.color: root.state === "error" ? "#33ef4444" : StyleTokens.track
                 clip: true
 
-                Row {
-                    anchors.fill: parent
-                    anchors.margins: 4
-                    spacing: 5
+                Item {
+                    id: activityHeader
+                    anchors.top: parent.top
+                    anchors.topMargin: 5
+                    anchors.left: parent.left
+                    anchors.leftMargin: 6
+                    anchors.right: parent.right
+                    anchors.rightMargin: 6
+                    height: 18
 
-                    WidgetIconGlyph {
-                        anchors.top: parent.top
-                        anchors.topMargin: 2
-                        glyph: (root.state === "thinking") ? "󰑣" : ((root.state === "running_tool") ? "󰞷" : ((root.state === "error") ? "󰅚" : "󰋼"))
-                        size: 11
-                        color: root.stateColor()
-                        widgetContext: root.widgetContext
-
-                        RotationAnimation on rotation {
-                            running: root.state === "thinking"
-                            loops: Animation.Infinite
-                            from: 0; to: 360; duration: 1200
-                        }
-                    }
-
-                    Column {
+                    Row {
+                        anchors.left: parent.left
+                        anchors.right: dismissErrorBtn.visible ? dismissErrorBtn.left : parent.right
+                        anchors.rightMargin: 4
                         anchors.verticalCenter: parent.verticalCenter
-                        width: parent.width - 24 - (dismissErrorBtn.visible ? 20 : 0)
-                        spacing: 2
+                        spacing: 5
+                        clip: true
 
-                        // Status header above the detail message
-                        Row {
-                            spacing: 4
+                        WidgetIconGlyph {
+                            anchors.verticalCenter: parent.verticalCenter
+                            glyph: (root.state === "thinking") ? "󰑣" : ((root.state === "running_tool") ? root.toolIcon() : ((root.state === "error") ? "󰅚" : ((root.state === "done") ? "󰄬" : "󰋼")))
+                            size: 11
+                            color: root.stateColor()
+                            widgetContext: root.widgetContext
 
-                            Rectangle {
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: 5
-                                height: 5
-                                radius: 2.5
-                                color: root.stateColor()
+                            RotationAnimation on rotation {
+                                running: root.state === "thinking"
+                                loops: Animation.Infinite
+                                from: 0; to: 360; duration: 1200
                             }
+                        }
+
+                        Rectangle {
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 5
+                            height: 5
+                            radius: 2.5
+                            color: root.stateColor()
+                        }
+
+                        WidgetTextView {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: (root.state === "running_tool" && AIAgentsBackend.currentTool) ? AIAgentsBackend.currentTool : root.stateText()
+                            role: "caption"
+                            colorOverride: root.stateColor()
+                            widgetContext: root.widgetContext
+                        }
+
+                        WidgetTextView {
+                            visible: AIAgentsBackend.toolAction !== "" && root.state === "running_tool"
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "›"
+                            role: "caption"
+                            colorOverride: StyleTokens.textTertiary
+                            widgetContext: root.widgetContext
+                        }
+
+                        WidgetTextView {
+                            visible: AIAgentsBackend.toolAction !== "" && root.state === "running_tool"
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: AIAgentsBackend.toolAction
+                            role: "caption"
+                            colorOverride: AIAgentsBackend.providerAccentColor
+                            widgetContext: root.widgetContext
+                        }
+
+                        Rectangle {
+                            visible: AIAgentsBackend.toolDetail !== "" && AIAgentsBackend.toolDetail !== AIAgentsBackend.toolAction && AIAgentsBackend.toolDetail !== AIAgentsBackend.lastMessage && root.state === "running_tool"
+                            anchors.verticalCenter: parent.verticalCenter
+                            height: 15
+                            radius: 3
+                            color: "#18ffffff"
+                            width: Math.min(160, toolDetailTag.implicitWidth + 8)
+                            clip: true
 
                             WidgetTextView {
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: root.stateText()
-                                role: "caption"
-                                colorOverride: root.stateColor()
+                                id: toolDetailTag
+                                anchors.centerIn: parent
+                                width: Math.min(parent.width - 6, implicitWidth)
+                                text: AIAgentsBackend.toolDetail
+                                role: "code"
+                                overflowMode: "marquee"
+                                colorOverride: StyleTokens.textSecondary
                                 widgetContext: root.widgetContext
                             }
-                        }
-
-                        // Detail message
-                        WidgetTextView {
-                            id: bannerText
-                            width: parent.width
-                            text: AIAgentsBackend.toolDetail || AIAgentsBackend.lastMessage || "Ready to assist"
-                            role: "body"
-                            overflowMode: "wrap"
-                            colorOverride: root.state === "error" ? "#fca5a5" : StyleTokens.textPrimary
-                            widgetContext: root.widgetContext
                         }
                     }
 
@@ -527,6 +566,7 @@ Item {
                         id: dismissErrorBtn
                         visible: root.state === "error"
                         anchors.verticalCenter: parent.verticalCenter
+                        anchors.right: parent.right
                         width: 16
                         height: 16
 
@@ -545,6 +585,92 @@ Item {
                             cursorShape: Qt.PointingHandCursor
                             onClicked: AIAgentsBackend.clearError()
                         }
+                    }
+                }
+
+                Rectangle {
+                    id: headerDivider
+                    anchors.top: activityHeader.bottom
+                    anchors.topMargin: 4
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.leftMargin: 6
+                    anchors.rightMargin: 6
+                    height: 1
+                    color: root.state === "error" ? "#33ef4444" : "#14ffffff"
+                }
+
+                Flickable {
+                    id: outputFlickable
+                    anchors.top: headerDivider.bottom
+                    anchors.topMargin: 4
+                    anchors.bottom: parent.bottom
+                    anchors.bottomMargin: 4
+                    anchors.left: parent.left
+                    anchors.leftMargin: 6
+                    anchors.right: parent.right
+                    anchors.rightMargin: vScrollTrack.visible ? 12 : 6
+                    clip: true
+                    boundsBehavior: Flickable.StopAtBounds
+                    contentWidth: width
+                    contentHeight: outputTextCol.implicitHeight
+
+                    WheelHandler {
+                        target: outputFlickable
+                        onWheel: (event) => {
+                            const maxScroll = Math.max(0, outputFlickable.contentHeight - outputFlickable.height);
+                            outputFlickable.contentY = Math.max(0, Math.min(maxScroll, outputFlickable.contentY - event.angleDelta.y));
+                        }
+                    }
+
+                    Column {
+                        id: outputTextCol
+                        width: outputFlickable.width
+                        spacing: 4
+
+                        WidgetTextView {
+                            visible: root.state === "thinking" && AIAgentsBackend.thinkingProcess !== ""
+                            width: parent.width
+                            text: AIAgentsBackend.thinkingProcess
+                            role: "caption"
+                            overflowMode: "wrap"
+                            colorOverride: StyleTokens.textSecondary
+                            widgetContext: root.widgetContext
+                        }
+
+                        WidgetTextView {
+                            id: outputMessageText
+                            width: parent.width
+                            text: {
+                                if (AIAgentsBackend.lastMessage) return AIAgentsBackend.lastMessage;
+                                if (AIAgentsBackend.toolDetail) return AIAgentsBackend.toolDetail;
+                                if (root.state === "running_tool" && AIAgentsBackend.toolAction) return AIAgentsBackend.toolAction;
+                                return "Ready to assist";
+                            }
+                            role: (root.state === "running_tool" && !AIAgentsBackend.lastMessage) ? "code" : "body"
+                            overflowMode: "wrap"
+                            colorOverride: root.state === "error" ? "#fca5a5" : StyleTokens.textPrimary
+                            widgetContext: root.widgetContext
+                        }
+                    }
+                }
+
+                Item {
+                    id: vScrollTrack
+                    visible: outputFlickable.contentHeight > outputFlickable.height
+                    anchors.top: outputFlickable.top
+                    anchors.bottom: outputFlickable.bottom
+                    anchors.right: parent.right
+                    anchors.rightMargin: 3
+                    width: 3
+
+                    Rectangle {
+                        id: vScrollThumb
+                        width: 3
+                        radius: 1.5
+                        color: "#40ffffff"
+                        height: Math.max(10, outputFlickable.height * (outputFlickable.height / Math.max(1, outputFlickable.contentHeight)))
+                        y: (outputFlickable.contentY / Math.max(1, (outputFlickable.contentHeight - outputFlickable.height))) * (outputFlickable.height - height)
                     }
                 }
             }

@@ -89,6 +89,9 @@ void AIAgentsBackendTests::demoModeAndStates()
     QCOMPARE(backend.sessionState(), QStringLiteral("waiting_consent"));
     QCOMPARE(backend.currentTool(), QStringLiteral("Bash"));
     QCOMPARE(backend.pendingConsentTool(), QStringLiteral("Bash"));
+    QCOMPARE(backend.toolAction(), QStringLiteral("Running command"));
+    QCOMPARE(backend.toolTarget(), QStringLiteral("cmake --build build -j16"));
+    QCOMPARE(backend.lastMessage(), QStringLiteral("Awaiting confirmation to run build command."));
 
     backend.setDemoState(QStringLiteral("thinking"));
     QCOMPARE(backend.sessionState(), QStringLiteral("thinking"));
@@ -96,9 +99,15 @@ void AIAgentsBackendTests::demoModeAndStates()
     backend.setDemoState(QStringLiteral("running_tool"));
     QCOMPARE(backend.sessionState(), QStringLiteral("running_tool"));
     QCOMPARE(backend.currentTool(), QStringLiteral("grep_search"));
+    QCOMPARE(backend.toolAction(), QStringLiteral("Searching codebase"));
+    QCOMPARE(backend.toolDetail(), QStringLiteral("ControlCenterLayer"));
+    QCOMPARE(backend.toolTarget(), QStringLiteral("ControlCenterLayer"));
+    QCOMPARE(backend.lastMessage(), QStringLiteral("Searching for ControlCenterLayer occurrences across the codebase."));
+    QCOMPARE(backend.preview(), QStringLiteral("Searching for ControlCenterLayer occurrences across the codebase."));
 
     backend.setDemoState(QStringLiteral("done"));
     QCOMPARE(backend.sessionState(), QStringLiteral("done"));
+    QCOMPARE(backend.lastMessage(), QStringLiteral("Refactoring complete: All specifications and tests passing."));
 }
 
 void AIAgentsBackendTests::consentHandling()
