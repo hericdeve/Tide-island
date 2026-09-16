@@ -40,6 +40,9 @@ class AIAgentsBackend final : public QObject {
     Q_PROPERTY(bool hookInstalled READ isHookInstalled NOTIFY hookInstalledChanged FINAL)
     Q_PROPERTY(bool demoMode READ isDemoMode NOTIFY demoModeChanged FINAL)
     Q_PROPERTY(bool minimumShowsLastMessage READ minimumShowsLastMessage WRITE setMinimumShowsLastMessage NOTIFY minimumShowsLastMessageChanged FINAL)
+    Q_PROPERTY(QVariantList runningSessions READ runningSessions NOTIFY runningSessionsChanged FINAL)
+    Q_PROPERTY(QString activeSessionId READ activeSessionId WRITE setActiveSessionId NOTIFY activeSessionIdChanged FINAL)
+    Q_PROPERTY(int totalActiveSessions READ totalActiveSessions NOTIFY runningSessionsChanged FINAL)
 
 public:
     explicit AIAgentsBackend(QObject *parent = nullptr);
@@ -72,10 +75,16 @@ public:
     bool isHookInstalled() const { return m_hookInstalled; }
     bool isDemoMode() const { return m_demoMode; }
     bool minimumShowsLastMessage() const { return m_minimumShowsLastMessage; }
+    QVariantList runningSessions() const;
+    QString activeSessionId() const { return m_activeSessionId; }
+    int totalActiveSessions() const;
 
     Q_INVOKABLE void setSelectedProvider(const QString &provider);
     Q_INVOKABLE void setMinimumShowsLastMessage(bool enabled);
     Q_INVOKABLE bool isProviderRunning(const QString &provider) const;
+    Q_INVOKABLE void setActiveSessionId(const QString &sessionId);
+    Q_INVOKABLE void selectSession(const QString &provider, const QString &sessionId);
+    Q_INVOKABLE QVariantList sessionsForProvider(const QString &provider) const;
 
     Q_INVOKABLE void allowConsent(bool always = false);
     Q_INVOKABLE void denyConsent();
@@ -107,6 +116,8 @@ signals:
     void hookInstalledChanged();
     void demoModeChanged();
     void minimumShowsLastMessageChanged();
+    void runningSessionsChanged();
+    void activeSessionIdChanged();
     void promptResultReceived(const QString &output, bool success);
 
 private slots:
@@ -114,6 +125,26 @@ private slots:
     void pollStatus();
 
 private:
+    struct AgentSessionInfo {
+        QString provider;
+        QString sessionId;
+        QString title;
+        QString projectName;
+        QString projectPath;
+        QString gitBranch;
+        QString sessionState = QStringLiteral("idle");
+        QString currentTool;
+        QString toolDetail;
+        QString preview;
+        int inputTokens = 0;
+        int outputTokens = 0;
+        int cacheReadTokens = 0;
+        double contextUsagePercent = 0.0;
+        double estimatedCost = 0.0;
+        qint64 lastModifiedSec = 0;
+        int pid = 0;
+    };
+
     struct ProviderState {
         bool running = false;
         QString sessionState = QStringLiteral("idle");
@@ -183,4 +214,11 @@ private:
     bool m_hookInstalled = false;
     bool m_demoMode = false;
     bool m_minimumShowsLastMessage = false;
+
+    QList<AgentSessionInfo> m_claudeSessions;
+    QList<AgentSessionInfo> m_openCodeSessions;
+    QList<AgentSessionInfo> m_antigravitySessions;
+    QList<AgentSessionInfo> m_allSessions;
+    QString m_selectedSessionId;
+    QString m_activeSessionId;
 };

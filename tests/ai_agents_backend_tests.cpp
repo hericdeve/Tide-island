@@ -25,6 +25,7 @@ private slots:
     void errorClearing();
     void minimumShowsLastMessageToggle();
     void cleanFirstMeaningfulLineTests();
+    void sessionListingAndSelection();
 };
 
 void AIAgentsBackendTests::initTestCase()
@@ -117,6 +118,7 @@ void AIAgentsBackendTests::consentHandling()
 void AIAgentsBackendTests::stateFileParsing()
 {
     AIAgentsBackend backend;
+    backend.setSelectedProvider(QStringLiteral("claude"));
 
     QJsonObject obj;
     obj[QStringLiteral("state")] = QStringLiteral("thinking");
@@ -194,5 +196,32 @@ void AIAgentsBackendTests::cleanFirstMeaningfulLineTests()
              QStringLiteral("First actual content line."));
 }
 
+void AIAgentsBackendTests::sessionListingAndSelection()
+{
+    AIAgentsBackend backend;
+    backend.refresh();
+
+    // runningSessions should be a valid list
+    const QVariantList sessions = backend.runningSessions();
+    QCOMPARE(backend.totalActiveSessions(), sessions.size());
+
+    // sessionsForProvider should return list
+    const QVariantList agySessions = backend.sessionsForProvider(QStringLiteral("agy"));
+    const QVariantList claudeSessions = backend.sessionsForProvider(QStringLiteral("claude"));
+    const QVariantList opencodeSessions = backend.sessionsForProvider(QStringLiteral("opencode"));
+    QCOMPARE(agySessions.size() + claudeSessions.size() + opencodeSessions.size(), sessions.size());
+
+    // Test selectSession
+    if (!sessions.isEmpty()) {
+        const QVariantMap first = sessions.first().toMap();
+        const QString prov = first.value(QStringLiteral("provider")).toString();
+        const QString sid = first.value(QStringLiteral("sessionId")).toString();
+        backend.selectSession(prov, sid);
+        QCOMPARE(backend.activeSessionId(), sid);
+        QCOMPARE(backend.activeProvider(), prov);
+    }
+}
+
 QTEST_GUILESS_MAIN(AIAgentsBackendTests)
 #include "ai_agents_backend_tests.moc"
+

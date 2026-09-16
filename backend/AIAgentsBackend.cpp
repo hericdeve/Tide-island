@@ -1,5 +1,10 @@
 #include "AIAgentsBackend.h"
 
+#include <fcntl.h>
+#include <sys/file.h>
+#include <unistd.h>
+#include <signal.h>
+
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -9,6 +14,31 @@
 #include <QProcessEnvironment>
 #include <QRegularExpression>
 #include <QStandardPaths>
+
+static bool isFileFlockActive(const QString &filePath)
+{
+    const QByteArray pathBytes = filePath.toLocal8Bit();
+    int fd = ::open(pathBytes.constData(), O_RDWR);
+    if (fd < 0) {
+        fd = ::open(pathBytes.constData(), O_RDONLY);
+    }
+    if (fd < 0) {
+        return false;
+    }
+
+    // Try a non-blocking exclusive lock
+    int rc = ::flock(fd, LOCK_EX | LOCK_NB);
+    if (rc != 0) {
+        // Failed to lock -> actively held by another process!
+        ::close(fd);
+        return true;
+    }
+
+    // Succeeded in locking -> stale lock, release immediately
+    ::flock(fd, LOCK_UN);
+    ::close(fd);
+    return false;
+}
 
 AIAgentsBackend::AIAgentsBackend(QObject *parent)
     : QObject(parent)
@@ -101,6 +131,78 @@ void AIAgentsBackend::setSelectedProvider(const QString &provider)
     m_selectedProvider = provider;
     emit selectedProviderChanged();
     reconcileActiveProvider();
+}
+
+QVariantList AIAgentsBackend::runningSessions() const
+{
+    QVariantList list;
+    for (const AgentSessionInfo &s : m_allSessions) {
+        QVariantMap map;
+        map[QStringLiteral("provider")] = s.provider;
+        map[QStringLiteral("sessionId")] = s.sessionId;
+        map[QStringLiteral("title")] = s.title;
+        map[QStringLiteral("projectName")] = s.projectName;
+        map[QStringLiteral("projectPath")] = s.projectPath;
+        map[QStringLiteral("gitBranch")] = s.gitBranch;
+        map[QStringLiteral("state")] = s.sessionState;
+        map[QStringLiteral("tool")] = s.currentTool;
+        map[QStringLiteral("toolDetail")] = s.toolDetail;
+        map[QStringLiteral("preview")] = s.preview;
+        map[QStringLiteral("isSelected")] = (s.sessionId == m_activeSessionId);
+        map[QStringLiteral("pid")] = s.pid;
+
+        if (s.provider == QLatin1String("claude")) {
+            map[QStringLiteral("providerDisplayName")] = QStringLiteral("Claude Code");
+            map[QStringLiteral("providerIcon")] = QStringLiteral("󰚩");
+            map[QStringLiteral("providerColor")] = QStringLiteral("#d97706");
+        } else if (s.provider == QLatin1String("opencode")) {
+            map[QStringLiteral("providerDisplayName")] = QStringLiteral("OpenCode v2");
+            map[QStringLiteral("providerIcon")] = QStringLiteral("󰘐");
+            map[QStringLiteral("providerColor")] = QStringLiteral("#06b6d4");
+        } else {
+            map[QStringLiteral("providerDisplayName")] = QStringLiteral("Antigravity CLI");
+            map[QStringLiteral("providerIcon")] = QStringLiteral("󰧑");
+            map[QStringLiteral("providerColor")] = QStringLiteral("#8b5cf6");
+        }
+
+        list.append(map);
+    }
+    return list;
+}
+
+int AIAgentsBackend::totalActiveSessions() const
+{
+    return m_allSessions.size();
+}
+
+void AIAgentsBackend::setActiveSessionId(const QString &sessionId)
+{
+    if (m_selectedSessionId == sessionId)
+        return;
+    m_selectedSessionId = sessionId;
+    emit activeSessionIdChanged();
+    reconcileActiveProvider();
+}
+
+void AIAgentsBackend::selectSession(const QString &provider, const QString &sessionId)
+{
+    m_selectedProvider = provider;
+    m_selectedSessionId = sessionId;
+    emit selectedProviderChanged();
+    emit activeSessionIdChanged();
+    reconcileActiveProvider();
+}
+
+QVariantList AIAgentsBackend::sessionsForProvider(const QString &provider) const
+{
+    QVariantList list;
+    for (const QVariant &item : runningSessions()) {
+        const QVariantMap m = item.toMap();
+        if (m.value(QStringLiteral("provider")).toString() == provider) {
+            list.append(m);
+        }
+    }
+    return list;
 }
 
 void AIAgentsBackend::setMinimumShowsLastMessage(bool enabled)
@@ -232,10 +334,13 @@ void AIAgentsBackend::pollStatus()
 
 void AIAgentsBackend::updateClaudeState()
 {
+    m_claudeSessions.clear();
+
     QProcess pgrep;
     pgrep.start(QStringLiteral("pgrep"), {QStringLiteral("-f"), QStringLiteral("claude")});
-    pgrep.waitForFinished(250);
-    m_claudeState.running = (pgrep.exitCode() == 0);
+    pgrep.waitForFinished(200);
+    const bool claudeProcessRunning = (pgrep.exitCode() == 0);
+    m_claudeState.running = claudeProcessRunning;
 
     const QString path = claudeStateFilePath();
     if (QFile::exists(path)) {
@@ -246,47 +351,120 @@ void AIAgentsBackend::updateClaudeState()
             const QJsonDocument doc = QJsonDocument::fromJson(bytes);
             if (doc.isObject()) {
                 const QJsonObject obj = doc.object();
-                m_claudeState.sessionState = obj.value(QStringLiteral("state")).toString(QStringLiteral("idle"));
-                m_claudeState.projectName = obj.value(QStringLiteral("project")).toString(QStringLiteral("Tide-island"));
-                m_claudeState.gitBranch = obj.value(QStringLiteral("branch")).toString();
-                m_claudeState.modelName = obj.value(QStringLiteral("model")).toString(QStringLiteral("Claude 3.7 Sonnet"));
-                m_claudeState.currentTool = obj.value(QStringLiteral("tool")).toString();
-                m_claudeState.toolDetail = obj.value(QStringLiteral("toolDetail")).toString();
-                m_claudeState.inputTokens = obj.value(QStringLiteral("inputTokens")).toInt(0);
-                m_claudeState.outputTokens = obj.value(QStringLiteral("outputTokens")).toInt(0);
-                m_claudeState.cacheReadTokens = obj.value(QStringLiteral("cacheReadTokens")).toInt(0);
-                m_claudeState.contextUsagePercent = obj.value(QStringLiteral("contextUsagePercent")).toDouble(0.0);
-                m_claudeState.estimatedCost = obj.value(QStringLiteral("estimatedCost")).toDouble(0.0);
-                m_claudeState.lastMessage = cleanFirstMeaningfulLine(obj.value(QStringLiteral("lastMessage")).toString());
-                m_claudeState.pendingConsentId = obj.value(QStringLiteral("pendingConsentId")).toString();
-                m_claudeState.pendingConsentTool = obj.value(QStringLiteral("pendingConsentTool")).toString();
-                m_claudeState.pendingConsentDetail = obj.value(QStringLiteral("pendingConsentDetail")).toString();
-                m_claudeState.lastActivityTime = QFileInfo(path).lastModified();
-                return;
+                AgentSessionInfo s;
+                s.provider = QStringLiteral("claude");
+                s.sessionId = obj.value(QStringLiteral("sessionId")).toString(QStringLiteral("hook-session"));
+                s.sessionState = obj.value(QStringLiteral("state")).toString(QStringLiteral("idle"));
+                s.projectName = obj.value(QStringLiteral("project")).toString(QStringLiteral("Tide-island"));
+                s.projectPath = obj.value(QStringLiteral("cwd")).toString();
+                s.gitBranch = obj.value(QStringLiteral("branch")).toString();
+                s.currentTool = obj.value(QStringLiteral("tool")).toString();
+                s.toolDetail = obj.value(QStringLiteral("toolDetail")).toString();
+                s.inputTokens = obj.value(QStringLiteral("inputTokens")).toInt(0);
+                s.outputTokens = obj.value(QStringLiteral("outputTokens")).toInt(0);
+                s.cacheReadTokens = obj.value(QStringLiteral("cacheReadTokens")).toInt(0);
+                s.contextUsagePercent = obj.value(QStringLiteral("contextUsagePercent")).toDouble(0.0);
+                s.estimatedCost = obj.value(QStringLiteral("estimatedCost")).toDouble(0.0);
+                s.preview = cleanFirstMeaningfulLine(obj.value(QStringLiteral("lastMessage")).toString());
+                s.title = s.projectName;
+                s.lastModifiedSec = QFileInfo(path).lastModified().toSecsSinceEpoch();
+                m_claudeSessions.append(s);
             }
         }
     }
 
-    // Fallback: check sessions dir
-    const QString claudeDir = QDir::homePath() + QStringLiteral("/.claude/sessions");
-    const QDir sDir(claudeDir);
+    const QString claudeSessionsDir = QDir::homePath() + QStringLiteral("/.claude/sessions");
+    const QDir sDir(claudeSessionsDir);
     if (sDir.exists()) {
         const QFileInfoList files = sDir.entryInfoList({QStringLiteral("*.json")}, QDir::Files, QDir::Time);
-        if (!files.isEmpty()) {
-            const QFileInfo &latest = files.first();
-            m_claudeState.lastActivityTime = latest.lastModified();
-            m_claudeState.projectName = QStringLiteral("Tide-island");
-            m_claudeState.modelName = QStringLiteral("Claude Code");
+        for (const QFileInfo &sf : files) {
+            bool ok = false;
+            int pid = sf.baseName().toInt(&ok);
+            if (!ok || pid <= 0)
+                continue;
+
+            if (::kill(pid, 0) == 0) {
+                QFile f(sf.absoluteFilePath());
+                if (f.open(QIODevice::ReadOnly)) {
+                    const QJsonDocument doc = QJsonDocument::fromJson(f.readAll());
+                    f.close();
+                    if (doc.isObject()) {
+                        const QJsonObject obj = doc.object();
+                        const QString sessId = obj.value(QStringLiteral("sessionId")).toString(sf.baseName());
+
+                        bool alreadyAdded = false;
+                        for (const AgentSessionInfo &existing : m_claudeSessions) {
+                            if (existing.sessionId == sessId) {
+                                alreadyAdded = true;
+                                break;
+                            }
+                        }
+                        if (!alreadyAdded) {
+                            AgentSessionInfo s;
+                            s.provider = QStringLiteral("claude");
+                            s.sessionId = sessId;
+                            s.pid = pid;
+                            s.projectPath = obj.value(QStringLiteral("cwd")).toString();
+                            s.projectName = !s.projectPath.isEmpty() ? QDir(s.projectPath).dirName() : QStringLiteral("Claude Code");
+                            s.gitBranch = resolveGitBranch(s.projectPath);
+                            const QString st = obj.value(QStringLiteral("status")).toString();
+                            s.sessionState = (st == QLatin1String("active") || st == QLatin1String("busy")) ? QStringLiteral("running_tool") : QStringLiteral("idle");
+                            s.title = obj.value(QStringLiteral("name")).toString(s.projectName);
+                            s.preview = s.title;
+                            s.lastModifiedSec = sf.lastModified().toSecsSinceEpoch();
+                            m_claudeSessions.append(s);
+                        }
+                    }
+                }
+            }
         }
+    }
+
+    AgentSessionInfo chosen;
+    bool foundChosen = false;
+    if (!m_selectedSessionId.isEmpty()) {
+        for (const AgentSessionInfo &s : m_claudeSessions) {
+            if (s.sessionId == m_selectedSessionId) {
+                chosen = s;
+                foundChosen = true;
+                break;
+            }
+        }
+    }
+    if (!foundChosen && !m_claudeSessions.isEmpty()) {
+        chosen = m_claudeSessions.first();
+        foundChosen = true;
+    }
+
+    if (foundChosen) {
+        m_claudeState.running = claudeProcessRunning || (chosen.pid > 0);
+        m_claudeState.sessionState = chosen.sessionState;
+        m_claudeState.projectName = chosen.projectName;
+        m_claudeState.projectPath = chosen.projectPath;
+        m_claudeState.gitBranch = chosen.gitBranch;
+        m_claudeState.modelName = QStringLiteral("Claude 3.7 Sonnet");
+        m_claudeState.currentTool = chosen.currentTool;
+        m_claudeState.toolDetail = chosen.toolDetail;
+        m_claudeState.lastMessage = chosen.preview;
+        m_claudeState.inputTokens = chosen.inputTokens;
+        m_claudeState.outputTokens = chosen.outputTokens;
+        m_claudeState.cacheReadTokens = chosen.cacheReadTokens;
+        m_claudeState.contextUsagePercent = chosen.contextUsagePercent;
+        m_claudeState.estimatedCost = chosen.estimatedCost;
+        m_claudeState.activeSessionCount = m_claudeSessions.size();
+        m_claudeState.lastActivityTime = QDateTime::fromSecsSinceEpoch(chosen.lastModifiedSec);
     }
 }
 
 void AIAgentsBackend::updateOpenCodeState()
 {
+    m_openCodeSessions.clear();
+
     QProcess pgrep;
     pgrep.start(QStringLiteral("pgrep"), {QStringLiteral("-f"), QStringLiteral("opencode")});
-    pgrep.waitForFinished(250);
-    m_openCodeState.running = (pgrep.exitCode() == 0);
+    pgrep.waitForFinished(200);
+    const bool ocRunning = (pgrep.exitCode() == 0);
+    m_openCodeState.running = ocRunning;
 
     const QString dbPath = QDir::homePath() + QStringLiteral("/.local/share/opencode/opencode.db");
     if (!QFile::exists(dbPath))
@@ -295,181 +473,318 @@ void AIAgentsBackend::updateOpenCodeState()
     QProcess proc;
     proc.start(QStringLiteral("sqlite3"), {
         dbPath,
-        QStringLiteral("SELECT id, title, directory, agent, model, cost, tokens_input, tokens_output, tokens_cache_read, time_updated, time_idle FROM session_v2 ORDER BY time_updated DESC LIMIT 1;")
+        QStringLiteral("SELECT id, title, directory, agent, model, cost, tokens_input, tokens_output, tokens_cache_read, time_updated, time_idle FROM session_v2 ORDER BY time_updated DESC LIMIT 5;")
     });
 
     if (proc.waitForFinished(600)) {
         const QString out = QString::fromUtf8(proc.readAllStandardOutput()).trimmed();
         if (!out.isEmpty()) {
-            const QStringList fields = out.split(QLatin1Char('|'));
-            if (fields.size() >= 11) {
-                const QString sessionId = fields.at(0);
-                const QString title = fields.at(1);
-                const QString dir = fields.at(2);
-                const QString agent = fields.at(3);
-                const QString rawModel = fields.at(4);
-                const double cost = fields.at(5).toDouble();
-                const int inTok = fields.at(6).toInt();
-                const int outTok = fields.at(7).toInt();
-                const int cacheTok = fields.at(8).toInt();
+            const QStringList rows = out.split(QLatin1Char('\n'), Qt::SkipEmptyParts);
+            for (const QString &row : rows) {
+                const QStringList fields = row.split(QLatin1Char('|'));
+                if (fields.size() < 11)
+                    continue;
+
+                AgentSessionInfo s;
+                s.provider = QStringLiteral("opencode");
+                s.sessionId = fields.at(0);
+                s.title = fields.at(1);
+                s.projectPath = fields.at(2);
+                s.projectName = QDir(s.projectPath).dirName().isEmpty() ? QStringLiteral("OpenCode") : QDir(s.projectPath).dirName();
+                s.gitBranch = resolveGitBranch(s.projectPath);
+                s.estimatedCost = fields.at(5).toDouble();
+                s.inputTokens = fields.at(6).toInt();
+                s.outputTokens = fields.at(7).toInt();
+                s.cacheReadTokens = fields.at(8).toInt();
+                s.contextUsagePercent = std::min(1.0, (s.inputTokens + s.outputTokens) / 200000.0);
                 const qint64 updatedMs = fields.at(9).toLongLong();
+                s.lastModifiedSec = updatedMs / 1000;
                 const QString idleStr = fields.at(10).trimmed();
 
-                m_openCodeState.projectPath = dir;
-                m_openCodeState.projectName = QDir(dir).dirName().isEmpty() ? QStringLiteral("Project") : QDir(dir).dirName();
-                m_openCodeState.gitBranch = resolveGitBranch(dir);
-                m_openCodeState.estimatedCost = cost;
-                m_openCodeState.inputTokens = inTok;
-                m_openCodeState.outputTokens = outTok;
-                m_openCodeState.cacheReadTokens = cacheTok;
-                m_openCodeState.contextUsagePercent = std::min(1.0, (inTok + outTok) / 200000.0);
-                m_openCodeState.lastActivityTime = QDateTime::fromMSecsSinceEpoch(updatedMs);
-
-                // Parse model
-                if (rawModel.startsWith(QLatin1Char('{'))) {
-                    const QJsonDocument mdoc = QJsonDocument::fromJson(rawModel.toUtf8());
-                    if (mdoc.isObject()) {
-                        m_openCodeState.modelName = mdoc.object().value(QStringLiteral("id")).toString(rawModel);
-                    } else {
-                        m_openCodeState.modelName = rawModel;
-                    }
-                } else if (!rawModel.isEmpty()) {
-                    m_openCodeState.modelName = rawModel;
-                } else {
-                    m_openCodeState.modelName = QStringLiteral("OpenCode");
-                }
-
-                // Determine session state
                 const qint64 nowMs = QDateTime::currentMSecsSinceEpoch();
                 const bool recentlyActive = (nowMs - updatedMs) < 45000;
-                if (m_openCodeState.running && recentlyActive && idleStr.isEmpty()) {
-                    m_openCodeState.sessionState = QStringLiteral("thinking");
-                } else if (m_openCodeState.running) {
-                    m_openCodeState.sessionState = QStringLiteral("idle");
+                if (ocRunning && recentlyActive && idleStr.isEmpty()) {
+                    s.sessionState = QStringLiteral("thinking");
+                } else if (ocRunning) {
+                    s.sessionState = QStringLiteral("idle");
                 } else {
-                    m_openCodeState.sessionState = QStringLiteral("done");
+                    s.sessionState = QStringLiteral("done");
                 }
 
-                if (!title.isEmpty() && m_openCodeState.lastMessage.isEmpty()) {
-                    m_openCodeState.lastMessage = title;
-                }
+                s.preview = cleanFirstMeaningfulLine(!s.title.isEmpty() ? s.title : s.projectName);
+                s.toolDetail = s.preview;
+                m_openCodeSessions.append(s);
             }
         }
+    }
+
+    AgentSessionInfo chosen;
+    bool foundChosen = false;
+    if (!m_selectedSessionId.isEmpty()) {
+        for (const AgentSessionInfo &s : m_openCodeSessions) {
+            if (s.sessionId == m_selectedSessionId) {
+                chosen = s;
+                foundChosen = true;
+                break;
+            }
+        }
+    }
+    if (!foundChosen && !m_openCodeSessions.isEmpty()) {
+        chosen = m_openCodeSessions.first();
+        foundChosen = true;
+    }
+
+    if (foundChosen) {
+        m_openCodeState.running = ocRunning;
+        m_openCodeState.sessionState = chosen.sessionState;
+        m_openCodeState.projectName = chosen.projectName;
+        m_openCodeState.projectPath = chosen.projectPath;
+        m_openCodeState.gitBranch = chosen.gitBranch;
+        m_openCodeState.modelName = QStringLiteral("OpenCode");
+        m_openCodeState.currentTool = chosen.currentTool;
+        m_openCodeState.toolDetail = chosen.toolDetail;
+        m_openCodeState.lastMessage = chosen.preview;
+        m_openCodeState.inputTokens = chosen.inputTokens;
+        m_openCodeState.outputTokens = chosen.outputTokens;
+        m_openCodeState.cacheReadTokens = chosen.cacheReadTokens;
+        m_openCodeState.contextUsagePercent = chosen.contextUsagePercent;
+        m_openCodeState.estimatedCost = chosen.estimatedCost;
+        m_openCodeState.activeSessionCount = m_openCodeSessions.size();
+        m_openCodeState.lastActivityTime = QDateTime::fromSecsSinceEpoch(chosen.lastModifiedSec);
     }
 }
 
 void AIAgentsBackend::updateAntigravityState()
 {
-    // Check lock files in presence directory
+    m_antigravitySessions.clear();
+
     const QString presenceDir = QDir::homePath() + QStringLiteral("/.gemini/antigravity-cli/presence");
     const QDir pDir(presenceDir);
-    QString activeConvId;
+    QStringList activeConvIds;
+
     if (pDir.exists()) {
         const QFileInfoList locks = pDir.entryInfoList({QStringLiteral("*.lock")}, QDir::Files);
-        if (!locks.isEmpty()) {
-            m_antigravityState.running = true;
-            const QString filename = locks.first().fileName();
-            activeConvId = filename.left(filename.lastIndexOf(QLatin1Char('.')));
+        for (const QFileInfo &lockInfo : locks) {
+            if (isFileFlockActive(lockInfo.absoluteFilePath())) {
+                const QString fn = lockInfo.fileName();
+                activeConvIds.append(fn.left(fn.lastIndexOf(QLatin1Char('.'))));
+            }
         }
     }
 
-    if (!m_antigravityState.running) {
+    bool agyRunning = !activeConvIds.isEmpty();
+    if (!agyRunning) {
         QProcess pgrep;
         pgrep.start(QStringLiteral("pgrep"), {QStringLiteral("-f"), QStringLiteral("agy")});
-        pgrep.waitForFinished(250);
-        m_antigravityState.running = (pgrep.exitCode() == 0);
+        pgrep.waitForFinished(200);
+        agyRunning = (pgrep.exitCode() == 0);
     }
+    m_antigravityState.running = agyRunning;
 
     const QString summariesDb = QDir::homePath() + QStringLiteral("/.gemini/antigravity-cli/conversation_summaries.db");
     if (!QFile::exists(summariesDb))
         return;
 
-    const QString query = activeConvId.isEmpty()
-        ? QStringLiteral("SELECT conversation_id, title, preview, status, not_fully_idle, workspace_uris, agent_name, step_count, strftime('%s', last_modified_time) FROM conversation_summaries ORDER BY last_modified_time DESC LIMIT 1;")
-        : QStringLiteral("SELECT conversation_id, title, preview, status, not_fully_idle, workspace_uris, agent_name, step_count, strftime('%s', last_modified_time) FROM conversation_summaries WHERE conversation_id = '%1' LIMIT 1;").arg(activeConvId);
+    QString query;
+    if (!activeConvIds.isEmpty()) {
+        QStringList quoted;
+        for (const QString &id : activeConvIds) {
+            quoted.append(QStringLiteral("'%1'").arg(id));
+        }
+        query = QStringLiteral(
+            "SELECT conversation_id, title, preview, status, not_fully_idle, workspace_uris, agent_name, step_count, strftime('%s', last_modified_time) "
+            "FROM conversation_summaries WHERE conversation_id IN (%1) ORDER BY last_modified_time DESC;"
+        ).arg(quoted.join(QLatin1Char(',')));
+    } else if (agyRunning) {
+        query = QStringLiteral(
+            "SELECT conversation_id, title, preview, status, not_fully_idle, workspace_uris, agent_name, step_count, strftime('%s', last_modified_time) "
+            "FROM conversation_summaries ORDER BY last_modified_time DESC LIMIT 5;"
+        );
+    } else {
+        query = QStringLiteral(
+            "SELECT conversation_id, title, preview, status, not_fully_idle, workspace_uris, agent_name, step_count, strftime('%s', last_modified_time) "
+            "FROM conversation_summaries ORDER BY last_modified_time DESC LIMIT 1;"
+        );
+    }
 
     QProcess proc;
     proc.start(QStringLiteral("sqlite3"), {summariesDb, query});
     if (proc.waitForFinished(600)) {
         const QString out = QString::fromUtf8(proc.readAllStandardOutput()).trimmed();
         if (!out.isEmpty()) {
-            const QStringList fields = out.split(QLatin1Char('|'));
-            if (fields.size() >= 9) {
-                const QString convId = fields.at(0);
-                const QString title = fields.at(1);
-                const QString preview = fields.at(2);
+            const QStringList rows = out.split(QLatin1Char('\n'), Qt::SkipEmptyParts);
+            for (const QString &row : rows) {
+                const QStringList fields = row.split(QLatin1Char('|'));
+                if (fields.size() < 9)
+                    continue;
+
+                AgentSessionInfo s;
+                s.provider = QStringLiteral("agy");
+                s.sessionId = fields.at(0);
+                s.title = fields.at(1);
+                s.preview = cleanFirstMeaningfulLine(!fields.at(2).isEmpty() ? fields.at(2) : fields.at(1));
                 const QString status = fields.at(3);
                 const bool notFullyIdle = (fields.at(4).toInt() != 0);
                 const QString workspaceUris = fields.at(5);
                 const QString agentName = fields.at(6);
                 const int steps = fields.at(7).toInt();
-                const qint64 modSec = fields.at(8).toLongLong();
+                s.lastModifiedSec = fields.at(8).toLongLong();
+                s.inputTokens = steps * 1450;
+                s.outputTokens = steps * 620;
+                s.contextUsagePercent = std::min(1.0, steps / 60.0);
 
-                m_antigravityState.modelName = agentName.isEmpty() ? QStringLiteral("Gemini 2.5 Pro") : agentName;
-                m_antigravityState.lastActivityTime = QDateTime::fromSecsSinceEpoch(modSec);
-                m_antigravityState.inputTokens = steps * 1450;
-                m_antigravityState.outputTokens = steps * 620;
-                m_antigravityState.contextUsagePercent = std::min(1.0, steps / 60.0);
-
-                // Parse workspace path
                 if (workspaceUris.contains(QStringLiteral("file://"))) {
-                    int s = workspaceUris.indexOf(QStringLiteral("file://")) + 7;
-                    int e = workspaceUris.indexOf(QLatin1Char('"'), s);
-                    if (e < 0) e = workspaceUris.indexOf(QLatin1Char(']'), s);
-                    if (e > s) {
-                        const QString wpath = workspaceUris.mid(s, e - s);
-                        m_antigravityState.projectPath = wpath;
-                        m_antigravityState.projectName = QDir(wpath).dirName();
-                        m_antigravityState.gitBranch = resolveGitBranch(wpath);
+                    int st = workspaceUris.indexOf(QStringLiteral("file://")) + 7;
+                    int e = workspaceUris.indexOf(QLatin1Char('"'), st);
+                    if (e < 0) e = workspaceUris.indexOf(QLatin1Char(']'), st);
+                    if (e > st) {
+                        const QString wpath = workspaceUris.mid(st, e - st);
+                        s.projectPath = wpath;
+                        s.projectName = QDir(wpath).dirName();
+                        s.gitBranch = resolveGitBranch(wpath);
                     }
+                }
+                if (s.projectName.isEmpty()) {
+                    s.projectName = QStringLiteral("Tide-island");
                 }
 
                 if (status == QLatin1String("CASCADE_RUN_STATUS_WAITING_FOR_USER")) {
-                    m_antigravityState.sessionState = QStringLiteral("waiting_consent");
-                    m_antigravityState.pendingConsentTool = QStringLiteral("User Confirmation");
-                    m_antigravityState.pendingConsentDetail = preview;
-                } else if (m_antigravityState.running && notFullyIdle) {
-                    m_antigravityState.sessionState = QStringLiteral("thinking");
-                } else if (m_antigravityState.running) {
-                    m_antigravityState.sessionState = QStringLiteral("idle");
+                    s.sessionState = QStringLiteral("waiting_consent");
+                    s.toolDetail = QStringLiteral("User Confirmation Needed");
+                } else if (agyRunning && (notFullyIdle || status == QLatin1String("CASCADE_RUN_STATUS_RUNNING"))) {
+                    s.sessionState = QStringLiteral("thinking");
+                    s.toolDetail = s.preview;
+                } else if (agyRunning) {
+                    s.sessionState = QStringLiteral("idle");
+                    s.toolDetail = s.preview;
                 } else {
-                    m_antigravityState.sessionState = QStringLiteral("done");
+                    s.sessionState = QStringLiteral("done");
+                    s.toolDetail = s.preview;
                 }
 
-                m_antigravityState.lastMessage = cleanFirstMeaningfulLine(!preview.isEmpty() ? preview : title);
+                m_antigravitySessions.append(s);
             }
+        }
+    }
+
+    AgentSessionInfo chosen;
+    bool foundChosen = false;
+    if (!m_selectedSessionId.isEmpty()) {
+        for (const AgentSessionInfo &s : m_antigravitySessions) {
+            if (s.sessionId == m_selectedSessionId) {
+                chosen = s;
+                foundChosen = true;
+                break;
+            }
+        }
+    }
+
+    if (!foundChosen && !m_antigravitySessions.isEmpty()) {
+        for (const AgentSessionInfo &s : m_antigravitySessions) {
+            if (s.sessionState == QLatin1String("waiting_consent") || s.sessionState == QLatin1String("thinking") || s.sessionState == QLatin1String("running_tool")) {
+                chosen = s;
+                foundChosen = true;
+                break;
+            }
+        }
+        if (!foundChosen) {
+            chosen = m_antigravitySessions.first();
+            foundChosen = true;
+        }
+    }
+
+    if (foundChosen) {
+        m_antigravityState.running = agyRunning;
+        m_antigravityState.sessionState = chosen.sessionState;
+        m_antigravityState.projectName = chosen.projectName;
+        m_antigravityState.projectPath = chosen.projectPath;
+        m_antigravityState.gitBranch = chosen.gitBranch;
+        m_antigravityState.modelName = QStringLiteral("Gemini 2.5 Pro");
+        m_antigravityState.currentTool = chosen.currentTool;
+        m_antigravityState.toolDetail = chosen.toolDetail;
+        m_antigravityState.lastMessage = chosen.preview;
+        m_antigravityState.inputTokens = chosen.inputTokens;
+        m_antigravityState.outputTokens = chosen.outputTokens;
+        m_antigravityState.contextUsagePercent = chosen.contextUsagePercent;
+        m_antigravityState.activeSessionCount = m_antigravitySessions.size();
+        m_antigravityState.lastActivityTime = QDateTime::fromSecsSinceEpoch(chosen.lastModifiedSec);
+
+        if (chosen.sessionState == QLatin1String("waiting_consent")) {
+            m_antigravityState.pendingConsentId = chosen.sessionId;
+            m_antigravityState.pendingConsentTool = QStringLiteral("User Confirmation");
+            m_antigravityState.pendingConsentDetail = chosen.preview;
+        } else {
+            m_antigravityState.pendingConsentId.clear();
+            m_antigravityState.pendingConsentTool.clear();
+            m_antigravityState.pendingConsentDetail.clear();
         }
     }
 }
 
 void AIAgentsBackend::reconcileActiveProvider()
 {
+    m_allSessions.clear();
+    m_allSessions.append(m_antigravitySessions);
+    m_allSessions.append(m_claudeSessions);
+    m_allSessions.append(m_openCodeSessions);
+
     QString chosen = m_selectedProvider;
 
     if (chosen == QLatin1String("auto") || chosen.isEmpty()) {
-        // Priority 1: Any provider currently in an active state (thinking, running_tool, waiting_consent)
-        if (m_antigravityState.sessionState == QLatin1String("thinking") ||
+        QStringList activeWorkProviders;
+        if (m_antigravityState.sessionState == QLatin1String("waiting_consent") ||
             m_antigravityState.sessionState == QLatin1String("running_tool") ||
-            m_antigravityState.sessionState == QLatin1String("waiting_consent")) {
-            chosen = QStringLiteral("agy");
-        } else if (m_claudeState.sessionState == QLatin1String("thinking") ||
-                   m_claudeState.sessionState == QLatin1String("running_tool") ||
-                   m_claudeState.sessionState == QLatin1String("waiting_consent")) {
-            chosen = QStringLiteral("claude");
-        } else if (m_openCodeState.sessionState == QLatin1String("thinking") ||
-                   m_openCodeState.sessionState == QLatin1String("running_tool") ||
-                   m_openCodeState.sessionState == QLatin1String("waiting_consent")) {
-            chosen = QStringLiteral("opencode");
+            m_antigravityState.sessionState == QLatin1String("thinking")) {
+            activeWorkProviders.append(QStringLiteral("agy"));
         }
-        // Priority 2: Any provider with a running process
-        else if (m_antigravityState.running) {
-            chosen = QStringLiteral("agy");
-        } else if (m_claudeState.running) {
-            chosen = QStringLiteral("claude");
-        } else if (m_openCodeState.running) {
-            chosen = QStringLiteral("opencode");
+        if (m_claudeState.sessionState == QLatin1String("waiting_consent") ||
+            m_claudeState.sessionState == QLatin1String("running_tool") ||
+            m_claudeState.sessionState == QLatin1String("thinking")) {
+            activeWorkProviders.append(QStringLiteral("claude"));
         }
-        // Priority 3: Fallback to most recently active installed provider
+        if (m_openCodeState.sessionState == QLatin1String("waiting_consent") ||
+            m_openCodeState.sessionState == QLatin1String("running_tool") ||
+            m_openCodeState.sessionState == QLatin1String("thinking")) {
+            activeWorkProviders.append(QStringLiteral("opencode"));
+        }
+
+        if (activeWorkProviders.size() == 1) {
+            chosen = activeWorkProviders.first();
+        } else if (activeWorkProviders.size() > 1) {
+            QDateTime newest;
+            for (const QString &p : activeWorkProviders) {
+                QDateTime t;
+                if (p == QLatin1String("agy")) t = m_antigravityState.lastActivityTime;
+                else if (p == QLatin1String("claude")) t = m_claudeState.lastActivityTime;
+                else if (p == QLatin1String("opencode")) t = m_openCodeState.lastActivityTime;
+                if (!newest.isValid() || (t.isValid() && t > newest)) {
+                    newest = t;
+                    chosen = p;
+                }
+            }
+        }
+        else if (m_antigravityState.running || m_claudeState.running || m_openCodeState.running) {
+            QStringList runningProviders;
+            if (m_antigravityState.running) runningProviders.append(QStringLiteral("agy"));
+            if (m_claudeState.running) runningProviders.append(QStringLiteral("claude"));
+            if (m_openCodeState.running) runningProviders.append(QStringLiteral("opencode"));
+
+            if (runningProviders.size() == 1) {
+                chosen = runningProviders.first();
+            } else {
+                QDateTime newest;
+                for (const QString &p : runningProviders) {
+                    QDateTime t;
+                    if (p == QLatin1String("agy")) t = m_antigravityState.lastActivityTime;
+                    else if (p == QLatin1String("claude")) t = m_claudeState.lastActivityTime;
+                    else if (p == QLatin1String("opencode")) t = m_openCodeState.lastActivityTime;
+                    if (!newest.isValid() || (t.isValid() && t > newest)) {
+                        newest = t;
+                        chosen = p;
+                    }
+                }
+            }
+        }
         else {
             QDateTime newest;
             QString newestProvider = QStringLiteral("agy");
@@ -493,6 +808,46 @@ void AIAgentsBackend::reconcileActiveProvider()
         m_activeProvider = chosen;
         emit activeProviderChanged();
     }
+
+    QString newActiveSessionId;
+    if (m_activeProvider == QLatin1String("agy") && !m_antigravitySessions.isEmpty()) {
+        for (const AgentSessionInfo &s : m_antigravitySessions) {
+            if (s.sessionId == m_selectedSessionId) {
+                newActiveSessionId = s.sessionId;
+                break;
+            }
+        }
+        if (newActiveSessionId.isEmpty()) {
+            newActiveSessionId = m_antigravitySessions.first().sessionId;
+        }
+    } else if (m_activeProvider == QLatin1String("claude") && !m_claudeSessions.isEmpty()) {
+        for (const AgentSessionInfo &s : m_claudeSessions) {
+            if (s.sessionId == m_selectedSessionId) {
+                newActiveSessionId = s.sessionId;
+                break;
+            }
+        }
+        if (newActiveSessionId.isEmpty()) {
+            newActiveSessionId = m_claudeSessions.first().sessionId;
+        }
+    } else if (m_activeProvider == QLatin1String("opencode") && !m_openCodeSessions.isEmpty()) {
+        for (const AgentSessionInfo &s : m_openCodeSessions) {
+            if (s.sessionId == m_selectedSessionId) {
+                newActiveSessionId = s.sessionId;
+                break;
+            }
+        }
+        if (newActiveSessionId.isEmpty()) {
+            newActiveSessionId = m_openCodeSessions.first().sessionId;
+        }
+    }
+
+    if (m_activeSessionId != newActiveSessionId) {
+        m_activeSessionId = newActiveSessionId;
+        emit activeSessionIdChanged();
+    }
+
+    emit runningSessionsChanged();
 
     if (m_activeProvider == QLatin1String("agy"))
         applyProviderState(m_antigravityState);

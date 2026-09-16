@@ -245,7 +245,7 @@ Item {
                     id: agentSelectorBtn
                     anchors.verticalCenter: parent.verticalCenter
                     height: 24
-                    width: Math.min(130, selectorContentRow.implicitWidth + 14)
+                    width: Math.min(145, selectorContentRow.implicitWidth + 14)
                     radius: StyleTokens.radiusButton
                     color: root.agentSubmenuOpen ? StyleTokens.accent : (selectorMouse.containsMouse ? StyleTokens.buttonHover : StyleTokens.module)
                     border.width: 1
@@ -268,7 +268,8 @@ Item {
 
                         WidgetTextView {
                             anchors.verticalCenter: parent.verticalCenter
-                            text: AIAgentsBackend.selectedProvider === "auto" ? "Auto" : (AIAgentsBackend.selectedProvider === "claude" ? "Claude" : (AIAgentsBackend.selectedProvider === "opencode" ? "OpenCode" : "AGY"))
+                            text: (AIAgentsBackend.selectedProvider === "auto" ? "Auto" : (AIAgentsBackend.selectedProvider === "claude" ? "Claude" : (AIAgentsBackend.selectedProvider === "opencode" ? "OpenCode" : "AGY")))
+                                + (AIAgentsBackend.totalActiveSessions > 1 ? (" (" + AIAgentsBackend.totalActiveSessions + ")") : "")
                             role: "caption"
                             colorOverride: root.agentSubmenuOpen ? "#ffffff" : StyleTokens.textPrimary
                             widgetContext: root.widgetContext
@@ -635,13 +636,49 @@ Item {
                 anchors.top: topRow.bottom
                 anchors.topMargin: 4
                 anchors.left: parent.left
-                width: Math.min(parent.width, 210)
-                height: submenuLayout.implicitHeight + 8
+                width: Math.min(parent.width, 240)
+                height: Math.min(320, submenuLayout.implicitHeight + 8)
                 radius: StyleTokens.radiusModule
                 color: StyleTokens.panel
                 border.width: 1
                 border.color: StyleTokens.inputBorder
                 clip: true
+
+                function getProviderGlyph(prov) {
+                    if (prov === "claude") return "󰚩";
+                    if (prov === "opencode") return "󰘐";
+                    if (prov === "agy") return "󰧑";
+                    return "󰌨";
+                }
+
+                function getProviderColor(prov) {
+                    if (prov === "claude") return "#d97706";
+                    if (prov === "opencode") return "#06b6d4";
+                    if (prov === "agy") return "#8b5cf6";
+                    return StyleTokens.accent;
+                }
+
+                function getSessionStateColor(state) {
+                    switch (state) {
+                    case "waiting_consent": return "#f59e0b";
+                    case "thinking": return "#818cf8";
+                    case "running_tool": return "#60a5fa";
+                    case "error": return "#ef4444";
+                    case "done": return "#34d399";
+                    case "idle": default: return StyleTokens.textDisabled;
+                    }
+                }
+
+                function getSessionStateLabel(state, tool, detail) {
+                    switch (state) {
+                    case "waiting_consent": return "Approval needed";
+                    case "thinking": return "Thinking...";
+                    case "running_tool": return tool ? ("Running " + tool) : "Running tool";
+                    case "error": return "Error";
+                    case "done": return "Finished";
+                    case "idle": default: return "Ready";
+                    }
+                }
 
                 // Intercept clicks within menu
                 MouseArea {
@@ -649,148 +686,331 @@ Item {
                     onClicked: {}
                 }
 
-                Column {
-                    id: submenuLayout
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.top: parent.top
+                Flickable {
+                    id: submenuFlickable
+                    anchors.fill: parent
                     anchors.margins: 4
-                    spacing: 2
+                    contentHeight: submenuLayout.implicitHeight
+                    boundsBehavior: Flickable.StopAtBounds
+                    clip: true
 
-                    Item {
-                        width: parent.width
-                        height: 18
+                    Column {
+                        id: submenuLayout
+                        width: submenuFlickable.width
+                        spacing: 3
 
-                        WidgetTextView {
-                            anchors.left: parent.left
-                            anchors.leftMargin: 6
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: "SWITCH AGENT"
-                            role: "caption"
-                            colorOverride: StyleTokens.textTertiary
-                            widgetContext: root.widgetContext
-                        }
+                        Item {
+                            width: parent.width
+                            height: 18
 
-                        Rectangle {
-                            anchors.right: parent.right
-                            anchors.rightMargin: 4
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: 14
-                            height: 14
-                            radius: 7
-                            color: closeSubmenuMouse.containsMouse ? StyleTokens.buttonHover : "transparent"
-
-                            WidgetIconGlyph {
-                                anchors.centerIn: parent
-                                glyph: "󰅖"
-                                size: 8
-                                color: StyleTokens.textSecondary
+                            WidgetTextView {
+                                anchors.left: parent.left
+                                anchors.leftMargin: 6
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: "AGENTS & SESSIONS"
+                                role: "caption"
+                                colorOverride: StyleTokens.textTertiary
                                 widgetContext: root.widgetContext
                             }
 
-                            MouseArea {
-                                id: closeSubmenuMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: root.agentSubmenuOpen = false
-                            }
-                        }
-                    }
-
-                    Repeater {
-                        model: [
-                            { id: "auto", name: "Auto-detect", desc: "Follows active agent", icon: "󰌨", color: StyleTokens.accent },
-                            { id: "claude", name: "Claude Code", desc: "Anthropic Claude", icon: "󰚩", color: "#d97706" },
-                            { id: "opencode", name: "OpenCode v2", desc: "OpenCode agent", icon: "󰘐", color: "#06b6d4" },
-                            { id: "agy", name: "Antigravity CLI", desc: "Google AGY CLI", icon: "󰧑", color: "#8b5cf6" }
-                        ]
-
-                        delegate: Rectangle {
-                            id: submenuItem
-                            readonly property bool isSelected: AIAgentsBackend.selectedProvider === modelData.id
-                            readonly property bool isRunning: AIAgentsBackend.isProviderRunning(modelData.id)
-
-                            width: submenuLayout.width
-                            height: 28
-                            radius: StyleTokens.radiusButton
-                            color: itemMouse.containsMouse
-                                ? StyleTokens.buttonHover
-                                : (submenuItem.isSelected ? StyleTokens.module : "transparent")
-
-                            Row {
-                                anchors.fill: parent
-                                anchors.leftMargin: 6
-                                anchors.rightMargin: 8
-                                spacing: 6
-
-                                Rectangle {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    width: 18
-                                    height: 18
-                                    radius: 9
-                                    color: submenuItem.isSelected ? modelData.color : StyleTokens.module
-
-                                    WidgetIconGlyph {
-                                        anchors.centerIn: parent
-                                        glyph: modelData.icon
-                                        size: 10
-                                        color: submenuItem.isSelected ? "#ffffff" : modelData.color
-                                        widgetContext: root.widgetContext
-                                    }
-                                }
-
-                                Column {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    width: parent.width - 18 - 6 - 20
-                                    spacing: 0
-
-                                    WidgetTextView {
-                                        text: modelData.name
-                                        role: "caption"
-                                        colorOverride: submenuItem.isSelected ? StyleTokens.textPrimary : StyleTokens.textSecondary
-                                        widgetContext: root.widgetContext
-                                    }
-
-                                    Row {
-                                        spacing: 3
-                                        visible: modelData.id !== "auto"
-
-                                        Rectangle {
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            width: 5
-                                            height: 5
-                                            radius: 2.5
-                                            color: submenuItem.isRunning ? StyleTokens.success : StyleTokens.textDisabled
-                                        }
-
-                                        WidgetTextView {
-                                            text: submenuItem.isRunning ? "Running" : "Idle"
-                                            role: "caption"
-                                            colorOverride: submenuItem.isRunning ? StyleTokens.success : StyleTokens.textDisabled
-                                            widgetContext: root.widgetContext
-                                        }
-                                    }
-                                }
+                            Rectangle {
+                                anchors.right: parent.right
+                                anchors.rightMargin: 4
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: 14
+                                height: 14
+                                radius: 7
+                                color: closeSubmenuMouse.containsMouse ? StyleTokens.buttonHover : "transparent"
 
                                 WidgetIconGlyph {
+                                    anchors.centerIn: parent
+                                    glyph: "󰅖"
+                                    size: 8
+                                    color: StyleTokens.textSecondary
+                                    widgetContext: root.widgetContext
+                                }
+
+                                MouseArea {
+                                    id: closeSubmenuMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: root.agentSubmenuOpen = false
+                                }
+                            }
+                        }
+
+                        // Active Sessions List
+                        Column {
+                            id: activeSessionsSection
+                            width: parent.width
+                            spacing: 2
+                            visible: AIAgentsBackend.runningSessions.length > 0
+
+                            Item {
+                                width: parent.width
+                                height: 16
+
+                                WidgetTextView {
+                                    anchors.left: parent.left
+                                    anchors.leftMargin: 6
                                     anchors.verticalCenter: parent.verticalCenter
-                                    glyph: "󰄲"
-                                    size: 11
-                                    color: StyleTokens.accent
-                                    visible: submenuItem.isSelected
+                                    text: "ACTIVE SESSIONS (" + AIAgentsBackend.runningSessions.length + ")"
+                                    role: "caption"
+                                    colorOverride: StyleTokens.accent
                                     widgetContext: root.widgetContext
                                 }
                             }
 
-                            MouseArea {
-                                id: itemMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    AIAgentsBackend.setSelectedProvider(modelData.id);
-                                    root.agentSubmenuOpen = false;
+                            Repeater {
+                                model: AIAgentsBackend.runningSessions
+
+                                delegate: Rectangle {
+                                    id: sessionItem
+                                    readonly property bool isSelected: modelData.isSelected
+                                    width: activeSessionsSection.width
+                                    height: 38
+                                    radius: StyleTokens.radiusButton
+                                    color: sessionMouse.containsMouse
+                                        ? StyleTokens.buttonHover
+                                        : (sessionItem.isSelected ? StyleTokens.module : "transparent")
+
+                                    Row {
+                                        anchors.fill: parent
+                                        anchors.leftMargin: 6
+                                        anchors.rightMargin: 6
+                                        spacing: 6
+
+                                        Rectangle {
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            width: 20
+                                            height: 20
+                                            radius: 10
+                                            color: sessionItem.isSelected ? agentSubmenu.getProviderColor(modelData.provider) : StyleTokens.module
+
+                                            WidgetIconGlyph {
+                                                anchors.centerIn: parent
+                                                glyph: agentSubmenu.getProviderGlyph(modelData.provider)
+                                                size: 10
+                                                color: sessionItem.isSelected ? "#ffffff" : agentSubmenu.getProviderColor(modelData.provider)
+                                                widgetContext: root.widgetContext
+                                            }
+                                        }
+
+                                        Column {
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            width: parent.width - 20 - 6 - (sessionItem.isSelected ? 18 : 0)
+                                            spacing: 2
+
+                                            Row {
+                                                width: parent.width
+                                                spacing: 4
+
+                                                WidgetTextView {
+                                                    text: modelData.projectName || modelData.title || "Agent"
+                                                    role: "caption"
+                                                    colorOverride: sessionItem.isSelected ? StyleTokens.accent : StyleTokens.textPrimary
+                                                    overflowMode: "elide"
+                                                    widgetContext: root.widgetContext
+                                                }
+
+                                                Rectangle {
+                                                    visible: modelData.gitBranch !== ""
+                                                    height: 12
+                                                    width: sessBranchRow.implicitWidth + 6
+                                                    radius: 3
+                                                    color: StyleTokens.module
+                                                    anchors.verticalCenter: parent.verticalCenter
+
+                                                    Row {
+                                                        id: sessBranchRow
+                                                        anchors.centerIn: parent
+                                                        spacing: 2
+
+                                                        WidgetIconGlyph {
+                                                            glyph: "󰘬"
+                                                            size: 7
+                                                            color: "#9ca3af"
+                                                            widgetContext: root.widgetContext
+                                                        }
+
+                                                        WidgetTextView {
+                                                            text: modelData.gitBranch
+                                                            role: "caption"
+                                                            colorOverride: "#d1d5db"
+                                                            widgetContext: root.widgetContext
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            Row {
+                                                width: parent.width
+                                                spacing: 3
+
+                                                Rectangle {
+                                                    anchors.verticalCenter: parent.verticalCenter
+                                                    width: 5
+                                                    height: 5
+                                                    radius: 2.5
+                                                    color: agentSubmenu.getSessionStateColor(modelData.sessionState)
+                                                }
+
+                                                WidgetTextView {
+                                                    anchors.verticalCenter: parent.verticalCenter
+                                                    text: agentSubmenu.getSessionStateLabel(modelData.sessionState, modelData.currentTool, modelData.toolDetail)
+                                                    role: "caption"
+                                                    colorOverride: agentSubmenu.getSessionStateColor(modelData.sessionState)
+                                                    overflowMode: "elide"
+                                                    widgetContext: root.widgetContext
+                                                }
+                                            }
+                                        }
+
+                                        WidgetIconGlyph {
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            glyph: "󰄲"
+                                            size: 11
+                                            color: StyleTokens.accent
+                                            visible: sessionItem.isSelected
+                                            widgetContext: root.widgetContext
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        id: sessionMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            AIAgentsBackend.selectSession(modelData.provider, modelData.sessionId);
+                                            root.agentSubmenuOpen = false;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Divider between sessions and providers
+                        Rectangle {
+                            width: parent.width
+                            height: 1
+                            color: StyleTokens.inputBorder
+                            visible: AIAgentsBackend.runningSessions.length > 0
+                        }
+
+                        Item {
+                            width: parent.width
+                            height: 16
+
+                            WidgetTextView {
+                                anchors.left: parent.left
+                                anchors.leftMargin: 6
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: "PROVIDER PREFERENCE"
+                                role: "caption"
+                                colorOverride: StyleTokens.textTertiary
+                                widgetContext: root.widgetContext
+                            }
+                        }
+
+                        Repeater {
+                            model: [
+                                { id: "auto", name: "Auto-detect", desc: "Follows active agent", icon: "󰌨" },
+                                { id: "claude", name: "Claude Code", desc: "Anthropic Claude", icon: "󰚩" },
+                                { id: "opencode", name: "OpenCode v2", desc: "OpenCode agent", icon: "󰘐" },
+                                { id: "agy", name: "Antigravity CLI", desc: "Google AGY CLI", icon: "󰧑" }
+                            ]
+
+                            delegate: Rectangle {
+                                id: submenuItem
+                                readonly property bool isSelected: AIAgentsBackend.selectedProvider === modelData.id
+                                readonly property int sessionCount: modelData.id === "auto" ? AIAgentsBackend.totalActiveSessions : AIAgentsBackend.sessionsForProvider(modelData.id).length
+                                readonly property bool isRunning: modelData.id === "auto" ? (sessionCount > 0) : AIAgentsBackend.isProviderRunning(modelData.id)
+                                readonly property color brandColor: agentSubmenu.getProviderColor(modelData.id)
+
+                                width: submenuLayout.width
+                                height: 28
+                                radius: StyleTokens.radiusButton
+                                color: itemMouse.containsMouse
+                                    ? StyleTokens.buttonHover
+                                    : (submenuItem.isSelected ? StyleTokens.module : "transparent")
+
+                                Row {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: 6
+                                    anchors.rightMargin: 8
+                                    spacing: 6
+
+                                    Rectangle {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        width: 18
+                                        height: 18
+                                        radius: 9
+                                        color: submenuItem.isSelected ? submenuItem.brandColor : StyleTokens.module
+
+                                        WidgetIconGlyph {
+                                            anchors.centerIn: parent
+                                            glyph: modelData.icon
+                                            size: 10
+                                            color: submenuItem.isSelected ? "#ffffff" : submenuItem.brandColor
+                                            widgetContext: root.widgetContext
+                                        }
+                                    }
+
+                                    Column {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        width: parent.width - 18 - 6 - 20
+                                        spacing: 0
+
+                                        WidgetTextView {
+                                            text: modelData.name
+                                            role: "caption"
+                                            colorOverride: submenuItem.isSelected ? StyleTokens.textPrimary : StyleTokens.textSecondary
+                                            widgetContext: root.widgetContext
+                                        }
+
+                                        Row {
+                                            spacing: 3
+
+                                            Rectangle {
+                                                anchors.verticalCenter: parent.verticalCenter
+                                                width: 5
+                                                height: 5
+                                                radius: 2.5
+                                                color: submenuItem.isRunning ? StyleTokens.success : StyleTokens.textDisabled
+                                            }
+
+                                            WidgetTextView {
+                                                text: submenuItem.sessionCount > 0
+                                                    ? (submenuItem.sessionCount + (submenuItem.sessionCount === 1 ? " session" : " sessions"))
+                                                    : (submenuItem.isRunning ? "Running" : "Idle")
+                                                role: "caption"
+                                                colorOverride: submenuItem.isRunning ? StyleTokens.success : StyleTokens.textDisabled
+                                                widgetContext: root.widgetContext
+                                            }
+                                        }
+                                    }
+
+                                    WidgetIconGlyph {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        glyph: "󰄲"
+                                        size: 11
+                                        color: StyleTokens.accent
+                                        visible: submenuItem.isSelected
+                                        widgetContext: root.widgetContext
+                                    }
+                                }
+
+                                MouseArea {
+                                    id: itemMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        AIAgentsBackend.setSelectedProvider(modelData.id);
+                                        root.agentSubmenuOpen = false;
+                                    }
                                 }
                             }
                         }
