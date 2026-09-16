@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtQuick.Shapes
 import Quickshell
 import IslandBackend
 import "../widgets/components"
@@ -1122,16 +1123,33 @@ FocusScope {
         }
     }
 
-    Rectangle {
+    Shape {
+        id: shelfDropBorder
         z: 20
         x: shelfContentArea.x + 1
         y: shelfContentArea.y + 1
         width: Math.max(0, shelfContentArea.width - 2)
         height: Math.max(0, shelfContentArea.height - 2)
-        radius: StyleTokens.radiusModule
-        color: StyleTokens.transparent
-        border.width: root.externalDropZone === "shelf" ? 3 : 0
-        border.color: StyleTokens.accent
         visible: root.externalDropZone === "shelf"
+        layer.enabled: true
+        layer.samples: 4
+
+        ShapePath {
+            strokeWidth: 2
+            strokeColor: StyleTokens.accent
+            strokeStyle: ShapePath.DashLine
+            dashPattern: [3, 5]
+            fillColor: "transparent"
+            capStyle: ShapePath.RoundCap
+            joinStyle: ShapePath.RoundJoin
+
+            PathRectangle {
+                x: 1
+                y: 1
+                width: Math.max(0, shelfDropBorder.width - 2)
+                height: Math.max(0, shelfDropBorder.height - 2)
+                radius: Math.max(0, StyleTokens.radiusModule - 1)
+            }
+        }
     }
 }
