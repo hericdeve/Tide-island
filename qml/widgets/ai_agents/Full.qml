@@ -19,14 +19,31 @@ Item {
     readonly property string state: AIAgentsBackend.sessionState
     readonly property bool isWaitingConsent: state === "waiting_consent" || (AIAgentsBackend.pendingConsentId !== "")
 
+    readonly property string activeOutputMessage: {
+        if (AIAgentsBackend.lastMessage) return AIAgentsBackend.lastMessage;
+        if (AIAgentsBackend.toolDetail) return AIAgentsBackend.toolDetail;
+        if (root.state === "running_tool" && AIAgentsBackend.toolAction) return AIAgentsBackend.toolAction;
+        return "";
+    }
+
     // Off-screen measuring items to determine wrapped content height
     WidgetTextView {
         id: bannerTextMeasure
         measureOnly: true
         width: Math.max(120, (root.width > 0 ? root.width : 600) - (root.state === "error" ? 56 : 36))
-        role: "body"
+        role: (root.state === "running_tool" && !AIAgentsBackend.lastMessage) ? "code" : "body"
         overflowMode: "wrap"
-        text: AIAgentsBackend.toolDetail || AIAgentsBackend.lastMessage || ""
+        text: root.activeOutputMessage
+        widgetContext: root.widgetContext
+    }
+
+    WidgetTextView {
+        id: thinkingTextMeasure
+        measureOnly: true
+        width: bannerTextMeasure.width
+        role: "caption"
+        overflowMode: "wrap"
+        text: (root.state === "thinking" && AIAgentsBackend.thinkingProcess !== "") ? AIAgentsBackend.thinkingProcess : ""
         widgetContext: root.widgetContext
     }
 
@@ -40,7 +57,17 @@ Item {
         widgetContext: root.widgetContext
     }
 
-    readonly property real baseSlotHeight: Math.max(120, (UserConfig.notchOpenHeight || 190) - 52)
+    readonly property real baseSlotHeight: {
+        const vertPadding = (UserConfig && UserConfig.notchExpandedPaddingVertical !== undefined)
+            ? UserConfig.notchExpandedPaddingVertical * 2 : 12;
+        return Math.max(120, (UserConfig ? UserConfig.notchOpenHeight : 190) - (24 + vertPadding + 5));
+    }
+
+    readonly property real maxAllowedExpansion: {
+        const maxPct = (UserConfig && UserConfig.dynamicResizeEnabledFull !== false && UserConfig.dynamicResizeMaxPctFull !== undefined)
+            ? UserConfig.dynamicResizeMaxPctFull : 40;
+        return Math.round((UserConfig ? UserConfig.notchOpenHeight : 190) * (maxPct / 100.0));
+    }
 
     readonly property real requestedContentWidth: {
         if (root.width > 0 && root.width < 320) {
@@ -49,23 +76,52 @@ Item {
         return 0;
     }
 
-    readonly property real requestedContentHeight: {
-        if (root.isWaitingConsent) {
-            const h = consentTextMeasure.implicitHeight;
-            if (h > 42) {
-                const extraH = Math.min(120, h - 42);
-                return baseSlotHeight + extraH;
-            }
-            return 0;
+    property real targetContentHeight: 0
+    readonly property real requestedContentHeight: targetContentHeight
+
+    Timer {
+        id: resizeSettleTimer
+        interval: 100
+        repeat: false
+        onTriggered: root.updateTargetContentHeight()
+    }
+
+    function updateTargetContentHeight() {
+        if (root.width <= 100) {
+            targetContentHeight = 0;
+            return;
         }
 
-        const bannerH = bannerTextMeasure.implicitHeight;
-        if (bannerH > 22) {
-            const extraH = Math.min(160, bannerH - 18);
-            return baseSlotHeight + extraH;
+        if (root.isWaitingConsent) {
+            const h = consentTextMeasure.implicitHeight;
+            const restingConsentH = Math.max(30, baseSlotHeight - 70);
+            if (h > restingConsentH + 10) {
+                const neededH = h - restingConsentH;
+                const extraH = Math.min(maxAllowedExpansion, neededH);
+                targetContentHeight = baseSlotHeight + extraH;
+                return;
+            }
+            targetContentHeight = 0;
+            return;
         }
-        return 0;
+
+        const restingOutputH = Math.max(30, baseSlotHeight - 108);
+        const thinkingH = (root.state === "thinking" && AIAgentsBackend.thinkingProcess !== "")
+            ? (thinkingTextMeasure.implicitHeight + 4) : 0;
+        const totalTextH = thinkingH + bannerTextMeasure.implicitHeight;
+        if (totalTextH > restingOutputH + 10) {
+            const neededH = totalTextH - restingOutputH;
+            const extraH = Math.min(maxAllowedExpansion, neededH);
+            targetContentHeight = baseSlotHeight + extraH;
+            return;
+        }
+        targetContentHeight = 0;
     }
+
+    onActiveOutputMessageChanged: resizeSettleTimer.restart()
+    onIsWaitingConsentChanged: resizeSettleTimer.restart()
+    onWidthChanged: if (root.width > 100) resizeSettleTimer.restart()
+    Component.onCompleted: resizeSettleTimer.restart()
 
     function toolIcon() {
         const t = (AIAgentsBackend.currentTool || "").toLowerCase();
@@ -673,12 +729,7 @@ Item {
                         WidgetTextView {
                             id: outputMessageText
                             width: parent.width
-                            text: {
-                                if (AIAgentsBackend.lastMessage) return AIAgentsBackend.lastMessage;
-                                if (AIAgentsBackend.toolDetail) return AIAgentsBackend.toolDetail;
-                                if (root.state === "running_tool" && AIAgentsBackend.toolAction) return AIAgentsBackend.toolAction;
-                                return "Ready to assist";
-                            }
+                            text: root.activeOutputMessage !== "" ? root.activeOutputMessage : "Ready to assist"
                             role: (root.state === "running_tool" && !AIAgentsBackend.lastMessage) ? "code" : "body"
                             overflowMode: "wrap"
                             colorOverride: root.state === "error" ? "#fca5a5" : StyleTokens.textPrimary
