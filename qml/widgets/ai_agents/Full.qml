@@ -84,7 +84,7 @@ Item {
         switch (root.state) {
         case "waiting_consent": return "Approval Required";
         case "thinking": return "Thinking...";
-        case "running_tool": return "Running " + (AIAgentsBackend.currentTool || "Tool");
+        case "running_tool": return AIAgentsBackend.currentTool ? ("Running " + AIAgentsBackend.currentTool) : "Running Tool";
         case "error": return "Error";
         case "done": return "Finished";
         case "idle": default: return "Ready";
@@ -292,55 +292,43 @@ Item {
                     }
                 }
 
-                // Project & State
-                Column {
+                // Project & Branch Row
+                Row {
                     anchors.verticalCenter: parent.verticalCenter
                     width: Math.max(40, parent.width - agentSelectorBtn.width - 6 - (actionsRow.width + 6))
-                    spacing: 1
-
-                    Row {
-                        spacing: 4
-                        WidgetTextView {
-                            text: AIAgentsBackend.projectName || AIAgentsBackend.providerDisplayName
-                            role: "caption"
-                            colorOverride: StyleTokens.textPrimary
-                            overflowMode: "elide"
-                            widgetContext: root.widgetContext
-                        }
-                        // Branch tag
-                        Rectangle {
-                            visible: AIAgentsBackend.gitBranch !== ""
-                            height: 13
-                            width: branchLabel.implicitWidth + 8
-                            radius: 4
-                            color: StyleTokens.module
-                            Row {
-                                id: branchLabel
-                                anchors.centerIn: parent
-                                spacing: 3
-                                WidgetIconGlyph {
-                                    glyph: "󰘬"
-                                    size: 8
-                                    color: "#9ca3af"
-                                    widgetContext: root.widgetContext
-                                }
-                                WidgetTextView {
-                                    text: AIAgentsBackend.gitBranch
-                                    role: "caption"
-                                    colorOverride: "#d1d5db"
-                                    widgetContext: root.widgetContext
-                                }
-                            }
-                        }
-                    }
+                    spacing: 4
 
                     WidgetTextView {
-                        text: root.stateText() + (AIAgentsBackend.currentTool ? " (" + AIAgentsBackend.currentTool + ")" : "")
+                        text: AIAgentsBackend.projectName || AIAgentsBackend.providerDisplayName
                         role: "caption"
-                        colorOverride: root.stateColor()
+                        colorOverride: StyleTokens.textPrimary
                         overflowMode: "elide"
-                        width: parent.width
                         widgetContext: root.widgetContext
+                    }
+                    // Branch tag
+                    Rectangle {
+                        visible: AIAgentsBackend.gitBranch !== ""
+                        height: 14
+                        width: branchLabel.implicitWidth + 8
+                        radius: 4
+                        color: StyleTokens.module
+                        Row {
+                            id: branchLabel
+                            anchors.centerIn: parent
+                            spacing: 3
+                            WidgetIconGlyph {
+                                glyph: "󰘬"
+                                size: 8
+                                color: "#9ca3af"
+                                widgetContext: root.widgetContext
+                            }
+                            WidgetTextView {
+                                text: AIAgentsBackend.gitBranch
+                                role: "caption"
+                                colorOverride: "#d1d5db"
+                                widgetContext: root.widgetContext
+                            }
+                        }
                     }
                 }
 
@@ -496,15 +484,42 @@ Item {
                         }
                     }
 
-                    WidgetTextView {
-                        id: bannerText
+                    Column {
                         anchors.verticalCenter: parent.verticalCenter
                         width: parent.width - 24 - (dismissErrorBtn.visible ? 20 : 0)
-                        text: AIAgentsBackend.toolDetail || AIAgentsBackend.lastMessage || "Ready to assist"
-                        role: "body"
-                        overflowMode: "wrap"
-                        colorOverride: root.state === "error" ? "#fca5a5" : StyleTokens.textPrimary
-                        widgetContext: root.widgetContext
+                        spacing: 2
+
+                        // Status header above the detail message
+                        Row {
+                            spacing: 4
+
+                            Rectangle {
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: 5
+                                height: 5
+                                radius: 2.5
+                                color: root.stateColor()
+                            }
+
+                            WidgetTextView {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: root.stateText()
+                                role: "caption"
+                                colorOverride: root.stateColor()
+                                widgetContext: root.widgetContext
+                            }
+                        }
+
+                        // Detail message
+                        WidgetTextView {
+                            id: bannerText
+                            width: parent.width
+                            text: AIAgentsBackend.toolDetail || AIAgentsBackend.lastMessage || "Ready to assist"
+                            role: "body"
+                            overflowMode: "wrap"
+                            colorOverride: root.state === "error" ? "#fca5a5" : StyleTokens.textPrimary
+                            widgetContext: root.widgetContext
+                        }
                     }
 
                     Item {
