@@ -52,7 +52,7 @@ PagePanel {
         Item {
             id: content
             width: scroller.width
-            height: statusBarPanel.y + statusBarPanel.height + 40
+            height: dynamicEventsPanel.y + dynamicEventsPanel.height + 40
 
             Text {
                 id: title
@@ -263,16 +263,6 @@ PagePanel {
                         description: "Show playful animated blinking eyes when closed and idle"
                         keyName: "showBoringFace"
                         fallbackState: false
-                        width: parent.width
-                    }
-
-                    SplitLine { width: parent.width }
-
-                    ToggleRow {
-                        title: "Notch Notifications"
-                        description: "Display incoming notifications as an animated capsule in the notch"
-                        keyName: "notchNotificationsEnabled"
-                        fallbackState: true
                         width: parent.width
                     }
                 }
@@ -707,6 +697,76 @@ PagePanel {
                         description: "Show gear button to open the Tide Island Settings application"
                         keyName: "statusBarShowSettings"
                         fallbackState: true
+                        width: parent.width
+                    }
+                }
+            }
+
+            // 8. Dynamic Events & Notifications
+            Text {
+                id: dynamicEventsTitle
+                text: "Dynamic Events & Notifications"
+                anchors.top: statusBarPanel.bottom
+                anchors.topMargin: 34
+                anchors.left: parent.left
+                anchors.leftMargin: 32
+                anchors.right: parent.right
+                anchors.rightMargin: 40
+                font.family: Theme.titleFontFamily
+                font.pixelSize: 23
+                color: Theme.textColor
+            }
+
+            Rectangle {
+                id: dynamicEventsPanel
+                color: Theme.cardBgColor
+                radius: 16
+                border.width: 1
+                border.color: Theme.splitLineColor
+                anchors.top: dynamicEventsTitle.bottom
+                anchors.topMargin: 15
+                anchors.left: parent.left
+                anchors.leftMargin: 30
+                anchors.right: parent.right
+                anchors.rightMargin: 40
+                height: dynamicEventsColumn.implicitHeight + 36
+
+                Column {
+                    id: dynamicEventsColumn
+                    anchors.top: parent.top
+                    anchors.topMargin: 18
+                    anchors.left: parent.left
+                    anchors.leftMargin: 18
+                    anchors.right: parent.right
+                    anchors.rightMargin: 18
+                    spacing: 16
+
+                    ToggleRow {
+                        title: "Notch Notifications"
+                        description: "Display incoming desktop notifications as an animated capsule in the notch"
+                        keyName: "notchNotificationsEnabled"
+                        fallbackState: true
+                        width: parent.width
+                    }
+
+                    SplitLine { width: parent.width }
+
+                    ToggleRow {
+                        title: "Workspace Change Notification"
+                        description: "Morph notch into a capsule displaying active workspace when switching workspaces"
+                        keyName: "workspaceNotificationEnabled"
+                        fallbackState: true
+                        width: parent.width
+                    }
+
+                    SplitLine { width: parent.width }
+
+                    ToggleRow {
+                        title: "Auto-Expand on Track Change"
+                        description: "Expand island into full media player when media track changes"
+                        keyName: "disableAutoExpandOnTrackChange"
+                        fallbackState: true
+                        invert: true
                         width: parent.width
                     }
                 }

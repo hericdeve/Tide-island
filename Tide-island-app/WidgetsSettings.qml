@@ -36,7 +36,7 @@ PagePanel {
         Item {
             id: content
             width: scroller.width
-            height: claudePanel.y + claudePanel.height + 40
+            height: aiAgentsPanel.y + aiAgentsPanel.height + 40
 
             Text {
                 id: title
@@ -224,10 +224,10 @@ PagePanel {
                 }
             }
 
-            // 4. Claude Code Widget
+            // 4. AI General Agents Widget
             Text {
-                id: claudeTitle
-                text: "Claude Code"
+                id: aiAgentsTitle
+                text: "AI General Agents"
                 anchors.top: calendarPanel.bottom
                 anchors.topMargin: 34
                 anchors.left: parent.left
@@ -240,21 +240,21 @@ PagePanel {
             }
 
             Rectangle {
-                id: claudePanel
+                id: aiAgentsPanel
                 color: Theme.cardBgColor
                 radius: 16
                 border.width: 1
                 border.color: Theme.splitLineColor
-                anchors.top: claudeTitle.bottom
+                anchors.top: aiAgentsTitle.bottom
                 anchors.topMargin: 15
                 anchors.left: parent.left
                 anchors.leftMargin: 30
                 anchors.right: parent.right
                 anchors.rightMargin: 40
-                height: claudeColumn.implicitHeight + 36
+                height: aiAgentsColumn.implicitHeight + 36
 
                 Column {
-                    id: claudeColumn
+                    id: aiAgentsColumn
                     anchors.top: parent.top
                     anchors.topMargin: 18
                     anchors.left: parent.left
@@ -263,11 +263,33 @@ PagePanel {
                     anchors.rightMargin: 18
                     spacing: 16
 
+                    AiAgentsProviderRow {
+                        width: parent.width
+                    }
+
+                    SplitLine { width: parent.width }
+
+                    ToggleRow {
+                        title: "Auto-Expand on Tool Approval"
+                        description: "Automatically expand the Dynamic Island when an agent requests tool execution permission"
+                        keyName: "aiAgentsAutoExpandOnConsent"
+                        fallbackState: true
+                        width: parent.width
+                    }
+
+                    SplitLine { width: parent.width }
+
                     ToggleRow {
                         title: "Minimum View Shows Last Message"
                         description: "Display the latest assistant message or command output in the compact minimum view instead of session status"
-                        keyName: "claudeMinimumShowsLastMessage"
+                        keyName: "aiAgentsMinimumShowsLastMessage"
                         fallbackState: false
+                        width: parent.width
+                    }
+
+                    SplitLine { width: parent.width }
+
+                    AiAgentsTerminalRow {
                         width: parent.width
                     }
                 }
@@ -362,6 +384,117 @@ PagePanel {
                     ConfigStore.setValue(toggleRow.keyName, toggleRow.invert ? !next : next)
                     ConfigStore.save()
                 }
+            }
+        }
+    }
+
+    component AiAgentsProviderRow: Item {
+        id: providerRow
+
+        property string selectedProvider: String(ConfigStore.value("aiAgentsPreferredProvider", "auto"))
+
+        height: 49
+
+        Text {
+            id: providerTitleText
+            text: "Default Agent Provider"
+            font.family: Theme.textFontFamily
+            font.pixelSize: 18
+            color: Theme.textColor
+            anchors.top: parent.top
+            anchors.left: parent.left
+        }
+
+        Text {
+            text: "Select default agent to monitor or choose Auto to follow whichever is active"
+            font.family: Theme.textFontFamily
+            font.pixelSize: 14
+            anchors.top: providerTitleText.bottom
+            anchors.topMargin: 5
+            anchors.left: providerTitleText.left
+            color: Theme.subtleTextColor
+        }
+
+        Row {
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 6
+
+            Repeater {
+                model: [
+                    { id: "auto", label: "Auto" },
+                    { id: "claude", label: "Claude" },
+                    { id: "opencode", label: "OpenCode" },
+                    { id: "agy", label: "AGY" }
+                ]
+
+                delegate: Rectangle {
+                    required property var modelData
+                    width: 68
+                    height: 32
+                    radius: 8
+                    color: providerRow.selectedProvider === modelData.id ? Theme.selectedColor : Theme.componentBgColor
+                    border.width: 1
+                    border.color: providerRow.selectedProvider === modelData.id ? Theme.selectedColor : Theme.splitLineColor
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: modelData.label
+                        font.family: Theme.textFontFamily
+                        font.pixelSize: 13
+                        font.weight: Font.Medium
+                        color: providerRow.selectedProvider === modelData.id ? Theme.buttonTextColor : Theme.textColor
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            ConfigStore.setValue("aiAgentsPreferredProvider", modelData.id)
+                            ConfigStore.save()
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    component AiAgentsTerminalRow: Item {
+        id: termRow
+
+        property string currentCmd: String(ConfigStore.value("aiAgentsTerminalCommand", ""))
+
+        height: 49
+
+        Text {
+            id: termTitleText
+            text: "Terminal Emulator"
+            font.family: Theme.textFontFamily
+            font.pixelSize: 18
+            color: Theme.textColor
+            anchors.top: parent.top
+            anchors.left: parent.left
+        }
+
+        Text {
+            text: "Command to spawn for terminal sessions (leave blank for auto-detection)"
+            font.family: Theme.textFontFamily
+            font.pixelSize: 14
+            anchors.top: termTitleText.bottom
+            anchors.topMargin: 5
+            anchors.left: termTitleText.left
+            color: Theme.subtleTextColor
+        }
+
+        ConfigTextField {
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            width: 180
+            placeholderText: "ghostty, kitty, etc."
+            text: termRow.currentCmd
+            onEditingFinished: {
+                ConfigStore.setValue("aiAgentsTerminalCommand", text.trim())
+                ConfigStore.save()
             }
         }
     }

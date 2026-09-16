@@ -13,18 +13,18 @@ Item {
     readonly property string textFontFamily: widgetContext ? widgetContext.textFontFamily : "Sans Serif"
     readonly property int bodyFontSize: widgetContext ? widgetContext.bodyFontSize : 16
     readonly property int iconFontSize: widgetContext ? widgetContext.iconFontSize : 18
-    readonly property real scrollSpeed: widgetContext ? (widgetContext.textScrollSpeed || widgetContext.claudeCodeScrollSpeed || 17) : 17
+    readonly property real scrollSpeed: widgetContext ? (widgetContext.textScrollSpeed || 17) : 17
 
-    readonly property string state: ClaudeCodeBackend.sessionState
-    readonly property bool isWaitingConsent: state === "waiting_consent" || (ClaudeCodeBackend.pendingConsentId !== "")
-    readonly property bool showsLastMessage: UserConfig.claudeMinimumShowsLastMessage || ClaudeCodeBackend.minimumShowsLastMessage
+    readonly property string state: AIAgentsBackend.sessionState
+    readonly property bool isWaitingConsent: state === "waiting_consent" || (AIAgentsBackend.pendingConsentId !== "")
+    readonly property bool showsLastMessage: UserConfig.aiAgentsMinimumShowsLastMessage || AIAgentsBackend.minimumShowsLastMessage
 
     function stateColor() {
-        if (!ClaudeCodeBackend.connected && !ClaudeCodeBackend.demoMode) return StyleTokens.textDisabled;
+        if (!AIAgentsBackend.connected && !AIAgentsBackend.demoMode) return StyleTokens.textDisabled;
         switch (root.state) {
         case "waiting_consent": return StyleTokens.warning;
         case "thinking": return StyleTokens.accentSoft;
-        case "running_tool": return StyleTokens.accent;
+        case "running_tool": return AIAgentsBackend.providerAccentColor;
         case "error": return StyleTokens.danger;
         case "done": return StyleTokens.success;
         case "idle": default: return StyleTokens.success;
@@ -32,37 +32,33 @@ Item {
     }
 
     function statusLabel() {
-        if (!ClaudeCodeBackend.connected && !ClaudeCodeBackend.demoMode) return "Claude Offline";
+        if (!AIAgentsBackend.connected && !AIAgentsBackend.demoMode) return "Agents Offline";
         if (root.isWaitingConsent) {
-            return "Permission: " + (ClaudeCodeBackend.pendingConsentTool || "Tool");
+            return "Permission: " + (AIAgentsBackend.pendingConsentTool || "Tool");
         }
         switch (root.state) {
         case "thinking": return "Thinking...";
-        case "running_tool": return (ClaudeCodeBackend.currentTool ? ClaudeCodeBackend.currentTool : "Working");
+        case "running_tool": return (AIAgentsBackend.currentTool ? AIAgentsBackend.currentTool : "Working");
         case "error": return "Error";
         case "done": return "Done";
         case "idle": default:
-            return (ClaudeCodeBackend.projectName || "Claude") + " • " + Math.round(ClaudeCodeBackend.contextUsagePercent * 100) + "%";
+            return (AIAgentsBackend.projectName || AIAgentsBackend.providerDisplayName) + " • " + Math.round(AIAgentsBackend.contextUsagePercent * 100) + "%";
         }
     }
 
     readonly property string displayText: {
-        if (!ClaudeCodeBackend.connected && !ClaudeCodeBackend.demoMode) return "Claude Offline";
+        if (!AIAgentsBackend.connected && !AIAgentsBackend.demoMode) return "Agents Offline";
         if (root.isWaitingConsent) {
-            return "Permission: " + (ClaudeCodeBackend.pendingConsentTool || "Tool");
+            return "Permission: " + (AIAgentsBackend.pendingConsentTool || "Tool");
         }
         if (root.showsLastMessage) {
-            const rawMsg = ClaudeCodeBackend.lastMessage || "";
+            const rawMsg = AIAgentsBackend.lastMessage || "";
             const msg = rawMsg.replace(/\r?\n|\r/g, " ").trim();
             if (msg.length > 0) {
                 return msg;
             }
         }
         return root.statusLabel();
-    }
-
-    function displayLabel() {
-        return root.displayText;
     }
 
     readonly property real naturalContentWidth: 16 + 7 + statusTextView.measuredWidth + 24
@@ -76,7 +72,7 @@ Item {
         anchors.centerIn: parent
         spacing: 7
 
-        // Ambient breathing status dot
+        // Ambient breathing status dot + provider glyph
         Item {
             id: statusDot
             width: 16

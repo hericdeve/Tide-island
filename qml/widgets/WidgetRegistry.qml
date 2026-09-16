@@ -96,15 +96,15 @@ QtObject {
             circleComponent: Qt.resolvedUrl("system_stats/Circle.qml")
         },
         {
-            id: "claude_code",
-            name: "Claude Code",
-            description: "AI assistant companion monitoring active sessions, tools, tokens, and consent requests",
+            id: "ai_agents",
+            name: "AI Agents",
+            description: "AI assistant companion monitoring Claude Code, OpenCode v2, and Antigravity CLI (agy)",
             icon: "󰚩",
             supportedSizes: ["full", "minimum", "circle"],
             defaultSlotSpan: 1,
-            fullComponent: Qt.resolvedUrl("claude_code/Full.qml"),
-            minimumComponent: Qt.resolvedUrl("claude_code/Minimum.qml"),
-            circleComponent: Qt.resolvedUrl("claude_code/Circle.qml")
+            fullComponent: Qt.resolvedUrl("ai_agents/Full.qml"),
+            minimumComponent: Qt.resolvedUrl("ai_agents/Minimum.qml"),
+            circleComponent: Qt.resolvedUrl("ai_agents/Circle.qml")
         },
         {
             id: "pixel_pet",

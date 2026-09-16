@@ -139,24 +139,24 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/user_config_backend_tests.cpp")
     add_test(NAME user_config_backend COMMAND user_config_backend_tests)
 endif()
 
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/claude_code_backend_tests.cpp")
-    add_executable(claude_code_backend_tests
-        tests/claude_code_backend_tests.cpp
-        backend/ClaudeCodeBackend.h
-        backend/ClaudeCodeBackend.cpp
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/ai_agents_backend_tests.cpp")
+    add_executable(ai_agents_backend_tests
+        tests/ai_agents_backend_tests.cpp
+        backend/AIAgentsBackend.h
+        backend/AIAgentsBackend.cpp
     )
 
-    target_include_directories(claude_code_backend_tests PRIVATE
+    target_include_directories(ai_agents_backend_tests PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/backend
     )
 
-    target_link_libraries(claude_code_backend_tests PRIVATE
+    target_link_libraries(ai_agents_backend_tests PRIVATE
         Qt6::Core
         Qt6::Qml
         Qt6::Test
     )
 
-    add_test(NAME claude_code_backend COMMAND claude_code_backend_tests)
+    add_test(NAME ai_agents_backend COMMAND ai_agents_backend_tests)
 endif()
 
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/pomotroid_backend_tests.cpp")
@@ -318,8 +318,8 @@ qt_add_qml_module(IslandBackend
         backend/GoogleAuthService.cpp
         backend/CredentialStorage.h
         backend/CredentialStorage.cpp
-        backend/ClaudeCodeBackend.h
-        backend/ClaudeCodeBackend.cpp
+        backend/AIAgentsBackend.h
+        backend/AIAgentsBackend.cpp
         backend/PomotroidBackend.h
         backend/PomotroidBackend.cpp
 )

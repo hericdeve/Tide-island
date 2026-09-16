@@ -41,6 +41,7 @@ FocusScope {
     property real reorderPointerX: 0
     property string suppressedOpenUri: ""
     property string externalDropZone: ""
+    property var lastExternalDropPoint: null
 
     readonly property real horizontalPadding: 8
     readonly property real availableTrayWidth: Math.max(100, trayViewport.width - 2 * horizontalPadding)
@@ -73,13 +74,18 @@ FocusScope {
     }
 
     onShowConditionChanged: {
-        if (!showCondition)
+        if (!showCondition) {
+            externalDropZone = "";
+            lastExternalDropPoint = null;
             return;
+        }
 
         FileShelf.refresh();
         normalizeSelection();
         if (!dropPreviewOnly && isCurrentPage)
             grabKeyboardFocus();
+        if (lastExternalDropPoint)
+            updateExternalDropPoint(lastExternalDropPoint);
     }
 
     onIsShelfActiveChanged: {
@@ -233,7 +239,11 @@ FocusScope {
 
     function isPointInShelfContent(point) {
         if (!point) return false;
-        const leftBound = panelSeparator && panelSeparator.visible ? panelSeparator.x : (localSendPanel && localSendPanel.visible ? localSendPanel.x : parent.width);
+        const leftBound = (panelSeparator && panelSeparator.visible && panelSeparator.x > 50)
+            ? panelSeparator.x
+            : ((localSendPanel && localSendPanel.visible && localSendPanel.x > 50)
+                ? localSendPanel.x
+                : (parent ? parent.width : root.width));
         return point.x >= 0 && point.x < leftBound;
     }
 
@@ -241,6 +251,8 @@ FocusScope {
         if (!localSendPanel || !localSendPanel.visible || !point)
             return false;
         const leftBound = panelSeparator && panelSeparator.visible ? panelSeparator.x : localSendPanel.x;
+        if (leftBound <= 50)
+            return false;
         return point.x >= leftBound;
     }
 
@@ -272,7 +284,14 @@ FocusScope {
         return false;
     }
 
+    onWidthChanged: {
+        if (showCondition && lastExternalDropPoint) {
+            updateExternalDropPoint(lastExternalDropPoint);
+        }
+    }
+
     function updateExternalDropPoint(point) {
+        lastExternalDropPoint = point;
         if (!point || !showCondition || dropPreviewOnly) {
             externalDropZone = "";
             return;

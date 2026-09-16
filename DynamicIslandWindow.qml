@@ -1274,7 +1274,12 @@ PanelWindow {
             }
 
             onWorkspaceActivated: function(workspaceId) {
-                if(userConfig.islandShowWorkspaceOnAutoHide){
+                if (userConfig && !userConfig.workspaceNotificationEnabled) {
+                    islandContainer.currentWs = workspaceId;
+                    return;
+                }
+
+                if (userConfig.islandShowWorkspaceOnAutoHide) {
                     root.showAutoHiddenIsland();
                 }
 
@@ -2569,6 +2574,7 @@ PanelWindow {
 
         function showWorkspaceCapsule(wsId) {
             currentWs = wsId;
+            if (userConfig && !userConfig.workspaceNotificationEnabled) return;
             if (root.autoHideSuppressesTransientReveal) return;
             if (islandState === "control_center" || islandState === "notification") return;
             const animateFromSide = currentTransientOriginSide();
@@ -3760,6 +3766,7 @@ PanelWindow {
                     }
                     root.focusExpandedPlayer();
                     dynamicResizeEngine.updateRequestedSizes();
+                    islandFileDropArea.refreshDropTarget();
                 }
 
                 sourceComponent: Component {
@@ -4062,14 +4069,34 @@ PanelWindow {
                 anchors.bottomMargin: !(islandContainer.expandedLayerVisible && expandedPlayerLoader.item && expandedPlayerLoader.item.currentPage === 0) ? -32 : 0
                 anchors.leftMargin: !(islandContainer.expandedLayerVisible && expandedPlayerLoader.item && expandedPlayerLoader.item.currentPage === 0) ? -32 : 0
                 anchors.rightMargin: !(islandContainer.expandedLayerVisible && expandedPlayerLoader.item && expandedPlayerLoader.item.currentPage === 0) ? -32 : 0
-                enabled: (islandContainer.expandedLayerVisible && expandedPlayerLoader.item && expandedPlayerLoader.item.currentPage === 0)
+                enabled: islandContainer.expandedLayerVisible
                     || islandContainer.fileShelfCanAutoOpen
+
+                property point lastDragPoint: Qt.point(-1, -1)
+                property bool hasDrag: false
+
+                function refreshDropTarget() {
+                    if (!hasDrag || lastDragPoint.x < 0)
+                        return;
+                    const expanded = expandedPlayerLoader.item;
+                    const shelf = fileShelfLoader.item;
+                    if (expanded && (expanded.currentPage === undefined || expanded.currentPage === 0)) {
+                        const expandedPoint = islandFileDropArea.mapToItem(expanded, lastDragPoint.x, lastDragPoint.y);
+                        expanded.updateExternalDropPoint(expandedPoint);
+                    } else if (shelf) {
+                        const shelfPoint = islandFileDropArea.mapToItem(shelf, lastDragPoint.x, lastDragPoint.y);
+                        shelf.updateExternalDropPoint(shelfPoint);
+                    }
+                }
 
                 onEntered: drag => {
                     if (!root.dragCarriesFiles(drag)) {
                         drag.accepted = false;
                         return;
                     }
+
+                    hasDrag = true;
+                    lastDragPoint = Qt.point(drag.x, drag.y);
 
                     if (!islandContainer.expandedLayerVisible || (expandedPlayerLoader.item && expandedPlayerLoader.item.currentPage !== 0))
                         islandContainer.showExpandedPlayer(false, 0);
@@ -4096,6 +4123,9 @@ PanelWindow {
                 }
 
                 onPositionChanged: drag => {
+                    hasDrag = true;
+                    lastDragPoint = Qt.point(drag.x, drag.y);
+
                     const expanded = expandedPlayerLoader.item;
                     const shelf = fileShelfLoader.item;
                     if (expanded && expanded.currentPage === 0) {
@@ -4117,6 +4147,8 @@ PanelWindow {
                 }
 
                 onExited: {
+                    hasDrag = false;
+                    lastDragPoint = Qt.point(-1, -1);
                     const expanded = expandedPlayerLoader.item;
                     const shelf = fileShelfLoader.item;
                     if (expanded)
@@ -4127,6 +4159,8 @@ PanelWindow {
                 }
 
                 onDropped: drop => {
+                    hasDrag = false;
+                    lastDragPoint = Qt.point(-1, -1);
                     if (!root.dragCarriesFiles(drop)) {
                         drop.accepted = false;
                         return;

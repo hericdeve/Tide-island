@@ -1,5 +1,6 @@
 import QtQuick
 import IslandBackend
+import "../components"
 
 Item {
     id: root
@@ -12,20 +13,20 @@ Item {
     readonly property string textFontFamily: widgetContext ? widgetContext.textFontFamily : "Sans Serif"
     readonly property int bodyFontSize: widgetContext ? widgetContext.bodyFontSize : 16
     readonly property int iconFontSize: widgetContext ? widgetContext.iconFontSize : 18
-    readonly property real scrollSpeed: widgetContext ? (widgetContext.textScrollSpeed || widgetContext.claudeCodeScrollSpeed || 17) : 17
+    readonly property real scrollSpeed: widgetContext ? (widgetContext.textScrollSpeed || 17) : 17
 
-    readonly property string state: ClaudeCodeBackend.sessionState
-    readonly property bool isWaitingConsent: state === "waiting_consent" || (ClaudeCodeBackend.pendingConsentId !== "")
-    readonly property real contextPercent: Math.max(0.0, Math.min(1.0, ClaudeCodeBackend.contextUsagePercent))
+    readonly property string state: AIAgentsBackend.sessionState
+    readonly property bool isWaitingConsent: state === "waiting_consent" || (AIAgentsBackend.pendingConsentId !== "")
+    readonly property real contextPercent: Math.max(0.0, Math.min(1.0, AIAgentsBackend.contextUsagePercent))
     readonly property real diameter: Math.min(width, height)
     readonly property bool isPillMode: root.width > (root.height + 8)
 
     function stateColor() {
-        if (!ClaudeCodeBackend.connected && !ClaudeCodeBackend.demoMode) return StyleTokens.textDisabled;
+        if (!AIAgentsBackend.connected && !AIAgentsBackend.demoMode) return StyleTokens.textDisabled;
         switch (root.state) {
         case "waiting_consent": return StyleTokens.warning;
         case "thinking": return StyleTokens.accentSoft;
-        case "running_tool": return StyleTokens.accent;
+        case "running_tool": return AIAgentsBackend.providerAccentColor;
         case "error": return StyleTokens.danger;
         case "done": return StyleTokens.success;
         case "idle": default: return StyleTokens.success;
@@ -35,21 +36,21 @@ Item {
     function arcColor() {
         if (root.contextPercent > 0.85) return StyleTokens.danger;
         if (root.contextPercent > 0.65) return StyleTokens.warning;
-        return StyleTokens.accent;
+        return AIAgentsBackend.providerAccentColor;
     }
 
     function displayStatusText() {
-        if (!ClaudeCodeBackend.connected && !ClaudeCodeBackend.demoMode) return "Offline";
-        if (root.isWaitingConsent) return "Permission: " + (ClaudeCodeBackend.pendingConsentTool || "Tool");
+        if (!AIAgentsBackend.connected && !AIAgentsBackend.demoMode) return "Offline";
+        if (root.isWaitingConsent) return "Permission: " + (AIAgentsBackend.pendingConsentTool || "Tool");
         switch (root.state) {
         case "thinking": return "Thinking...";
-        case "running_tool": return ClaudeCodeBackend.currentTool ? ClaudeCodeBackend.currentTool : "Working";
+        case "running_tool": return AIAgentsBackend.currentTool ? AIAgentsBackend.currentTool : "Working";
         case "error": return "Error";
         case "done": return "Done";
         default:
-            const raw = ClaudeCodeBackend.lastMessage || "";
+            const raw = AIAgentsBackend.lastMessage || "";
             if (raw.trim().length > 0) return raw.trim();
-            return (ClaudeCodeBackend.projectName || "Claude") + " " + Math.round(root.contextPercent * 100) + "%";
+            return (AIAgentsBackend.projectName || AIAgentsBackend.providerDisplayName) + " " + Math.round(root.contextPercent * 100) + "%";
         }
     }
 
@@ -57,22 +58,15 @@ Item {
         if (ringCanvas) ringCanvas.requestPaint();
     }
 
-    TextMetrics {
-        id: circleTextMetrics
-        font.family: root.textFontFamily
-        font.pixelSize: Math.round(10 * root.bodyFontSize / 16.0)
-        text: root.displayStatusText()
-    }
-
     readonly property bool shouldRequestPill: {
-        if (!ClaudeCodeBackend.connected && !ClaudeCodeBackend.demoMode) return false;
+        if (!AIAgentsBackend.connected && !AIAgentsBackend.demoMode) return false;
         return root.state === "thinking" || root.state === "running_tool" || root.isWaitingConsent
-            || (root.state === "done" && ClaudeCodeBackend.lastMessage !== "");
+            || (root.state === "done" && AIAgentsBackend.lastMessage !== "");
     }
 
     readonly property real requestedContentWidth: {
         if (!shouldRequestPill) return 0;
-        const needed = 44 + circleTextMetrics.width + 20;
+        const needed = 44 + pillStatusTextView.measuredWidth + 20;
         return needed > 44 ? needed : 0;
     }
     readonly property real requestedContentHeight: 0
@@ -126,8 +120,9 @@ Item {
             }
 
             Connections {
-                target: ClaudeCodeBackend
+                target: AIAgentsBackend
                 function onTokenMetricsChanged() { ringCanvas.requestPaint(); }
+                function onActiveProviderChanged() { ringCanvas.requestPaint(); }
             }
             onWidthChanged: requestPaint()
             onHeightChanged: requestPaint()
@@ -164,7 +159,7 @@ Item {
 
             WidgetIconGlyph {
                 anchors.horizontalCenter: parent.horizontalCenter
-                glyph: root.isWaitingConsent ? "󰀦" : ((root.state === "running_tool") ? "󰞷" : "󰚩")
+                glyph: root.isWaitingConsent ? "󰀦" : ((root.state === "running_tool") ? "󰞷" : AIAgentsBackend.providerIcon)
                 size: root.isPillMode ? 10 : 13
                 color: root.stateColor()
                 widgetContext: root.widgetContext

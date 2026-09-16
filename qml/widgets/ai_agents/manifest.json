@@ -1,7 +1,7 @@
 {
-  "id": "claude_code",
-  "name": "Claude Code",
-  "description": "AI assistant companion monitoring active sessions, tools, tokens, and consent requests",
+  "id": "ai_agents",
+  "name": "AI Agents",
+  "description": "AI assistant companion monitoring Claude Code, OpenCode v2, and Antigravity CLI (agy)",
   "icon": "󰚩",
   "supportedSizes": ["full", "minimum", "circle"],
   "defaultSlotSpan": 1,

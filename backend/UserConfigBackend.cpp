@@ -424,6 +424,66 @@ void UserConfigBackend::setClaudeMinimumShowsLastMessage(bool showsLastMessage)
     }
 }
 
+QString UserConfigBackend::aiAgentsPreferredProvider() const
+{
+    return m_aiAgentsPreferredProvider;
+}
+
+void UserConfigBackend::setAiAgentsPreferredProvider(const QString &provider)
+{
+    if (m_aiAgentsPreferredProvider == provider)
+        return;
+
+    m_aiAgentsPreferredProvider = provider;
+    emit aiAgentsPreferredProviderChanged();
+    writeConfigJsonField(m_userConfigPath, QStringLiteral("aiAgentsPreferredProvider"), m_aiAgentsPreferredProvider);
+}
+
+bool UserConfigBackend::aiAgentsMinimumShowsLastMessage() const
+{
+    return m_aiAgentsMinimumShowsLastMessage;
+}
+
+void UserConfigBackend::setAiAgentsMinimumShowsLastMessage(bool showsLastMessage)
+{
+    if (m_aiAgentsMinimumShowsLastMessage == showsLastMessage)
+        return;
+
+    m_aiAgentsMinimumShowsLastMessage = showsLastMessage;
+    emit aiAgentsMinimumShowsLastMessageChanged();
+    writeConfigJsonField(m_userConfigPath, QStringLiteral("aiAgentsMinimumShowsLastMessage"), m_aiAgentsMinimumShowsLastMessage);
+}
+
+bool UserConfigBackend::aiAgentsAutoExpandOnConsent() const
+{
+    return m_aiAgentsAutoExpandOnConsent;
+}
+
+void UserConfigBackend::setAiAgentsAutoExpandOnConsent(bool autoExpand)
+{
+    if (m_aiAgentsAutoExpandOnConsent == autoExpand)
+        return;
+
+    m_aiAgentsAutoExpandOnConsent = autoExpand;
+    emit aiAgentsAutoExpandOnConsentChanged();
+    writeConfigJsonField(m_userConfigPath, QStringLiteral("aiAgentsAutoExpandOnConsent"), m_aiAgentsAutoExpandOnConsent);
+}
+
+QString UserConfigBackend::aiAgentsTerminalCommand() const
+{
+    return m_aiAgentsTerminalCommand;
+}
+
+void UserConfigBackend::setAiAgentsTerminalCommand(const QString &command)
+{
+    if (m_aiAgentsTerminalCommand == command)
+        return;
+
+    m_aiAgentsTerminalCommand = command;
+    emit aiAgentsTerminalCommandChanged();
+    writeConfigJsonField(m_userConfigPath, QStringLiteral("aiAgentsTerminalCommand"), m_aiAgentsTerminalCommand);
+}
+
 bool UserConfigBackend::minimumAlwaysShowClock() const
 {
     return m_minimumAlwaysShowClock;
@@ -981,6 +1041,21 @@ void UserConfigBackend::setNotchNotificationsEnabled(bool enabled)
     m_notchNotificationsEnabled = enabled;
     emit notchNotificationsEnabledChanged();
     writeConfigJsonField(m_userConfigPath, QStringLiteral("notchNotificationsEnabled"), m_notchNotificationsEnabled);
+}
+
+bool UserConfigBackend::workspaceNotificationEnabled() const
+{
+    return m_workspaceNotificationEnabled;
+}
+
+void UserConfigBackend::setWorkspaceNotificationEnabled(bool enabled)
+{
+    if (m_workspaceNotificationEnabled == enabled)
+        return;
+
+    m_workspaceNotificationEnabled = enabled;
+    emit workspaceNotificationEnabledChanged();
+    writeConfigJsonField(m_userConfigPath, QStringLiteral("workspaceNotificationEnabled"), m_workspaceNotificationEnabled);
 }
 
 bool UserConfigBackend::hideNotchInFullscreen() const
@@ -1638,6 +1713,10 @@ void UserConfigBackend::loadConfig()
     updateField(this, m_disableAutoExpandOnTrackChange, jsonBool(configObject, QLatin1String("disableAutoExpandOnTrackChange"), true), &UserConfigBackend::disableAutoExpandOnTrackChangeChanged);
     updateField(this, m_playerRememberLastPane, jsonBool(configObject, QLatin1String("playerRememberLastPane"), false), &UserConfigBackend::playerRememberLastPaneChanged);
     updateField(this, m_claudeMinimumShowsLastMessage, jsonBool(configObject, QLatin1String("claudeMinimumShowsLastMessage"), false), &UserConfigBackend::claudeMinimumShowsLastMessageChanged);
+    updateField(this, m_aiAgentsPreferredProvider, jsonString(configObject, QLatin1String("aiAgentsPreferredProvider"), QStringLiteral("auto")), &UserConfigBackend::aiAgentsPreferredProviderChanged);
+    updateField(this, m_aiAgentsMinimumShowsLastMessage, jsonBool(configObject, QLatin1String("aiAgentsMinimumShowsLastMessage"), m_claudeMinimumShowsLastMessage), &UserConfigBackend::aiAgentsMinimumShowsLastMessageChanged);
+    updateField(this, m_aiAgentsAutoExpandOnConsent, jsonBool(configObject, QLatin1String("aiAgentsAutoExpandOnConsent"), true), &UserConfigBackend::aiAgentsAutoExpandOnConsentChanged);
+    updateField(this, m_aiAgentsTerminalCommand, jsonString(configObject, QLatin1String("aiAgentsTerminalCommand"), QString()), &UserConfigBackend::aiAgentsTerminalCommandChanged);
     updateField(this, m_minimumAlwaysShowClock, jsonBool(configObject, QLatin1String("minimumAlwaysShowClock"), false), &UserConfigBackend::minimumAlwaysShowClockChanged);
     updateField(this, m_dynamicResizeEnabledFull, jsonBool(configObject, QLatin1String("dynamicResizeEnabledFull"), true), &UserConfigBackend::dynamicResizeEnabledFullChanged);
     updateField(this, m_dynamicResizeEnabledMinimum, jsonBool(configObject, QLatin1String("dynamicResizeEnabledMinimum"), true), &UserConfigBackend::dynamicResizeEnabledMinimumChanged);
@@ -1651,6 +1730,7 @@ void UserConfigBackend::loadConfig()
     updateField(this, m_islandAutoHideEnabled, jsonBool(configObject, QLatin1String("islandAutoHideEnabled"), true), &UserConfigBackend::islandAutoHideEnabledChanged);
     updateField(this, m_islandAutoHideDelayMs, jsonBoundedInt(configObject, QLatin1String("islandAutoHideDelayMs"), 1000, 100, 10000), &UserConfigBackend::islandAutoHideDelayMsChanged);
     updateField(this, m_notchNotificationsEnabled, jsonBool(configObject, QLatin1String("notchNotificationsEnabled"), true), &UserConfigBackend::notchNotificationsEnabledChanged);
+    updateField(this, m_workspaceNotificationEnabled, jsonBool(configObject, QLatin1String("workspaceNotificationEnabled"), true), &UserConfigBackend::workspaceNotificationEnabledChanged);
 
     const bool legacyBoringNotch = jsonBool(configObject, QLatin1String("boringNotchEnabled"), true);
     QString configuredNotchMode = jsonString(configObject, QLatin1String("notchMode"), QString()).trimmed().toLower();

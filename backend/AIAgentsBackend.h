@@ -1,18 +1,26 @@
 #pragma once
 
+#include <QDateTime>
 #include <QFileSystemWatcher>
 #include <QJsonObject>
 #include <QObject>
 #include <QProcess>
+#include <QStringList>
 #include <QTimer>
 #include <QtQml/qqml.h>
 
-class ClaudeCodeBackend final : public QObject {
+class AIAgentsBackend final : public QObject {
     Q_OBJECT
-    QML_NAMED_ELEMENT(ClaudeCodeBackend)
+    QML_NAMED_ELEMENT(AIAgentsBackend)
     QML_SINGLETON
 
     Q_PROPERTY(bool connected READ isConnected NOTIFY connectedChanged FINAL)
+    Q_PROPERTY(QString activeProvider READ activeProvider NOTIFY activeProviderChanged FINAL)
+    Q_PROPERTY(QString selectedProvider READ selectedProvider WRITE setSelectedProvider NOTIFY selectedProviderChanged FINAL)
+    Q_PROPERTY(QStringList availableProviders READ availableProviders NOTIFY availableProvidersChanged FINAL)
+    Q_PROPERTY(QString providerDisplayName READ providerDisplayName NOTIFY activeProviderChanged FINAL)
+    Q_PROPERTY(QString providerIcon READ providerIcon NOTIFY activeProviderChanged FINAL)
+    Q_PROPERTY(QString providerAccentColor READ providerAccentColor NOTIFY activeProviderChanged FINAL)
     Q_PROPERTY(QString sessionState READ sessionState NOTIFY sessionStateChanged FINAL)
     Q_PROPERTY(QString projectName READ projectName NOTIFY projectNameChanged FINAL)
     Q_PROPERTY(QString gitBranch READ gitBranch NOTIFY gitBranchChanged FINAL)
@@ -34,10 +42,17 @@ class ClaudeCodeBackend final : public QObject {
     Q_PROPERTY(bool minimumShowsLastMessage READ minimumShowsLastMessage WRITE setMinimumShowsLastMessage NOTIFY minimumShowsLastMessageChanged FINAL)
 
 public:
-    explicit ClaudeCodeBackend(QObject *parent = nullptr);
-    ~ClaudeCodeBackend() override = default;
+    explicit AIAgentsBackend(QObject *parent = nullptr);
+    ~AIAgentsBackend() override = default;
 
-    bool isConnected() const { return m_connected; }
+    bool isConnected() const;
+    QString activeProvider() const { return m_activeProvider; }
+    QString selectedProvider() const { return m_selectedProvider; }
+    QStringList availableProviders() const { return m_availableProviders; }
+    QString providerDisplayName() const;
+    QString providerIcon() const;
+    QString providerAccentColor() const;
+
     QString sessionState() const { return m_sessionState; }
     QString projectName() const { return m_projectName; }
     QString gitBranch() const { return m_gitBranch; }
@@ -57,7 +72,10 @@ public:
     bool isHookInstalled() const { return m_hookInstalled; }
     bool isDemoMode() const { return m_demoMode; }
     bool minimumShowsLastMessage() const { return m_minimumShowsLastMessage; }
+
+    Q_INVOKABLE void setSelectedProvider(const QString &provider);
     Q_INVOKABLE void setMinimumShowsLastMessage(bool enabled);
+    Q_INVOKABLE bool isProviderRunning(const QString &provider) const;
 
     Q_INVOKABLE void allowConsent(bool always = false);
     Q_INVOKABLE void denyConsent();
@@ -73,6 +91,9 @@ public:
 
 signals:
     void connectedChanged();
+    void activeProviderChanged();
+    void selectedProviderChanged();
+    void availableProvidersChanged();
     void sessionStateChanged();
     void projectNameChanged();
     void gitBranchChanged();
@@ -89,40 +110,77 @@ signals:
     void promptResultReceived(const QString &output, bool success);
 
 private slots:
-    void onStateFileChanged();
-    void checkProcessStatus();
+    void onWatchedFileChanged();
+    void pollStatus();
 
 private:
-    QString stateFilePath() const;
-    QString consentResponseFilePath() const;
-    QString hookScriptPath() const;
-    void loadStateFromFile();
-    bool loadStateFromClaudeDirectory();
-    void checkHookInstallation();
-    void writeConsentResponse(const QString &action);
+    struct ProviderState {
+        bool running = false;
+        QString sessionState = QStringLiteral("idle");
+        QString projectName;
+        QString projectPath;
+        QString gitBranch;
+        QString modelName;
+        QString currentTool;
+        QString toolDetail;
+        QString lastMessage;
+        int inputTokens = 0;
+        int outputTokens = 0;
+        int cacheReadTokens = 0;
+        double contextUsagePercent = 0.0;
+        double estimatedCost = 0.0;
+        int activeSessionCount = 0;
+        QString pendingConsentId;
+        QString pendingConsentTool;
+        QString pendingConsentDetail;
+        QDateTime lastActivityTime;
+    };
+
+    void checkAvailableProviders();
+    void updateClaudeState();
+    void updateOpenCodeState();
+    void updateAntigravityState();
+    void reconcileActiveProvider();
+    void applyProviderState(const ProviderState &st);
+
+    QString claudeStateFilePath() const;
+    QString claudeConsentResponseFilePath() const;
+    QString claudeHookScriptPath() const;
+    void checkClaudeHookInstallation();
+    void writeClaudeConsentResponse(const QString &action);
+
+    static QString resolveGitBranch(const QString &directory);
+
+    QFileSystemWatcher m_watcher;
+    QTimer m_pollTimer;
+
+    QString m_selectedProvider = QStringLiteral("auto");
+    QString m_activeProvider = QStringLiteral("claude");
+    QStringList m_availableProviders;
+
+    ProviderState m_claudeState;
+    ProviderState m_openCodeState;
+    ProviderState m_antigravityState;
 
     bool m_connected = false;
     QString m_sessionState = QStringLiteral("idle");
     QString m_projectName = QStringLiteral("Tide-island");
+    QString m_projectPath;
     QString m_gitBranch = QStringLiteral("main");
-    QString m_modelName = QStringLiteral("Claude Fable 5");
+    QString m_modelName = QStringLiteral("Claude 3.7 Sonnet");
     QString m_currentTool;
     QString m_toolDetail;
-    int m_inputTokens = 18400;
-    int m_outputTokens = 2300;
-    int m_cacheReadTokens = 45200;
-    double m_contextUsagePercent = 0.32;
-    double m_estimatedCost = 0.14;
-    int m_activeSessionCount = 1;
+    int m_inputTokens = 0;
+    int m_outputTokens = 0;
+    int m_cacheReadTokens = 0;
+    double m_contextUsagePercent = 0.0;
+    double m_estimatedCost = 0.0;
+    int m_activeSessionCount = 0;
     QString m_pendingConsentId;
     QString m_pendingConsentTool;
     QString m_pendingConsentDetail;
-    QString m_lastMessage = QStringLiteral("Ready to assist.");
+    QString m_lastMessage;
     bool m_hookInstalled = false;
     bool m_demoMode = false;
     bool m_minimumShowsLastMessage = false;
-    QString m_activeTranscriptPath;
-
-    QFileSystemWatcher m_watcher;
-    QTimer m_pollTimer;
 };

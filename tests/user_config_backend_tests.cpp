@@ -37,6 +37,8 @@ private slots:
     void barOverlayDefaultsAndClamping();
     void themeStyleDefaultsAndAssignment();
     void notchNotificationsEnabledDefaultsAndPersists();
+    void workspaceNotificationEnabledDefaultsAndPersists();
+    void aiAgentsSettingsDefaultsAndPersists();
     void minimumAlwaysShowClockDefaultsAndPersists();
     void minimumHomePageClockIsFixedAndCannotBeRemoved();
     void styleTokensContrastAndThemeBindings();
@@ -727,6 +729,69 @@ void UserConfigBackendTests::notchNotificationsEnabledDefaultsAndPersists()
 
     UserConfigBackend reloaded2;
     QCOMPARE(reloaded2.notchNotificationsEnabled(), true);
+}
+
+void UserConfigBackendTests::workspaceNotificationEnabledDefaultsAndPersists()
+{
+    UserConfigBackend config;
+    QCOMPARE(config.workspaceNotificationEnabled(), true);
+
+    QSignalSpy spy(&config, &UserConfigBackend::workspaceNotificationEnabledChanged);
+
+    config.setWorkspaceNotificationEnabled(false);
+    QCOMPARE(config.workspaceNotificationEnabled(), false);
+    QCOMPARE(spy.count(), 1);
+
+    // Setting same value shouldn't emit signal
+    config.setWorkspaceNotificationEnabled(false);
+    QCOMPARE(spy.count(), 1);
+
+    // Reload persistence
+    UserConfigBackend reloaded;
+    QCOMPARE(reloaded.workspaceNotificationEnabled(), false);
+
+    // Turn back on
+    reloaded.setWorkspaceNotificationEnabled(true);
+    QCOMPARE(reloaded.workspaceNotificationEnabled(), true);
+
+    UserConfigBackend reloaded2;
+    QCOMPARE(reloaded2.workspaceNotificationEnabled(), true);
+}
+
+void UserConfigBackendTests::aiAgentsSettingsDefaultsAndPersists()
+{
+    UserConfigBackend config;
+    QCOMPARE(config.aiAgentsPreferredProvider(), QStringLiteral("auto"));
+    QCOMPARE(config.aiAgentsMinimumShowsLastMessage(), false);
+    QCOMPARE(config.aiAgentsAutoExpandOnConsent(), true);
+    QCOMPARE(config.aiAgentsTerminalCommand(), QString());
+
+    QSignalSpy providerSpy(&config, &UserConfigBackend::aiAgentsPreferredProviderChanged);
+    QSignalSpy minSpy(&config, &UserConfigBackend::aiAgentsMinimumShowsLastMessageChanged);
+    QSignalSpy consentSpy(&config, &UserConfigBackend::aiAgentsAutoExpandOnConsentChanged);
+    QSignalSpy termSpy(&config, &UserConfigBackend::aiAgentsTerminalCommandChanged);
+
+    config.setAiAgentsPreferredProvider(QStringLiteral("opencode"));
+    config.setAiAgentsMinimumShowsLastMessage(true);
+    config.setAiAgentsAutoExpandOnConsent(false);
+    config.setAiAgentsTerminalCommand(QStringLiteral("ghostty"));
+
+    QCOMPARE(config.aiAgentsPreferredProvider(), QStringLiteral("opencode"));
+    QCOMPARE(config.aiAgentsMinimumShowsLastMessage(), true);
+    QCOMPARE(config.aiAgentsAutoExpandOnConsent(), false);
+    QCOMPARE(config.aiAgentsTerminalCommand(), QStringLiteral("ghostty"));
+
+    QCOMPARE(providerSpy.count(), 1);
+    QCOMPARE(minSpy.count(), 1);
+    QCOMPARE(consentSpy.count(), 1);
+    QCOMPARE(termSpy.count(), 1);
+
+    // Persistence check
+    UserConfigBackend reloaded;
+    QCOMPARE(reloaded.aiAgentsPreferredProvider(), QStringLiteral("opencode"));
+    QCOMPARE(reloaded.aiAgentsMinimumShowsLastMessage(), true);
+    QCOMPARE(reloaded.aiAgentsAutoExpandOnConsent(), false);
+    QCOMPARE(reloaded.aiAgentsTerminalCommand(), QStringLiteral("ghostty"));
 }
 
 void UserConfigBackendTests::minimumAlwaysShowClockDefaultsAndPersists()

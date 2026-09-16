@@ -52,6 +52,10 @@ class UserConfigBackend final : public QObject {
     Q_PROPERTY(bool disableAutoExpandOnTrackChange READ disableAutoExpandOnTrackChange NOTIFY disableAutoExpandOnTrackChangeChanged FINAL)
     Q_PROPERTY(bool playerRememberLastPane READ playerRememberLastPane WRITE setPlayerRememberLastPane NOTIFY playerRememberLastPaneChanged FINAL)
     Q_PROPERTY(bool claudeMinimumShowsLastMessage READ claudeMinimumShowsLastMessage WRITE setClaudeMinimumShowsLastMessage NOTIFY claudeMinimumShowsLastMessageChanged FINAL)
+    Q_PROPERTY(QString aiAgentsPreferredProvider READ aiAgentsPreferredProvider WRITE setAiAgentsPreferredProvider NOTIFY aiAgentsPreferredProviderChanged FINAL)
+    Q_PROPERTY(bool aiAgentsMinimumShowsLastMessage READ aiAgentsMinimumShowsLastMessage WRITE setAiAgentsMinimumShowsLastMessage NOTIFY aiAgentsMinimumShowsLastMessageChanged FINAL)
+    Q_PROPERTY(bool aiAgentsAutoExpandOnConsent READ aiAgentsAutoExpandOnConsent WRITE setAiAgentsAutoExpandOnConsent NOTIFY aiAgentsAutoExpandOnConsentChanged FINAL)
+    Q_PROPERTY(QString aiAgentsTerminalCommand READ aiAgentsTerminalCommand WRITE setAiAgentsTerminalCommand NOTIFY aiAgentsTerminalCommandChanged FINAL)
     Q_PROPERTY(bool minimumAlwaysShowClock READ minimumAlwaysShowClock WRITE setMinimumAlwaysShowClock NOTIFY minimumAlwaysShowClockChanged FINAL)
     Q_PROPERTY(int hoverExpandAction READ hoverExpandAction NOTIFY hoverExpandActionChanged FINAL)
     Q_PROPERTY(bool islandAutoHideEnabled READ islandAutoHideEnabled NOTIFY islandAutoHideEnabledChanged FINAL)
@@ -63,6 +67,7 @@ class UserConfigBackend final : public QObject {
     Q_PROPERTY(int notchBorderWidth READ notchBorderWidth WRITE setNotchBorderWidth NOTIFY notchBorderWidthChanged FINAL)
     Q_PROPERTY(bool boringNotchEnabled READ boringNotchEnabled NOTIFY boringNotchEnabledChanged FINAL)
     Q_PROPERTY(bool notchNotificationsEnabled READ notchNotificationsEnabled WRITE setNotchNotificationsEnabled NOTIFY notchNotificationsEnabledChanged FINAL)
+    Q_PROPERTY(bool workspaceNotificationEnabled READ workspaceNotificationEnabled WRITE setWorkspaceNotificationEnabled NOTIFY workspaceNotificationEnabledChanged FINAL)
     Q_PROPERTY(bool hideNotchInFullscreen READ hideNotchInFullscreen NOTIFY hideNotchInFullscreenChanged FINAL)
     Q_PROPERTY(bool showBoringFace READ showBoringFace NOTIFY showBoringFaceChanged FINAL)
     Q_PROPERTY(int notchClosedWidth READ notchClosedWidth NOTIFY notchClosedWidthChanged FINAL)
@@ -163,6 +168,14 @@ public:
     Q_INVOKABLE void setPlayerRememberLastPane(bool remember);
     bool claudeMinimumShowsLastMessage() const;
     Q_INVOKABLE void setClaudeMinimumShowsLastMessage(bool showsLastMessage);
+    QString aiAgentsPreferredProvider() const;
+    Q_INVOKABLE void setAiAgentsPreferredProvider(const QString &provider);
+    bool aiAgentsMinimumShowsLastMessage() const;
+    Q_INVOKABLE void setAiAgentsMinimumShowsLastMessage(bool showsLastMessage);
+    bool aiAgentsAutoExpandOnConsent() const;
+    Q_INVOKABLE void setAiAgentsAutoExpandOnConsent(bool autoExpand);
+    QString aiAgentsTerminalCommand() const;
+    Q_INVOKABLE void setAiAgentsTerminalCommand(const QString &command);
     bool minimumAlwaysShowClock() const;
     Q_INVOKABLE void setMinimumAlwaysShowClock(bool enabled);
     bool dynamicResizeEnabledFull() const;
@@ -224,6 +237,8 @@ public:
     bool boringNotchEnabled() const;
     bool notchNotificationsEnabled() const;
     Q_INVOKABLE void setNotchNotificationsEnabled(bool enabled);
+    bool workspaceNotificationEnabled() const;
+    Q_INVOKABLE void setWorkspaceNotificationEnabled(bool enabled);
     bool hideNotchInFullscreen() const;
     bool showBoringFace() const;
     int notchClosedWidth() const;
@@ -307,6 +322,10 @@ signals:
     void disableAutoExpandOnTrackChangeChanged();
     void playerRememberLastPaneChanged();
     void claudeMinimumShowsLastMessageChanged();
+    void aiAgentsPreferredProviderChanged();
+    void aiAgentsMinimumShowsLastMessageChanged();
+    void aiAgentsAutoExpandOnConsentChanged();
+    void aiAgentsTerminalCommandChanged();
     void minimumAlwaysShowClockChanged();
     void dynamicResizeEnabledFullChanged();
     void dynamicResizeEnabledMinimumChanged();
@@ -330,6 +349,7 @@ signals:
     void notchBorderWidthChanged();
     void boringNotchEnabledChanged();
     void notchNotificationsEnabledChanged();
+    void workspaceNotificationEnabledChanged();
     void hideNotchInFullscreenChanged();
     void showBoringFaceChanged();
     void notchClosedWidthChanged();
@@ -410,6 +430,10 @@ private:
     bool m_disableAutoExpandOnTrackChange = true;
     bool m_playerRememberLastPane = false;
     bool m_claudeMinimumShowsLastMessage = false;
+    QString m_aiAgentsPreferredProvider = QStringLiteral("auto");
+    bool m_aiAgentsMinimumShowsLastMessage = false;
+    bool m_aiAgentsAutoExpandOnConsent = true;
+    QString m_aiAgentsTerminalCommand;
     bool m_minimumAlwaysShowClock = false;
     bool m_dynamicResizeEnabledFull = true;
     bool m_dynamicResizeEnabledMinimum = true;
@@ -428,6 +452,7 @@ private:
     int m_notchBorderWidth = 1;
     bool m_boringNotchEnabled = true;
     bool m_notchNotificationsEnabled = true;
+    bool m_workspaceNotificationEnabled = true;
     bool m_hideNotchInFullscreen = true;
     bool m_showBoringFace = false;
     int m_notchClosedWidth = 185;
