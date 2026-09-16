@@ -220,6 +220,11 @@ void AIAgentsBackendTests::sessionListingAndSelection()
     const QVariantList opencodeSessions = backend.sessionsForProvider(QStringLiteral("opencode"));
     QCOMPARE(agySessions.size() + claudeSessions.size() + opencodeSessions.size(), sessions.size());
 
+    for (const QVariant &v : agySessions) {
+        const QVariantMap m = v.toMap();
+        QVERIFY(!m.value(QStringLiteral("modelName")).toString().isEmpty());
+    }
+
     // Test selectSession
     if (!sessions.isEmpty()) {
         const QVariantMap first = sessions.first().toMap();

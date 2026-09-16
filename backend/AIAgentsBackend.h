@@ -144,6 +144,7 @@ private:
         QString projectName;
         QString projectPath;
         QString gitBranch;
+        QString modelName;
         QString sessionState = QStringLiteral("idle");
         QString currentTool;
         QString toolAction;

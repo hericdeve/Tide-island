@@ -342,11 +342,43 @@ Item {
                     }
                 }
 
-                // Action buttons (Minimum View Mode Toggle + Terminal + Demo Simulator)
+                // Action buttons (Context Radial Indicator + Output Mode Toggle + Demo Simulator + Terminal)
                 Row {
                     id: actionsRow
                     anchors.verticalCenter: parent.verticalCenter
-                    spacing: 4
+                    spacing: 5
+
+                    // Context Radial Indicator (to the left of output mode, no "Context" text)
+                    Row {
+                        id: contextIndicator
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 3
+
+                        WidgetProgressRing {
+                            id: contextRadialRing
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 12
+                            height: 12
+                            strokeWidth: 2.0
+                            value: AIAgentsBackend.contextUsagePercent
+                            fillColor: {
+                                const p = AIAgentsBackend.contextUsagePercent;
+                                if (p > 0.85) return StyleTokens.danger;
+                                if (p > 0.65) return StyleTokens.warning;
+                                return AIAgentsBackend.providerAccentColor;
+                            }
+                            trackColor: "#22ffffff"
+                        }
+
+                        WidgetTextView {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: Math.round(AIAgentsBackend.contextUsagePercent * 100) + "%"
+                            role: "caption"
+                            tabularFigures: true
+                            colorOverride: StyleTokens.textSecondary
+                            widgetContext: root.widgetContext
+                        }
+                    }
 
                     // Minimum View Mode Toggle
                     Rectangle {
@@ -464,7 +496,7 @@ Item {
                 id: activityBanner
                 anchors.top: topRow.bottom
                 anchors.topMargin: 4
-                anchors.bottom: contextStats.top
+                anchors.bottom: modelFooter.top
                 anchors.bottomMargin: 4
                 anchors.left: parent.left
                 anchors.right: parent.right
@@ -675,47 +707,23 @@ Item {
                 }
             }
 
-            // Context bar and Token stats
-            Column {
-                id: contextStats
+            // Model & Cost Footer
+            Row {
+                id: modelFooter
                 anchors.bottom: promptBar.top
                 anchors.bottomMargin: 4
                 anchors.left: parent.left
                 anchors.right: parent.right
-                spacing: 3
+                height: 14
 
-                Row {
-                    width: parent.width
-                    WidgetTextView {
-                        text: Math.round(AIAgentsBackend.contextUsagePercent * 100) + "% Context"
-                        role: "caption"
-                        tabularFigures: true
-                        colorOverride: StyleTokens.textSecondary
-                        widgetContext: root.widgetContext
-                    }
-                    Item { width: Math.max(0, parent.width - costLabel.width - 70); height: 1 }
-                    WidgetTextView {
-                        id: costLabel
-                        text: (AIAgentsBackend.estimatedCost > 0 ? "$" + AIAgentsBackend.estimatedCost.toFixed(2) + " · " : "") + (AIAgentsBackend.modelName || AIAgentsBackend.providerDisplayName)
-                        role: "caption"
-                        tabularFigures: true
-                        colorOverride: StyleTokens.textSecondary
-                        widgetContext: root.widgetContext
-                    }
-                }
-
-                // Progress bar
-                WidgetProgressBar {
-                    width: parent.width
-                    barHeight: 4
-                    value: AIAgentsBackend.contextUsagePercent
-                    fillColor: {
-                        const p = AIAgentsBackend.contextUsagePercent;
-                        if (p > 0.85) return StyleTokens.danger;
-                        if (p > 0.65) return StyleTokens.warning;
-                        return AIAgentsBackend.providerAccentColor;
-                    }
-                    trackColor: StyleTokens.track
+                WidgetTextView {
+                    id: costLabel
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: (AIAgentsBackend.estimatedCost > 0 ? "$" + AIAgentsBackend.estimatedCost.toFixed(2) + " · " : "") + (AIAgentsBackend.modelName || AIAgentsBackend.providerDisplayName)
+                    role: "caption"
+                    tabularFigures: true
+                    colorOverride: StyleTokens.textSecondary
+                    widgetContext: root.widgetContext
                 }
             }
 

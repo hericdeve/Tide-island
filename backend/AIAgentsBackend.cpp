@@ -49,6 +49,67 @@ static QString stripQuotes(QString str)
     return str.trimmed();
 }
 
+static QString readModelFromTranscript(const QString &transcriptPath)
+{
+    QFile file(transcriptPath);
+    if (!file.exists() || !file.open(QIODevice::ReadOnly | QIODevice::Text))
+        return QString();
+
+    const QByteArray header = file.read(16384);
+    file.close();
+
+    static const QRegularExpression re(QStringLiteral(R"(`Model Selection`\s+from\s+\S+\s+to\s+(.*?)\.\s+(?:No need|If reporting|\n|<|$))"));
+    const QRegularExpressionMatch match = re.match(QString::fromUtf8(header));
+    if (match.hasMatch()) {
+        const QString m = match.captured(1).trimmed();
+        if (!m.isEmpty())
+            return m;
+    }
+    return QString();
+}
+
+static QString readModelFromSettingsJson()
+{
+    const QStringList candidatePaths = {
+        QDir::homePath() + QStringLiteral("/.gemini/antigravity-cli/settings.json"),
+        QDir::homePath() + QStringLiteral("/.gemini/antigravity/settings.json")
+    };
+    for (const QString &path : candidatePaths) {
+        QFile file(path);
+        if (file.exists() && file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            const QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+            file.close();
+            if (doc.isObject()) {
+                const QString model = doc.object().value(QStringLiteral("model")).toString().trimmed();
+                if (!model.isEmpty()) {
+                    return model;
+                }
+            }
+        }
+    }
+    return QString();
+}
+
+static QString resolveAntigravityModel(const QString &convId)
+{
+    if (!convId.isEmpty()) {
+        const QString t1 = QDir::homePath() + QStringLiteral("/.gemini/antigravity-cli/brain/") + convId + QStringLiteral("/.system_generated/logs/transcript.jsonl");
+        const QString m1 = readModelFromTranscript(t1);
+        if (!m1.isEmpty()) return m1;
+
+        const QString t2 = QDir::homePath() + QStringLiteral("/.gemini/antigravity/brain/") + convId + QStringLiteral("/.system_generated/logs/transcript.jsonl");
+        const QString m2 = readModelFromTranscript(t2);
+        if (!m2.isEmpty()) return m2;
+    }
+
+    const QString globalModel = readModelFromSettingsJson();
+    if (!globalModel.isEmpty()) {
+        return globalModel;
+    }
+
+    return QStringLiteral("Gemini 3.8 Flash");
+}
+
 static void parseAntigravityTranscript(const QString &convId, QString &currentTool, QString &toolAction, QString &toolDetail, QString &toolTarget, QString &lastMessage, QString &thinking)
 {
     const QString transcriptPath = QDir::homePath() + QStringLiteral("/.gemini/antigravity-cli/brain/") + convId + QStringLiteral("/.system_generated/logs/transcript.jsonl");
@@ -175,6 +236,10 @@ AIAgentsBackend::AIAgentsBackend(QObject *parent)
     if (QFile::exists(agySummaries))
         m_watcher.addPath(agySummaries);
 
+    const QString agySettings = QDir::homePath() + QStringLiteral("/.gemini/antigravity-cli/settings.json");
+    if (QFile::exists(agySettings))
+        m_watcher.addPath(agySettings);
+
     checkClaudeHookInstallation();
     pollStatus();
 }
@@ -251,6 +316,7 @@ QVariantList AIAgentsBackend::runningSessions() const
         map[QStringLiteral("projectName")] = s.projectName;
         map[QStringLiteral("projectPath")] = s.projectPath;
         map[QStringLiteral("gitBranch")] = s.gitBranch;
+        map[QStringLiteral("modelName")] = s.modelName;
         map[QStringLiteral("state")] = s.sessionState;
         map[QStringLiteral("tool")] = s.currentTool;
         map[QStringLiteral("currentTool")] = s.currentTool;
@@ -492,6 +558,7 @@ void AIAgentsBackend::updateClaudeState()
                 s.projectName = obj.value(QStringLiteral("project")).toString(QStringLiteral("Tide-island"));
                 s.projectPath = obj.value(QStringLiteral("cwd")).toString();
                 s.gitBranch = obj.value(QStringLiteral("branch")).toString();
+                s.modelName = QStringLiteral("Claude 3.7 Sonnet");
                 s.currentTool = obj.value(QStringLiteral("tool")).toString();
                 s.toolDetail = obj.value(QStringLiteral("toolDetail")).toString();
                 s.toolTarget = s.toolDetail;
@@ -557,6 +624,7 @@ void AIAgentsBackend::updateClaudeState()
                             s.projectPath = obj.value(QStringLiteral("cwd")).toString();
                             s.projectName = !s.projectPath.isEmpty() ? QDir(s.projectPath).dirName() : QStringLiteral("Claude Code");
                             s.gitBranch = resolveGitBranch(s.projectPath);
+                            s.modelName = QStringLiteral("Claude 3.7 Sonnet");
                             const QString st = obj.value(QStringLiteral("status")).toString();
                             s.sessionState = (st == QLatin1String("active") || st == QLatin1String("busy")) ? QStringLiteral("running_tool") : QStringLiteral("idle");
                             s.title = obj.value(QStringLiteral("name")).toString(s.projectName);
@@ -647,6 +715,7 @@ void AIAgentsBackend::updateOpenCodeState()
                 s.projectPath = fields.at(2);
                 s.projectName = QDir(s.projectPath).dirName().isEmpty() ? QStringLiteral("OpenCode") : QDir(s.projectPath).dirName();
                 s.gitBranch = resolveGitBranch(s.projectPath);
+                s.modelName = !fields.at(4).isEmpty() ? fields.at(4) : QStringLiteral("OpenCode");
                 s.estimatedCost = fields.at(5).toDouble();
                 s.inputTokens = fields.at(6).toInt();
                 s.outputTokens = fields.at(7).toInt();
@@ -749,7 +818,7 @@ void AIAgentsBackend::updateOpenCodeState()
         m_openCodeState.projectName = chosen.projectName;
         m_openCodeState.projectPath = chosen.projectPath;
         m_openCodeState.gitBranch = chosen.gitBranch;
-        m_openCodeState.modelName = QStringLiteral("OpenCode");
+        m_openCodeState.modelName = !chosen.modelName.isEmpty() ? chosen.modelName : QStringLiteral("OpenCode");
         m_openCodeState.currentTool = chosen.currentTool;
         m_openCodeState.toolAction = chosen.toolAction;
         m_openCodeState.toolDetail = chosen.toolDetail;
@@ -861,6 +930,8 @@ void AIAgentsBackend::updateAntigravityState()
                     s.projectName = QStringLiteral("Tide-island");
                 }
 
+                s.modelName = resolveAntigravityModel(s.sessionId);
+
                 parseAntigravityTranscript(s.sessionId, s.currentTool, s.toolAction, s.toolDetail, s.toolTarget, s.lastMessage, s.thinking);
 
                 if (s.lastMessage.isEmpty()) {
@@ -923,7 +994,7 @@ void AIAgentsBackend::updateAntigravityState()
         m_antigravityState.projectName = chosen.projectName;
         m_antigravityState.projectPath = chosen.projectPath;
         m_antigravityState.gitBranch = chosen.gitBranch;
-        m_antigravityState.modelName = QStringLiteral("Gemini 2.5 Pro");
+        m_antigravityState.modelName = !chosen.modelName.isEmpty() ? chosen.modelName : resolveAntigravityModel(chosen.sessionId);
         m_antigravityState.currentTool = chosen.currentTool;
         m_antigravityState.toolAction = chosen.toolAction;
         m_antigravityState.toolDetail = chosen.toolDetail;
