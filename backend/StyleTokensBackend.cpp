@@ -348,8 +348,14 @@ StyleTokensBackend::ThemePalette StyleTokensBackend::makeNoctaliaPalette(const Q
                                            noctaliaColors, QStringLiteral("mOnHover"),
                                            isDarkColor(hover) ? Qt::white : Qt::black);
 
-    p.isDark = isDarkColor(surface);
-    p.panel = surface;
+    const QColor background = colorFromSources(themeJson, QStringLiteral("terminalBackground"),
+                                               themeJson, QStringLiteral("background"),
+                                               colorFromSources(noctaliaColors, QStringLiteral("terminalBackground"),
+                                                                noctaliaColors, QStringLiteral("mBackground"),
+                                                                surface));
+
+    p.isDark = isDarkColor(background);
+    p.panel = background;
     p.module = surfaceVariant;
     p.moduleHover = hover;
     p.track = hover;
@@ -399,7 +405,7 @@ StyleTokensBackend::ThemePalette StyleTokensBackend::makeNoctaliaPalette(const Q
     p.buttonFillHover = primary.lighter(110);
     p.buttonFillPressed = primary.darker(110);
 
-    QColor cardBg = surface;
+    QColor cardBg = p.panel;
     cardBg.setAlpha(238);
     p.overviewCard = cardBg;
     p.overviewBorder = outline;

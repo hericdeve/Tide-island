@@ -774,6 +774,14 @@ void SystemServices::openSettings() {
     openConfigApp();
 }
 
+bool SystemServices::executeCommand(const QString &command) {
+    const QString trimmed = command.trimmed();
+    if (trimmed.isEmpty())
+        return false;
+    qDebug() << "[SystemServices] Executing detached command:" << trimmed;
+    return QProcess::startDetached(QStringLiteral("/bin/sh"), {QStringLiteral("-c"), trimmed});
+}
+
 void SystemServices::generateWallpaperThumbnail(const QString &sourcePath,
                                                 const QString &cachePath,
                                                 const QString &cacheDir,

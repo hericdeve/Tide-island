@@ -43,6 +43,10 @@ class UserConfigBackend final : public QObject {
     Q_PROPERTY(QString dynamicIslandPrimaryAction READ dynamicIslandPrimaryAction NOTIFY dynamicIslandPrimaryActionChanged FINAL)
     Q_PROPERTY(int dynamicIslandSecondaryButton READ dynamicIslandSecondaryButton NOTIFY dynamicIslandSecondaryButtonChanged FINAL)
     Q_PROPERTY(QString dynamicIslandSecondaryAction READ dynamicIslandSecondaryAction NOTIFY dynamicIslandSecondaryActionChanged FINAL)
+    Q_PROPERTY(QString notchRightClickCommand READ notchRightClickCommand WRITE setNotchRightClickCommand NOTIFY notchRightClickCommandChanged FINAL)
+    Q_PROPERTY(QString notchMiddleClickCommand READ notchMiddleClickCommand WRITE setNotchMiddleClickCommand NOTIFY notchMiddleClickCommandChanged FINAL)
+    Q_PROPERTY(QString dynamicIslandRightClickCommand READ notchRightClickCommand WRITE setNotchRightClickCommand NOTIFY notchRightClickCommandChanged FINAL)
+    Q_PROPERTY(QString dynamicIslandMiddleClickCommand READ notchMiddleClickCommand WRITE setNotchMiddleClickCommand NOTIFY notchMiddleClickCommandChanged FINAL)
     Q_PROPERTY(QVariantList dynamicIslandLeftSwipeItems READ dynamicIslandLeftSwipeItems NOTIFY dynamicIslandLeftSwipeItemsChanged FINAL)
     Q_PROPERTY(QVariantList excludedPlayers READ excludedPlayers NOTIFY excludedPlayersChanged FINAL)
     Q_PROPERTY(bool disableAutoExpandOnTrackChange READ disableAutoExpandOnTrackChange NOTIFY disableAutoExpandOnTrackChangeChanged FINAL)
@@ -144,6 +148,14 @@ public:
     QString dynamicIslandPrimaryAction() const;
     int dynamicIslandSecondaryButton() const;
     QString dynamicIslandSecondaryAction() const;
+    QString notchRightClickCommand() const;
+    Q_INVOKABLE void setNotchRightClickCommand(const QString &command);
+    QString dynamicIslandRightClickCommand() const { return notchRightClickCommand(); }
+    Q_INVOKABLE void setDynamicIslandRightClickCommand(const QString &command) { setNotchRightClickCommand(command); }
+    QString notchMiddleClickCommand() const;
+    Q_INVOKABLE void setNotchMiddleClickCommand(const QString &command);
+    QString dynamicIslandMiddleClickCommand() const { return notchMiddleClickCommand(); }
+    Q_INVOKABLE void setDynamicIslandMiddleClickCommand(const QString &command) { setNotchMiddleClickCommand(command); }
     const QVariantList &dynamicIslandLeftSwipeItems() const;
     const QVariantList &excludedPlayers() const;
     bool disableAutoExpandOnTrackChange() const;
@@ -288,6 +300,8 @@ signals:
     void dynamicIslandPrimaryActionChanged();
     void dynamicIslandSecondaryButtonChanged();
     void dynamicIslandSecondaryActionChanged();
+    void notchRightClickCommandChanged();
+    void notchMiddleClickCommandChanged();
     void dynamicIslandLeftSwipeItemsChanged();
     void excludedPlayersChanged();
     void disableAutoExpandOnTrackChangeChanged();
@@ -388,6 +402,8 @@ private:
     QString m_dynamicIslandPrimaryAction = QStringLiteral("toggleExpandedPlayer");
     int m_dynamicIslandSecondaryButton = 3;
     QString m_dynamicIslandSecondaryAction = QStringLiteral("toggleControlCenter");
+    QString m_notchRightClickCommand = QStringLiteral("library");
+    QString m_notchMiddleClickCommand;
     QVariantList m_dynamicIslandLeftSwipeItems;
     QVariantList m_excludedPlayers;
     bool m_islandShowWorkspaceOnAutoHide = true;

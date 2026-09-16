@@ -10,6 +10,20 @@ Item {
 
     signal expandRequested()
     signal widgetLibraryRequested(string mode, int pageIndex, int slotIndex)
+    signal commandActionRequested(string command)
+
+    function executeClickCommand(cmd) {
+        const trimmed = (cmd || "").trim();
+        if (!trimmed) {
+            return;
+        }
+        const lower = trimmed.toLowerCase();
+        if (lower === "library" || lower === "openlibrary" || lower === "widget_library") {
+            root.widgetLibraryRequested("circle", Math.min(root.realPageCount - 1, root.currentPageIndex), 0);
+            return;
+        }
+        root.commandActionRequested(trimmed);
+    }
 
     readonly property var userConfig: UserConfig
 
@@ -331,7 +345,7 @@ Item {
         anchors.fill: parent
         cursorShape: Qt.PointingHandCursor
         hoverEnabled: true
-        acceptedButtons: Qt.LeftButton | Qt.RightButton
+        acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
 
         property real startX: 0
         property real startY: 0
@@ -339,7 +353,7 @@ Item {
         property bool isHoldTriggered: false
 
         onPressed: (mouse) => {
-            if (mouse.button === Qt.RightButton) {
+            if (mouse.button === Qt.RightButton || mouse.button === Qt.MiddleButton) {
                 return;
             }
             startX = mouse.x;
@@ -371,7 +385,15 @@ Item {
 
         onReleased: (mouse) => {
             if (mouse.button === Qt.RightButton) {
-                root.widgetLibraryRequested("circle", Math.min(root.realPageCount - 1, root.currentPageIndex), 0);
+                const rightCmd = (userConfig && userConfig.notchRightClickCommand !== undefined && userConfig.notchRightClickCommand !== "")
+                    ? userConfig.notchRightClickCommand : "library";
+                root.executeClickCommand(rightCmd);
+                return;
+            }
+            if (mouse.button === Qt.MiddleButton) {
+                const midCmd = (userConfig && userConfig.notchMiddleClickCommand !== undefined)
+                    ? userConfig.notchMiddleClickCommand : "";
+                root.executeClickCommand(midCmd);
                 return;
             }
             holdProgressAnim.stop();

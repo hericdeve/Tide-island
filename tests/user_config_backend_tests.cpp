@@ -43,6 +43,7 @@ private slots:
     void statusBarItemsDefaultsAndPersists();
     void scrollTextOnlyOnHoverDefaultsAndPersists();
     void textScrollSpeedDefaultsAndPersists();
+    void notchClickCommandsDefaultsAndPersists();
 };
 
 void UserConfigBackendTests::initTestCase()
@@ -831,6 +832,17 @@ void UserConfigBackendTests::styleTokensContrastAndThemeBindings()
     QCOMPARE(tokens.textOnAccent(), tokens.textOnPrimary());
     QCOMPARE(tokens.textHighlighted(), tokens.textOnPrimary());
     QCOMPARE(tokens.textOnButtonFill(), tokens.textOnPrimary());
+    QVERIFY(tokens.panel().isValid());
+
+    const QString themeCachePath = QDir::homePath() + QStringLiteral("/.cache/quickshell/theme.json");
+    QFile themeFile(themeCachePath);
+    if (themeFile.exists() && themeFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        const QJsonObject themeJson = QJsonDocument::fromJson(themeFile.readAll()).object();
+        const QString expectedBg = themeJson.value(QStringLiteral("terminalBackground")).toString().trimmed();
+        if (!expectedBg.isEmpty()) {
+            QCOMPARE(tokens.panel(), QColor(expectedBg));
+        }
+    }
 
     // Clean up
     config.setThemeStyle(QStringLiteral("black"));
@@ -944,6 +956,55 @@ void UserConfigBackendTests::textScrollSpeedDefaultsAndPersists()
     // Restore default
     config.setTextScrollSpeed(17);
     QCOMPARE(config.textScrollSpeed(), 17);
+}
+
+void UserConfigBackendTests::notchClickCommandsDefaultsAndPersists()
+{
+    UserConfigBackend config;
+
+    // 1. Default values: Right click defaults to "library", middle click to ""
+    QCOMPARE(config.notchRightClickCommand(), QStringLiteral("library"));
+    QCOMPARE(config.dynamicIslandRightClickCommand(), QStringLiteral("library"));
+    QCOMPARE(config.notchMiddleClickCommand(), QStringLiteral(""));
+    QCOMPARE(config.dynamicIslandMiddleClickCommand(), QStringLiteral(""));
+
+    QSignalSpy rightSpy(&config, &UserConfigBackend::notchRightClickCommandChanged);
+    QSignalSpy midSpy(&config, &UserConfigBackend::notchMiddleClickCommandChanged);
+
+    // 2. Set via modern setters
+    config.setNotchRightClickCommand(QStringLiteral("alacritty -e btop"));
+    QCOMPARE(config.notchRightClickCommand(), QStringLiteral("alacritty -e btop"));
+    QCOMPARE(config.dynamicIslandRightClickCommand(), QStringLiteral("alacritty -e btop"));
+    QCOMPARE(rightSpy.count(), 1);
+
+    config.setNotchMiddleClickCommand(QStringLiteral("nautilus"));
+    QCOMPARE(config.notchMiddleClickCommand(), QStringLiteral("nautilus"));
+    QCOMPARE(config.dynamicIslandMiddleClickCommand(), QStringLiteral("nautilus"));
+    QCOMPARE(midSpy.count(), 1);
+
+    // 3. Set via legacy backward-compatibility aliases
+    config.setDynamicIslandRightClickCommand(QStringLiteral("custom-script.sh"));
+    QCOMPARE(config.notchRightClickCommand(), QStringLiteral("custom-script.sh"));
+    QCOMPARE(config.dynamicIslandRightClickCommand(), QStringLiteral("custom-script.sh"));
+    QCOMPARE(rightSpy.count(), 2);
+
+    config.setDynamicIslandMiddleClickCommand(QStringLiteral("library"));
+    QCOMPARE(config.notchMiddleClickCommand(), QStringLiteral("library"));
+    QCOMPARE(config.dynamicIslandMiddleClickCommand(), QStringLiteral("library"));
+    QCOMPARE(midSpy.count(), 2);
+
+    // 4. Verify persistence across new instance / reload
+    UserConfigBackend reloaded;
+    QCOMPARE(reloaded.notchRightClickCommand(), QStringLiteral("custom-script.sh"));
+    QCOMPARE(reloaded.dynamicIslandRightClickCommand(), QStringLiteral("custom-script.sh"));
+    QCOMPARE(reloaded.notchMiddleClickCommand(), QStringLiteral("library"));
+    QCOMPARE(reloaded.dynamicIslandMiddleClickCommand(), QStringLiteral("library"));
+
+    // 5. Restore defaults
+    config.setNotchRightClickCommand(QStringLiteral("library"));
+    config.setNotchMiddleClickCommand(QStringLiteral(""));
+    QCOMPARE(config.notchRightClickCommand(), QStringLiteral("library"));
+    QCOMPARE(config.notchMiddleClickCommand(), QStringLiteral(""));
 }
 
 QTEST_MAIN(UserConfigBackendTests)

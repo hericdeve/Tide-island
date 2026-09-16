@@ -43,6 +43,31 @@ PagePanel {
         return roundedValue
     }
 
+    function textValue(key, fallback) {
+        revision
+        let val = ConfigStore.value(key, "")
+        if ((val === "" || val === undefined) && key === "notchRightClickCommand") {
+            val = ConfigStore.value("dynamicIslandRightClickCommand", "")
+        } else if ((val === "" || val === undefined) && key === "notchMiddleClickCommand") {
+            val = ConfigStore.value("dynamicIslandMiddleClickCommand", "")
+        }
+        return (val !== "" && val !== undefined) ? String(val) : fallback
+    }
+
+    function saveClickCommand(key, value, fallback) {
+        const trimmed = String(value === undefined || value === null ? "" : value).trim()
+        const finalVal = trimmed.length > 0 ? trimmed : fallback
+        ConfigStore.setValue(key, finalVal)
+        if (key === "notchRightClickCommand") {
+            ConfigStore.setValue("dynamicIslandRightClickCommand", finalVal)
+        } else if (key === "notchMiddleClickCommand") {
+            ConfigStore.setValue("dynamicIslandMiddleClickCommand", finalVal)
+        }
+        ConfigStore.save()
+        revision += 1
+        return finalVal
+    }
+
     function normalizedButton(value, fallback) {
         const parsedValue = Number(value)
         if (parsedValue === 1 || parsedValue === 2 || parsedValue === 3)
@@ -281,7 +306,7 @@ PagePanel {
 
                     ActionButtonRow {
                         title: "Expanded Notch"
-                        description: "Mouse button that toggles the expanded notch"
+                        description: "Mouse button that toggles the expanded notch (default: Left)"
                         actionName: root.playerAction
                         fallbackButton: 1
                         width: parent.width
@@ -289,11 +314,23 @@ PagePanel {
 
                     SplitLine { width: parent.width }
 
-                    ActionButtonRow {
-                        title: "Widget Library"
-                        description: "Mouse button that opens the widget library"
-                        actionName: root.controlAction
-                        fallbackButton: 3
+                    ConfigRow {
+                        title: "Right Click Command"
+                        description: "Command executed when right-clicking the closed notch ('library' or shell command)"
+                        keyName: "notchRightClickCommand"
+                        fallbackText: "library"
+                        numeric: false
+                        width: parent.width
+                    }
+
+                    SplitLine { width: parent.width }
+
+                    ConfigRow {
+                        title: "Middle Click Command"
+                        description: "Command executed when middle-clicking the closed notch ('library' or shell command)"
+                        keyName: "notchMiddleClickCommand"
+                        fallbackText: ""
+                        numeric: false
                         width: parent.width
                     }
                 }
@@ -537,14 +574,18 @@ PagePanel {
             id: configField
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
-            width: configRow.numeric ? 100 : 230
+            width: configRow.numeric ? 100 : 250
             height: 36
             placeholderText: configRow.fallbackText
             inputMethodHints: configRow.numeric ? Qt.ImhDigitsOnly : Qt.ImhNone
             validator: configRow.numeric ? intValidator : null
 
             Component.onCompleted: {
-                text = root.intValue(configRow.keyName, Number(configRow.fallbackText))
+                if (configRow.numeric) {
+                    text = root.intValue(configRow.keyName, Number(configRow.fallbackText))
+                } else {
+                    text = root.textValue(configRow.keyName, configRow.fallbackText)
+                }
             }
 
             onAccepted: configRow.commit()
@@ -560,6 +601,8 @@ PagePanel {
         function commit() {
             if (numeric) {
                 configField.text = String(root.saveInt(configRow.keyName, configField.text, Number(configRow.fallbackText), configRow.minimumValue, configRow.maximumValue))
+            } else {
+                configField.text = root.saveClickCommand(configRow.keyName, configField.text, configRow.fallbackText)
             }
         }
     }

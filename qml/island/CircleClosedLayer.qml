@@ -6,6 +6,23 @@ Item {
     id: root
 
     signal expandRequested()
+    signal widgetLibraryRequested(string mode, int pageIndex, int slotIndex)
+    signal commandActionRequested(string command)
+
+    readonly property var userConfig: UserConfig
+
+    function executeClickCommand(cmd) {
+        const trimmed = (cmd || "").trim();
+        if (!trimmed) {
+            return;
+        }
+        const lower = trimmed.toLowerCase();
+        if (lower === "library" || lower === "openlibrary" || lower === "widget_library") {
+            root.widgetLibraryRequested("circle", 0, 0);
+            return;
+        }
+        root.commandActionRequested(trimmed);
+    }
 
     property string currentArtUrl: ""
     property string currentTrack: ""
@@ -466,13 +483,16 @@ Item {
         id: dialTouchArea
         anchors.fill: parent
         cursorShape: Qt.PointingHandCursor
-        hoverEnabled: true
+        acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
 
         property real startX: 0
         property real startY: 0
         property bool moved: false
 
         onPressed: (mouse) => {
+            if (mouse.button === Qt.RightButton || mouse.button === Qt.MiddleButton) {
+                return;
+            }
             startX = mouse.x;
             startY = mouse.y;
             moved = false;
@@ -487,6 +507,18 @@ Item {
         }
 
         onReleased: (mouse) => {
+            if (mouse.button === Qt.RightButton) {
+                const rightCmd = (userConfig && userConfig.notchRightClickCommand !== undefined && userConfig.notchRightClickCommand !== "")
+                    ? userConfig.notchRightClickCommand : "library";
+                root.executeClickCommand(rightCmd);
+                return;
+            }
+            if (mouse.button === Qt.MiddleButton) {
+                const midCmd = (userConfig && userConfig.notchMiddleClickCommand !== undefined)
+                    ? userConfig.notchMiddleClickCommand : "";
+                root.executeClickCommand(midCmd);
+                return;
+            }
             const dx = mouse.x - startX;
             const dy = mouse.y - startY;
             if (moved) {

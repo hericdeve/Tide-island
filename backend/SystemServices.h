@@ -46,6 +46,7 @@ public:
     Q_INVOKABLE void ensureUserConfigAvailable();
     Q_INVOKABLE void openConfigApp();
     Q_INVOKABLE void openSettings();
+    Q_INVOKABLE bool executeCommand(const QString &command);
 
 signals:
     void notificationReceived(const QString &appName, const QString &summary, const QString &body);

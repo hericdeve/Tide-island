@@ -305,6 +305,36 @@ QString UserConfigBackend::dynamicIslandSecondaryAction() const
     return m_dynamicIslandSecondaryAction;
 }
 
+QString UserConfigBackend::notchRightClickCommand() const
+{
+    return m_notchRightClickCommand;
+}
+
+void UserConfigBackend::setNotchRightClickCommand(const QString &command)
+{
+    const QString trimmed = command.trimmed();
+    if (m_notchRightClickCommand == trimmed)
+        return;
+    m_notchRightClickCommand = trimmed;
+    emit notchRightClickCommandChanged();
+    writeConfigJsonField(m_userConfigPath, QStringLiteral("notchRightClickCommand"), m_notchRightClickCommand);
+}
+
+QString UserConfigBackend::notchMiddleClickCommand() const
+{
+    return m_notchMiddleClickCommand;
+}
+
+void UserConfigBackend::setNotchMiddleClickCommand(const QString &command)
+{
+    const QString trimmed = command.trimmed();
+    if (m_notchMiddleClickCommand == trimmed)
+        return;
+    m_notchMiddleClickCommand = trimmed;
+    emit notchMiddleClickCommandChanged();
+    writeConfigJsonField(m_userConfigPath, QStringLiteral("notchMiddleClickCommand"), m_notchMiddleClickCommand);
+}
+
 const QVariantList &UserConfigBackend::dynamicIslandLeftSwipeItems() const
 {
     return m_dynamicIslandLeftSwipeItems;
@@ -1589,6 +1619,20 @@ void UserConfigBackend::loadConfig()
     updateField(this, m_dynamicIslandSecondaryButton, jsonInt(configObject, QLatin1String("dynamicIslandSecondaryButton"), 3), &UserConfigBackend::dynamicIslandSecondaryButtonChanged);
     updateField(this, m_islandShowWorkspaceOnAutoHide, jsonBool(configObject, QLatin1String("islandShowWorkspaceOnAutoHide"), true), &UserConfigBackend::islandShowWorkspaceOnAutoHideChanged);
     updateField(this, m_dynamicIslandSecondaryAction, jsonString(configObject, QLatin1String("dynamicIslandSecondaryAction"), QStringLiteral("toggleControlCenter")), &UserConfigBackend::dynamicIslandSecondaryActionChanged);
+    QString rightCmd = jsonString(configObject, QLatin1String("notchRightClickCommand"), QString());
+    if (rightCmd.isEmpty()) {
+        rightCmd = jsonString(configObject, QLatin1String("dynamicIslandRightClickCommand"), QString());
+    }
+    if (rightCmd.isEmpty()) {
+        rightCmd = QStringLiteral("library");
+    }
+    updateField(this, m_notchRightClickCommand, rightCmd, &UserConfigBackend::notchRightClickCommandChanged);
+
+    QString middleCmd = jsonString(configObject, QLatin1String("notchMiddleClickCommand"), QString());
+    if (middleCmd.isEmpty()) {
+        middleCmd = jsonString(configObject, QLatin1String("dynamicIslandMiddleClickCommand"), QString());
+    }
+    updateField(this, m_notchMiddleClickCommand, middleCmd, &UserConfigBackend::notchMiddleClickCommandChanged);
     updateField(this, m_dynamicIslandLeftSwipeItems, jsonArray(configObject, QLatin1String("dynamicIslandLeftSwipeItems"), defaultDynamicIslandLeftSwipeItems()), &UserConfigBackend::dynamicIslandLeftSwipeItemsChanged);
     updateField(this, m_excludedPlayers, jsonArray(configObject, QLatin1String("excludedPlayers"), QVariantList{}), &UserConfigBackend::excludedPlayersChanged);
     updateField(this, m_disableAutoExpandOnTrackChange, jsonBool(configObject, QLatin1String("disableAutoExpandOnTrackChange"), true), &UserConfigBackend::disableAutoExpandOnTrackChangeChanged);

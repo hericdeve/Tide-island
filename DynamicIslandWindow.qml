@@ -269,7 +269,7 @@ PanelWindow {
     readonly property string defaultSplitIcon: "\ud83c\udfa7"
     readonly property string notificationStatusIcon: "\uf0f3"
     readonly property real overviewWindowCornerRadius: 12
-    readonly property int dynamicIslandAcceptedButtons: userConfig.mouseButtonsMask([
+    readonly property int dynamicIslandAcceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton | userConfig.mouseButtonsMask([
         1,
         userConfig.dynamicIslandPrimaryButton,
         userConfig.dynamicIslandSecondaryButton
@@ -1431,6 +1431,66 @@ PanelWindow {
                 return;
             default:
             }
+        }
+
+        function executeClickCommand(command) {
+            const trimmed = (command || "").trim();
+            if (!trimmed) {
+                return;
+            }
+            const lower = trimmed.toLowerCase();
+            if (lower === "library" || lower === "openlibrary" || lower === "widget_library" || lower === "openwidgetlibrary") {
+                showWidgetLibrary();
+                return;
+            }
+            if (lower === "togglelibrary" || lower === "togglewidgetlibrary") {
+                if (islandState === "widget_library")
+                    smartRestoreState();
+                else
+                    showWidgetLibrary();
+                return;
+            }
+            if (lower === "expanded" || lower === "expandedplayer" || lower === "openexpanded" || lower === "openexpandedplayer") {
+                showExpandedPlayer(false);
+                return;
+            }
+            if (lower === "toggleexpanded" || lower === "toggleexpandedplayer") {
+                if (islandState === "expanded") {
+                    autoHideTimer.stop();
+                    smartRestoreState();
+                } else {
+                    showExpandedPlayer(false);
+                }
+                return;
+            }
+            if (lower === "notifications" || lower === "notification_center" || lower === "opennotificationcenter") {
+                showNotificationCenter();
+                return;
+            }
+            if (lower === "togglenotifications" || lower === "togglenotificationcenter") {
+                if (islandState === "notification_center")
+                    smartRestoreState();
+                else
+                    showNotificationCenter();
+                return;
+            }
+            if (lower === "overview" || lower === "openoverview") {
+                root.openOverviewEverywhere();
+                return;
+            }
+            if (lower === "toggleoverview") {
+                root.toggleOverviewEverywhere();
+                return;
+            }
+            if (["toggleExpandedPlayer", "openExpandedPlayer", "closeExpandedPlayer",
+                 "toggleNotificationCenter", "openNotificationCenter", "closeNotificationCenter",
+                 "toggleControlCenter", "toggleWidgetLibrary", "openControlCenter", "openWidgetLibrary",
+                 "closeControlCenter", "closeWidgetLibrary", "toggleOverview", "openOverview", "closeOverview",
+                 "toggleLyrics", "showLyrics", "showTime", "restoreRestingCapsule"].indexOf(trimmed) !== -1) {
+                handleConfiguredClickAction(trimmed);
+                return;
+            }
+            SystemServices.executeCommand(trimmed);
         }
 
         function clamp01(value) {
@@ -3258,6 +3318,22 @@ PanelWindow {
                         return;
                     }
 
+                    if (mouse.button === Qt.RightButton) {
+                        preparedOverviewOnPress = false;
+                        const rightCmd = (userConfig && userConfig.notchRightClickCommand !== undefined && userConfig.notchRightClickCommand !== "")
+                            ? userConfig.notchRightClickCommand : "library";
+                        islandContainer.executeClickCommand(rightCmd);
+                        return;
+                    }
+
+                    if (mouse.button === Qt.MiddleButton) {
+                        preparedOverviewOnPress = false;
+                        const midCmd = (userConfig && userConfig.notchMiddleClickCommand !== undefined)
+                            ? userConfig.notchMiddleClickCommand : "";
+                        islandContainer.executeClickCommand(midCmd);
+                        return;
+                    }
+
                     if (mouse.button === userConfig.mouseButton(userConfig.dynamicIslandPrimaryButton)) {
                         if (islandContainer.toggleNotificationExpansionIfNeeded()) {
                             if (preparedOverviewOnPress)
@@ -3518,6 +3594,9 @@ PanelWindow {
                         onWidgetLibraryRequested: function(mode, pageIndex, slotIndex) {
                             islandContainer.showWidgetLibrary(mode, pageIndex, slotIndex);
                         }
+                        onCommandActionRequested: function(command) {
+                            islandContainer.executeClickCommand(command);
+                        }
                     }
                 }
             }
@@ -3588,6 +3667,9 @@ PanelWindow {
                         onExpandRequested: islandContainer.showExpandedPlayer(false)
                         onWidgetLibraryRequested: function(mode, pageIndex, slotIndex) {
                             islandContainer.showWidgetLibrary(mode, pageIndex, slotIndex);
+                        }
+                        onCommandActionRequested: function(command) {
+                            islandContainer.executeClickCommand(command);
                         }
                     }
                 }
