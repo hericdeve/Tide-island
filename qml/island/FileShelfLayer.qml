@@ -28,6 +28,7 @@ FocusScope {
     property int currentPage: 0
     property bool isEditMode: false
     property bool cameraMirrorActive: false
+    property bool dynamicResizeToastOpen: false
     property int batteryCapacity: -1
     property bool isCharging: false
     readonly property int extraHeight: LocalSend.waitingForAcceptance ? 38 : 0
@@ -514,6 +515,7 @@ FocusScope {
         cameraMirrorActive: root.cameraMirrorActive
         batteryCapacity: root.batteryCapacity
         isCharging: root.isCharging
+        dynamicResizeToastActive: root.dynamicResizeToastOpen
         iconFontFamily: root.iconFontFamily
         textFontFamily: root.textFontFamily
 
@@ -531,6 +533,7 @@ FocusScope {
         onShelfRequested: root.shelfRequested()
         onCameraToggleRequested: root.cameraToggleRequested()
         onEditModeToggleRequested: root.editModeToggleRequested()
+        onDynamicResizeToggleRequested: root.dynamicResizeToastOpen = !root.dynamicResizeToastOpen
         onSettingsRequested: SystemServices.openConfigApp()
         onCloseRequested: root.closeRequested()
     }
@@ -1169,6 +1172,18 @@ FocusScope {
                 height: Math.max(0, shelfDropBorder.height - 2)
                 radius: Math.max(0, StyleTokens.radiusModule - 1)
             }
+        }
+    }
+
+    DynamicResizeToast {
+        id: resizeToast
+        open: root.dynamicResizeToastOpen
+        iconFontFamily: root.iconFontFamily
+        textFontFamily: root.textFontFamily
+        onCloseRequested: root.dynamicResizeToastOpen = false
+        onOpenSettingsRequested: {
+            root.dynamicResizeToastOpen = false;
+            SystemServices.openConfigApp();
         }
     }
 }

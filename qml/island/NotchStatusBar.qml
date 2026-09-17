@@ -60,17 +60,17 @@ Item {
                         id: pageDot
                         readonly property int dotIndex: index
                         readonly property bool isActive: dotIndex === root.currentPage
-                        width: isActive ? 14 : 4
+                        width: isActive ? 15 : 4
                         height: 4
                         radius: 2
                         anchors.verticalCenter: parent.verticalCenter
-                        color: isActive ? "#ffffff" : (dotMouse.containsMouse ? "#636366" : "#38383a")
+                        color: isActive ? (StyleTokens.isDark ? "#ffffff" : "#1d1d1f") : (dotMouse.containsMouse ? (StyleTokens.isDark ? "#8e8e93" : "#636366") : (StyleTokens.isDark ? "#48484a" : "#c7c7cc"))
 
                         Behavior on width {
-                            NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
+                            NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
                         }
                         Behavior on color {
-                            ColorAnimation { duration: 180 }
+                            ColorAnimation { duration: 150 }
                         }
 
                         MouseArea {
@@ -159,7 +159,9 @@ Item {
             visible: width > 0 || opacity > 0.001
             anchors.verticalCenter: parent.verticalCenter
             radius: 10
-            color: "#12ffffff"
+            color: StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(0, 0, 0, 0.06)
+            border.width: 1
+            border.color: StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(0, 0, 0, 0.08)
 
             Behavior on width { NumberAnimation { duration: 240; easing.type: Easing.OutCubic } }
             Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
@@ -259,7 +261,9 @@ Item {
             visible: width > 0 || opacity > 0.001
             anchors.verticalCenter: parent.verticalCenter
             radius: 10
-            color: "#12ffffff"
+            color: StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(0, 0, 0, 0.06)
+            border.width: 1
+            border.color: StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(0, 0, 0, 0.08)
 
             Behavior on width { NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
             Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
@@ -366,19 +370,23 @@ Item {
             readonly property bool shouldShow: !root.fileShelfActive && ((userConfig && userConfig.statusBarShowCamera !== undefined) ? userConfig.statusBarShowCamera : true)
             width: shouldShow ? 24 : 0
             height: 24
-            radius: 12
+            radius: 6
             clip: true
             opacity: shouldShow ? 1.0 : 0.0
-            scale: shouldShow ? 1.0 : 0.85
+            scale: camMouse.pressed ? 0.92 : (camMouse.containsMouse ? 1.05 : 1.0)
             transformOrigin: Item.Center
             visible: width > 0 || opacity > 0.001
-            color: root.cameraMirrorActive ? "#38ffffff" : (camMouse.pressed ? "#38ffffff" : (camMouse.containsMouse ? "#1fffffff" : "transparent"))
+            color: root.cameraMirrorActive
+                ? (StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.22) : Qt.rgba(0, 0, 0, 0.14))
+                : (camMouse.pressed ? (StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.20) : Qt.rgba(0, 0, 0, 0.12)) : (camMouse.containsMouse ? (StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(0, 0, 0, 0.08)) : "transparent"))
             border.width: 1
-            border.color: root.cameraMirrorActive ? "#4dffffff" : (camMouse.containsMouse ? "#2effffff" : "transparent")
+            border.color: root.cameraMirrorActive
+                ? (StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.30) : Qt.rgba(0, 0, 0, 0.20))
+                : (camMouse.containsMouse ? (StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(0, 0, 0, 0.10)) : "transparent")
 
             Behavior on width { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
             Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
-            Behavior on scale { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+            Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
             Behavior on color { ColorAnimation { duration: 120 } }
             Behavior on border.color { ColorAnimation { duration: 120 } }
 
@@ -406,15 +414,19 @@ Item {
             visible: (userConfig && userConfig.statusBarShowEditMode !== undefined) ? userConfig.statusBarShowEditMode : true
             width: 24
             height: 24
-            radius: 12
-            color: root.isEditMode ? "#38ffffff" : (editMouse.pressed ? "#38ffffff" : (editMouse.containsMouse ? "#1fffffff" : "transparent"))
+            radius: 6
+            color: root.isEditMode
+                ? (StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.22) : Qt.rgba(0, 0, 0, 0.14))
+                : (editMouse.pressed ? (StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.20) : Qt.rgba(0, 0, 0, 0.12)) : (editMouse.containsMouse ? (StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(0, 0, 0, 0.08)) : "transparent"))
             border.width: 1
-            border.color: root.isEditMode ? "#4dffffff" : (editMouse.containsMouse ? "#2effffff" : "transparent")
-            scale: editMouse.pressed ? 0.88 : (root.isEditMode ? 1.05 : 1.0)
+            border.color: root.isEditMode
+                ? (StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.30) : Qt.rgba(0, 0, 0, 0.20))
+                : (editMouse.containsMouse ? (StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(0, 0, 0, 0.10)) : "transparent")
+            scale: editMouse.pressed ? 0.90 : (editMouse.containsMouse ? 1.06 : 1.0)
 
             Behavior on color { ColorAnimation { duration: 120 } }
             Behavior on border.color { ColorAnimation { duration: 120 } }
-            Behavior on scale { NumberAnimation { duration: 180; easing.type: Easing.OutBack; easing.overshoot: 1.4 } }
+            Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
 
             Text {
                 anchors.centerIn: parent
@@ -441,15 +453,19 @@ Item {
             visible: (userConfig && userConfig.statusBarShowNotchMode !== undefined) ? userConfig.statusBarShowNotchMode : true
             width: 24
             height: 24
-            radius: 12
-            color: modeToggleMouse.pressed ? "#38ffffff" : (modeToggleMouse.containsMouse ? "#1fffffff" : "transparent")
+            radius: 6
+            color: modeToggleMouse.pressed
+                ? (StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.20) : Qt.rgba(0, 0, 0, 0.12))
+                : (modeToggleMouse.containsMouse ? (StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(0, 0, 0, 0.08)) : "transparent")
             border.width: 1
-            border.color: modeToggleMouse.containsMouse ? "#2effffff" : "transparent"
+            border.color: modeToggleMouse.containsMouse ? (StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(0, 0, 0, 0.10)) : "transparent"
+            scale: modeToggleMouse.pressed ? 0.92 : (modeToggleMouse.containsMouse ? 1.05 : 1.0)
 
             readonly property string activeMode: (userConfig && userConfig.notchMode) ? userConfig.notchMode : "notch"
 
             Behavior on color { ColorAnimation { duration: 120 } }
             Behavior on border.color { ColorAnimation { duration: 120 } }
+            Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
 
             // Top screen bezel line (visible in Notch mode, faint in Pill mode, hidden in Circle mode)
             Rectangle {
@@ -493,12 +509,12 @@ Item {
                 anchors.top: parent.bottom
                 anchors.topMargin: 5
                 anchors.horizontalCenter: parent.horizontalCenter
-                height: 18
-                width: modeTooltipText.implicitWidth + 12
-                radius: 9
-                color: "#f01c1c1e"
-                border.width: 1
-                border.color: "#33ffffff"
+                height: 20
+                width: modeTooltipText.implicitWidth + 14
+                radius: 6
+                color: StyleTokens.isDark ? Qt.rgba(0.12, 0.12, 0.14, 0.94) : Qt.rgba(0.96, 0.96, 0.97, 0.95)
+                border.width: 0.5
+                border.color: StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(0, 0, 0, 0.14)
                 z: 100
 
                 Behavior on opacity { NumberAnimation { duration: 120 } }
@@ -512,7 +528,7 @@ Item {
                         if (notchModeToggleBtn.activeMode === "circle") return "Circle";
                         return "Notch";
                     }
-                    color: "#ffffff"
+                    color: StyleTokens.isDark ? "#ffffff" : "#1d1d1f"
                     font.family: root.textFontFamily
                     font.pixelSize: 10
                     font.weight: Font.Medium
@@ -547,13 +563,19 @@ Item {
             visible: (userConfig && userConfig.statusBarShowDynamicResize !== undefined) ? userConfig.statusBarShowDynamicResize : true
             width: 24
             height: 24
-            radius: 12
-            color: root.dynamicResizeToastActive ? "#38ffffff" : (resizeMouse.pressed ? "#38ffffff" : (resizeMouse.containsMouse ? "#1fffffff" : "transparent"))
+            radius: 6
+            color: root.dynamicResizeToastActive
+                ? (StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.22) : Qt.rgba(0, 0, 0, 0.14))
+                : (resizeMouse.pressed ? (StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.20) : Qt.rgba(0, 0, 0, 0.12)) : (resizeMouse.containsMouse ? (StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(0, 0, 0, 0.08)) : "transparent"))
             border.width: 1
-            border.color: root.dynamicResizeToastActive ? "#4dffffff" : (resizeMouse.containsMouse ? "#2effffff" : "transparent")
+            border.color: root.dynamicResizeToastActive
+                ? (StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.30) : Qt.rgba(0, 0, 0, 0.20))
+                : (resizeMouse.containsMouse ? (StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(0, 0, 0, 0.10)) : "transparent")
+            scale: resizeMouse.pressed ? 0.92 : (resizeMouse.containsMouse ? 1.05 : 1.0)
 
             Behavior on color { ColorAnimation { duration: 120 } }
             Behavior on border.color { ColorAnimation { duration: 120 } }
+            Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
 
             Text {
                 anchors.centerIn: parent
@@ -571,12 +593,12 @@ Item {
                 anchors.top: parent.bottom
                 anchors.topMargin: 5
                 anchors.horizontalCenter: parent.horizontalCenter
-                height: 18
-                width: resizeTooltipText.implicitWidth + 12
-                radius: 9
-                color: "#f01c1c1e"
-                border.width: 1
-                border.color: "#33ffffff"
+                height: 20
+                width: resizeTooltipText.implicitWidth + 14
+                radius: 6
+                color: StyleTokens.isDark ? Qt.rgba(0.12, 0.12, 0.14, 0.94) : Qt.rgba(0.96, 0.96, 0.97, 0.95)
+                border.width: 0.5
+                border.color: StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(0, 0, 0, 0.14)
                 z: 100
 
                 Behavior on opacity { NumberAnimation { duration: 120 } }
@@ -585,7 +607,7 @@ Item {
                     id: resizeTooltipText
                     anchors.centerIn: parent
                     text: "Dynamic Resizing"
-                    color: StyleTokens.textPrimaryBright
+                    color: StyleTokens.isDark ? "#ffffff" : "#1d1d1f"
                     font.family: root.textFontFamily
                     font.pixelSize: 10
                     font.weight: Font.Medium
@@ -606,13 +628,17 @@ Item {
             visible: (userConfig && userConfig.statusBarShowSettings !== undefined) ? userConfig.statusBarShowSettings : true
             width: 24
             height: 24
-            radius: 12
-            color: settingsMouse.pressed ? "#38ffffff" : (settingsMouse.containsMouse ? "#1fffffff" : "transparent")
+            radius: 6
+            color: settingsMouse.pressed
+                ? (StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.20) : Qt.rgba(0, 0, 0, 0.12))
+                : (settingsMouse.containsMouse ? (StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(0, 0, 0, 0.08)) : "transparent")
             border.width: 1
-            border.color: settingsMouse.containsMouse ? "#2effffff" : "transparent"
+            border.color: settingsMouse.containsMouse ? (StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(0, 0, 0, 0.10)) : "transparent"
+            scale: settingsMouse.pressed ? 0.92 : (settingsMouse.containsMouse ? 1.05 : 1.0)
 
             Behavior on color { ColorAnimation { duration: 120 } }
             Behavior on border.color { ColorAnimation { duration: 120 } }
+            Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
 
             Text {
                 anchors.centerIn: parent
@@ -631,10 +657,11 @@ Item {
             }
         }
 
-        // Battery indicator
+        // macOS Style Battery indicator
         Row {
+            id: batteryIndicatorRow
             anchors.verticalCenter: parent.verticalCenter
-            spacing: 4
+            spacing: 5
             visible: (root.batteryCapacity >= 0) && ((userConfig && userConfig.statusBarShowBattery !== undefined) ? userConfig.statusBarShowBattery : true)
 
             Text {
@@ -643,36 +670,105 @@ Item {
                 font.pixelSize: 11
                 font.family: root.textFontFamily
                 font.weight: Font.Medium
+                font.features: { "tnum": 1 }
                 anchors.verticalCenter: parent.verticalCenter
             }
 
-            Text {
-                text: root.isCharging ? "󰂄" : "󰁹"
-                color: root.isCharging ? StyleTokens.success : (root.batteryCapacity <= 20 ? StyleTokens.danger : StyleTokens.textSecondary)
-                font.pixelSize: 14
-                font.family: root.iconFontFamily
+            // macOS Vector Battery Shell
+            Item {
+                id: batteryCapsule
+                width: 25
+                height: 12
                 anchors.verticalCenter: parent.verticalCenter
+
+                // Battery Body Shell
+                Rectangle {
+                    id: batteryBody
+                    x: 0
+                    y: 0.5
+                    width: 22
+                    height: 11
+                    radius: 3.5
+                    color: StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(0, 0, 0, 0.06)
+                    border.width: 1
+                    border.color: StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.45) : Qt.rgba(0, 0, 0, 0.40)
+
+                    // Dynamic Fill Bar
+                    Rectangle {
+                        id: batteryFill
+                        x: 1.5
+                        y: 1.5
+                        height: 8
+                        radius: 2
+                        width: Math.max(1.5, Math.min(19, (root.batteryCapacity / 100.0) * 19))
+                        color: {
+                            if (root.isCharging) return "#34c759";
+                            if (root.batteryCapacity <= 10) return "#ff3b30";
+                            if (root.batteryCapacity <= 20) return "#ff9500";
+                            return StyleTokens.isDark ? "#ffffff" : "#1d1d1f";
+                        }
+
+                        Behavior on width { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
+                        Behavior on color { ColorAnimation { duration: 200 } }
+                    }
+
+                    // Lightning Bolt overlay when charging
+                    Text {
+                        anchors.centerIn: parent
+                        visible: root.isCharging
+                        text: "󱐋"
+                        font.family: root.iconFontFamily
+                        font.pixelSize: 9
+                        font.weight: Font.Bold
+                        color: root.batteryCapacity > 40 ? "#ffffff" : (StyleTokens.isDark ? "#ffffff" : "#1d1d1f")
+                        z: 5
+                    }
+                }
+
+                // Battery Terminal Nub on the right
+                Rectangle {
+                    x: 22
+                    anchors.verticalCenter: batteryBody.verticalCenter
+                    width: 1.75
+                    height: 4.5
+                    radius: 1
+                    color: batteryBody.border.color
+                }
             }
         }
 
-        // Close button
-        Rectangle {
-            width: 24
+        // macOS Style Close Button (Traffic Light)
+        Item {
+            id: closeBtnContainer
+            width: 20
             height: 24
-            radius: 12
-            color: closeMouse.pressed ? StyleTokens.danger : (closeMouse.containsMouse ? Qt.rgba(StyleTokens.danger.r, StyleTokens.danger.g, StyleTokens.danger.b, 0.16) : "transparent")
-            border.width: 1
-            border.color: closeMouse.containsMouse ? "#2effffff" : "transparent"
+            anchors.verticalCenter: parent.verticalCenter
 
-            Behavior on color { ColorAnimation { duration: 120 } }
-            Behavior on border.color { ColorAnimation { duration: 120 } }
-
-            Text {
+            Rectangle {
+                id: trafficLightCircle
                 anchors.centerIn: parent
-                text: "󰅖"
-                color: closeMouse.pressed ? StyleTokens.textOnError : (closeMouse.containsMouse ? StyleTokens.danger : StyleTokens.textSecondary)
-                font.family: root.iconFontFamily
-                font.pixelSize: 12
+                width: 13
+                height: 13
+                radius: 6.5
+                color: closeMouse.pressed ? "#bf4942" : "#ff5f56"
+                border.width: 0.5
+                border.color: closeMouse.pressed ? "#80221e" : "#e0443e"
+                scale: closeMouse.pressed ? 0.88 : (closeMouse.containsMouse ? 1.08 : 1.0)
+
+                Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
+                Behavior on color { ColorAnimation { duration: 100 } }
+
+                Text {
+                    anchors.centerIn: parent
+                    anchors.verticalCenterOffset: -0.5
+                    text: "✕"
+                    color: "#4d0000"
+                    font.pixelSize: 8
+                    font.weight: Font.Bold
+                    opacity: closeMouse.containsMouse ? 0.9 : 0.0
+
+                    Behavior on opacity { NumberAnimation { duration: 100 } }
+                }
             }
 
             MouseArea {

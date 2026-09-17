@@ -289,183 +289,217 @@ Item {
             anchors.fill: parent
             visible: !root.isWaitingConsent
 
-            // Top Row: Agent Selector (Submenu Trigger) + Project/Branch + Action buttons
-            Row {
+            // Top Row: Agent Selector + Project/Branch (Left) and Context/Model + Actions (Right)
+            Item {
                 id: topRow
                 anchors.top: parent.top
                 anchors.left: parent.left
                 anchors.right: parent.right
                 height: 24
-                spacing: 6
 
-                // Agent Selector Dropdown Trigger Button
-                Rectangle {
-                    id: agentSelectorBtn
-                    anchors.verticalCenter: parent.verticalCenter
-                    height: 24
-                    width: Math.min(145, selectorContentRow.implicitWidth + 14)
-                    radius: StyleTokens.radiusButton
-                    color: root.agentSubmenuOpen ? StyleTokens.accent : (selectorMouse.containsMouse ? StyleTokens.moduleHover : StyleTokens.module)
-                    border.width: 1
-                    border.color: root.agentSubmenuOpen
-                        ? StyleTokens.accent
-                        : (AIAgentsBackend.isProviderRunning(AIAgentsBackend.activeProvider) ? AIAgentsBackend.providerAccentColor : StyleTokens.track)
-
-                    Row {
-                        id: selectorContentRow
-                        anchors.centerIn: parent
-                        spacing: 4
-
-                        WidgetIconGlyph {
-                            anchors.verticalCenter: parent.verticalCenter
-                            glyph: AIAgentsBackend.providerIcon
-                            size: 11
-                            color: root.agentSubmenuOpen ? "#ffffff" : root.stateColor()
-                            widgetContext: root.widgetContext
-                        }
-
-                        WidgetTextView {
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: (AIAgentsBackend.selectedProvider === "auto" ? "Auto" : (AIAgentsBackend.selectedProvider === "claude" ? "Claude" : (AIAgentsBackend.selectedProvider === "opencode" ? "OpenCode" : "AGY")))
-                                + (AIAgentsBackend.totalActiveSessions > 1 ? (" (" + AIAgentsBackend.totalActiveSessions + ")") : "")
-                            role: "caption"
-                            colorOverride: root.agentSubmenuOpen ? "#ffffff" : StyleTokens.textPrimary
-                            widgetContext: root.widgetContext
-                        }
-
-                        WidgetIconGlyph {
-                            anchors.verticalCenter: parent.verticalCenter
-                            glyph: root.agentSubmenuOpen ? "󰅃" : "󰅀"
-                            size: 8
-                            color: root.agentSubmenuOpen ? "#ffffff" : StyleTokens.textSecondary
-                            widgetContext: root.widgetContext
-                        }
-                    }
-
-                    MouseArea {
-                        id: selectorMouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: root.agentSubmenuOpen = !root.agentSubmenuOpen
-                    }
-                }
-
-                // Project & Branch Row
+                // Left Section: Agent Selector + Project & Git Branch
                 Row {
+                    id: leftSection
+                    anchors.left: parent.left
+                    anchors.right: rightSection.left
+                    anchors.rightMargin: 8
                     anchors.verticalCenter: parent.verticalCenter
-                    width: Math.max(40, parent.width - agentSelectorBtn.width - 6 - (actionsRow.width + 6))
-                    spacing: 4
+                    spacing: 6
                     clip: true
 
-                    WidgetTextView {
-                        id: projectNameText
-                        width: Math.max(20, parent.width - (branchTag.visible ? branchTag.width + parent.spacing : 0))
-                        text: AIAgentsBackend.projectName || AIAgentsBackend.providerDisplayName
-                        role: "caption"
-                        colorOverride: StyleTokens.textPrimary
-                        overflowMode: "elide"
-                        widgetContext: root.widgetContext
-                    }
-                    // Branch tag
+                    // Agent Selector Dropdown Trigger Button
                     Rectangle {
-                        id: branchTag
-                        visible: AIAgentsBackend.gitBranch !== ""
-                        height: 14
-                        width: branchLabel.implicitWidth + 8
-                        radius: 4
-                        color: StyleTokens.module
+                        id: agentSelectorBtn
+                        anchors.verticalCenter: parent.verticalCenter
+                        height: 22
+                        width: Math.min(145, selectorContentRow.implicitWidth + 14)
+                        radius: StyleTokens.radiusButton
+                        color: root.agentSubmenuOpen ? StyleTokens.accent : (selectorMouse.containsMouse ? StyleTokens.moduleHover : StyleTokens.module)
+                        border.width: 1
+                        border.color: root.agentSubmenuOpen
+                            ? StyleTokens.accent
+                            : (AIAgentsBackend.isProviderRunning(AIAgentsBackend.activeProvider) ? AIAgentsBackend.providerAccentColor : StyleTokens.track)
+
                         Row {
-                            id: branchLabel
+                            id: selectorContentRow
                             anchors.centerIn: parent
-                            spacing: 3
+                            spacing: 4
+
                             WidgetIconGlyph {
-                                glyph: "󰘬"
-                                size: 8
-                                color: "#9ca3af"
+                                anchors.verticalCenter: parent.verticalCenter
+                                glyph: AIAgentsBackend.providerIcon
+                                size: 11
+                                color: root.agentSubmenuOpen ? "#ffffff" : root.stateColor()
                                 widgetContext: root.widgetContext
                             }
+
                             WidgetTextView {
-                                text: AIAgentsBackend.gitBranch
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: (AIAgentsBackend.selectedProvider === "auto" ? "Auto" : (AIAgentsBackend.selectedProvider === "claude" ? "Claude" : (AIAgentsBackend.selectedProvider === "opencode" ? "OpenCode" : "AGY")))
+                                    + (AIAgentsBackend.totalActiveSessions > 1 ? (" (" + AIAgentsBackend.totalActiveSessions + ")") : "")
                                 role: "caption"
-                                colorOverride: "#d1d5db"
+                                colorOverride: root.agentSubmenuOpen ? "#ffffff" : StyleTokens.textPrimary
                                 widgetContext: root.widgetContext
+                            }
+
+                            WidgetIconGlyph {
+                                anchors.verticalCenter: parent.verticalCenter
+                                glyph: root.agentSubmenuOpen ? "󰅃" : "󰅀"
+                                size: 8
+                                color: root.agentSubmenuOpen ? "#ffffff" : StyleTokens.textSecondary
+                                widgetContext: root.widgetContext
+                            }
+                        }
+
+                        MouseArea {
+                            id: selectorMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.agentSubmenuOpen = !root.agentSubmenuOpen
+                        }
+                    }
+
+                    // Project & Branch Row
+                    Row {
+                        id: projectRow
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: Math.min(implicitWidth, Math.max(0, leftSection.width - agentSelectorBtn.width - leftSection.spacing))
+                        spacing: 4
+                        clip: true
+                        visible: width > 20
+
+                        WidgetTextView {
+                            id: projectNameText
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: Math.max(10, projectRow.width - (branchTag.visible ? branchTag.width + projectRow.spacing : 0))
+                            text: AIAgentsBackend.projectName || AIAgentsBackend.providerDisplayName
+                            role: "caption"
+                            colorOverride: StyleTokens.textPrimary
+                            overflowMode: "elide"
+                            widgetContext: root.widgetContext
+                        }
+
+                        Rectangle {
+                            id: branchTag
+                            visible: AIAgentsBackend.gitBranch !== ""
+                            anchors.verticalCenter: parent.verticalCenter
+                            height: 16
+                            width: branchLabel.implicitWidth + 8
+                            radius: 4
+                            color: StyleTokens.module
+
+                            Row {
+                                id: branchLabel
+                                anchors.centerIn: parent
+                                spacing: 3
+                                WidgetIconGlyph {
+                                    glyph: "󰘬"
+                                    size: 8
+                                    color: "#9ca3af"
+                                    widgetContext: root.widgetContext
+                                }
+                                WidgetTextView {
+                                    text: AIAgentsBackend.gitBranch
+                                    role: "caption"
+                                    colorOverride: "#d1d5db"
+                                    widgetContext: root.widgetContext
+                                }
                             }
                         }
                     }
                 }
 
-                // Action buttons (Context Radial Indicator + Model Name + Output Mode Toggle + Demo Simulator + Terminal)
+                // Right Section: Context & Model Capsule + Separator + Actions
                 Row {
-                    id: actionsRow
+                    id: rightSection
+                    anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: 5
 
-                    // Context Radial Indicator + Model Name (to the right of context)
-                    Row {
-                        id: contextIndicator
+                    // Context Radial Indicator + Model Name Capsule
+                    Rectangle {
+                        id: contextModelCapsule
                         anchors.verticalCenter: parent.verticalCenter
-                        spacing: 3
+                        height: 22
+                        width: contextModelRow.implicitWidth + 12
+                        radius: StyleTokens.radiusButton
+                        color: StyleTokens.module
+                        border.width: 1
+                        border.color: StyleTokens.track
 
-                        WidgetProgressRing {
-                            id: contextRadialRing
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: 12
-                            height: 12
-                            strokeWidth: 2.0
-                            value: AIAgentsBackend.contextUsagePercent
-                            fillColor: {
-                                const p = AIAgentsBackend.contextUsagePercent;
-                                if (p > 0.85) return StyleTokens.danger;
-                                if (p > 0.65) return StyleTokens.warning;
-                                return AIAgentsBackend.providerAccentColor;
+                        Row {
+                            id: contextModelRow
+                            anchors.centerIn: parent
+                            spacing: 4
+
+                            WidgetProgressRing {
+                                id: contextRadialRing
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: 11
+                                height: 11
+                                strokeWidth: 2.0
+                                value: AIAgentsBackend.contextUsagePercent
+                                fillColor: {
+                                    const p = AIAgentsBackend.contextUsagePercent;
+                                    if (p > 0.85) return StyleTokens.danger;
+                                    if (p > 0.65) return StyleTokens.warning;
+                                    return AIAgentsBackend.providerAccentColor;
+                                }
+                                trackColor: "#22ffffff"
                             }
-                            trackColor: "#22ffffff"
-                        }
 
-                        WidgetTextView {
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: Math.round(AIAgentsBackend.contextUsagePercent * 100) + "%"
-                            role: "caption"
-                            tabularFigures: true
-                            colorOverride: StyleTokens.textSecondary
-                            widgetContext: root.widgetContext
-                        }
-
-                        WidgetTextView {
-                            visible: modelNameLabel.visible
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: "·"
-                            role: "caption"
-                            colorOverride: StyleTokens.textTertiary
-                            widgetContext: root.widgetContext
-                        }
-
-                        WidgetTextView {
-                            id: modelNameLabel
-                            anchors.verticalCenter: parent.verticalCenter
-                            visible: text !== "" && width > 0
-                            width: {
-                                if (root.width > 0 && root.width < 340) return 0;
-                                if (root.width > 0 && root.width < 420) return Math.min(75, implicitWidth);
-                                return Math.min(120, implicitWidth);
+                            WidgetTextView {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: Math.round(AIAgentsBackend.contextUsagePercent * 100) + "%"
+                                role: "caption"
+                                tabularFigures: true
+                                colorOverride: StyleTokens.textSecondary
+                                widgetContext: root.widgetContext
                             }
-                            text: AIAgentsBackend.modelName || AIAgentsBackend.providerDisplayName
-                            role: "caption"
-                            overflowMode: "elide"
-                            colorOverride: StyleTokens.textSecondary
-                            widgetContext: root.widgetContext
+
+                            Rectangle {
+                                visible: modelNameLabel.visible
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: 1
+                                height: 9
+                                color: StyleTokens.track
+                            }
+
+                            WidgetTextView {
+                                id: modelNameLabel
+                                anchors.verticalCenter: parent.verticalCenter
+                                visible: text !== "" && width > 0
+                                width: {
+                                    if (root.width > 0 && root.width < 340) return 0;
+                                    if (root.width > 0 && root.width < 440) return Math.min(75, implicitWidth);
+                                    return Math.min(130, implicitWidth);
+                                }
+                                text: AIAgentsBackend.modelName || AIAgentsBackend.providerDisplayName
+                                role: "caption"
+                                overflowMode: "elide"
+                                colorOverride: StyleTokens.textSecondary
+                                widgetContext: root.widgetContext
+                            }
                         }
+                    }
+
+                    // Divider between metadata and actions
+                    Rectangle {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 1
+                        height: 12
+                        color: StyleTokens.track
                     }
 
                     // Minimum View Mode Toggle
                     Rectangle {
                         id: minModeBtn
                         readonly property bool showsLastMsg: UserConfig.aiAgentsMinimumShowsLastMessage || AIAgentsBackend.minimumShowsLastMessage
-                        readonly property bool compact: root.width < 280
+                        readonly property bool compact: root.width < 440
 
-                        width: compact ? 20 : (minModeRow.implicitWidth + 12)
-                        height: 20
+                        width: compact ? 22 : (minModeRow.implicitWidth + 12)
+                        height: 22
                         radius: StyleTokens.radiusButton
                         color: minModeMouse.containsMouse
                             ? (showsLastMsg ? "#9333ea" : "#3f3f46")
@@ -513,10 +547,13 @@ Item {
 
                     // Demo Mode Toggle
                     Rectangle {
-                        width: 20
-                        height: 20
+                        width: 22
+                        height: 22
                         radius: StyleTokens.radiusButton
                         color: demoBtnMouse.containsMouse ? StyleTokens.moduleHover : StyleTokens.module
+                        border.width: 1
+                        border.color: StyleTokens.track
+
                         WidgetIconGlyph {
                             anchors.centerIn: parent
                             glyph: "󰍉"
@@ -547,10 +584,13 @@ Item {
 
                     // Terminal button
                     Rectangle {
-                        width: 20
-                        height: 20
+                        width: 22
+                        height: 22
                         radius: StyleTokens.radiusButton
                         color: termBtnMouse.containsMouse ? StyleTokens.moduleHover : StyleTokens.module
+                        border.width: 1
+                        border.color: StyleTokens.track
+
                         WidgetIconGlyph {
                             anchors.centerIn: parent
                             glyph: "󰆍"
