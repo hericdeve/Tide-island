@@ -1026,6 +1026,11 @@ void AIAgentsBackend::updateAntigravityState()
                     if (s.toolDetail.isEmpty()) s.toolDetail = s.preview;
                 }
 
+                if (s.sessionState == QLatin1String("done") || s.sessionState == QLatin1String("idle")) {
+                    s.currentTool.clear();
+                    s.toolAction.clear();
+                }
+
                 m_antigravitySessions.append(s);
             }
         }

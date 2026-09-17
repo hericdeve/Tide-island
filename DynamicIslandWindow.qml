@@ -2894,6 +2894,7 @@ PanelWindow {
                 ignoreUnknownSignals: true
                 function onRequestedContentWidthChanged() { dynamicResizeEngine.updateRequestedSizes(); }
                 function onRequestedContentHeightChanged() { dynamicResizeEngine.updateRequestedSizes(); }
+                function onCurrentPageChanged() { dynamicResizeEngine.updateRequestedSizes(); }
             }
             readonly property bool notificationHistorySurface: islandContainer.islandState === "notification_center"
             readonly property bool borderEnabled: userConfig.notchBorderEnabled === true

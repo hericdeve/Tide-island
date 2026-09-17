@@ -81,6 +81,9 @@ Item {
             return;
         }
         const curWrapper = pagesRepeater.itemAt(root.currentPage - 1);
+        if (curWrapper && curWrapper.gridItem && curWrapper.gridItem.recalculateRequestedSizes) {
+            curWrapper.gridItem.recalculateRequestedSizes();
+        }
         root.requestedContentWidth = (curWrapper && curWrapper.gridItem)
             ? Number(curWrapper.gridItem.requestedContentWidth) : 0;
         const gridReqH = (curWrapper && curWrapper.gridItem)

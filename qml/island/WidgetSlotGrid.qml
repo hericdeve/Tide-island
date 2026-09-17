@@ -33,7 +33,7 @@ Item {
         let maxReqH = 0;
         for (let i = 0; i < slotsRepeater.count; ++i) {
             const wrapper = slotsRepeater.itemAt(i);
-            if (wrapper && wrapper.slotItem && wrapper.visible) {
+            if (wrapper && wrapper.slotItem && !wrapper.coveredBySpan) {
                 const reqW = Number(wrapper.slotItem.requestedContentWidth) || 0;
                 if (reqW > wrapper.width) {
                     extraWidth += (reqW - wrapper.width);
