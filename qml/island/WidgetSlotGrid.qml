@@ -45,7 +45,7 @@ Item {
             }
         }
         root.requestedContentWidth = extraWidth > 0 ? (gridContainer.width + extraWidth) : 0;
-        root.requestedContentHeight = maxReqH > 0 ? Math.max(gridContainer.height, maxReqH) : 0;
+        root.requestedContentHeight = maxReqH > 0 ? maxReqH : 0;
     }
 
     onSlotCountChanged: recalculateRequestedSizes()

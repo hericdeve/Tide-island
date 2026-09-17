@@ -100,6 +100,7 @@ Item {
         id: jiggleContainer
         anchors.fill: parent
         visible: root.hasWidget
+        clip: true
 
         // Wiggle parameters (subtle, gentle iOS home screen dancing effect)
         readonly property real maxAngle: (root.slotSpan > 1 ? 0.45 : 0.7) * (root.slotIndex % 2 === 0 ? 1.0 : -1.0)

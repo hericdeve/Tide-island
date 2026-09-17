@@ -177,8 +177,18 @@ PanelWindow {
     readonly property real capsuleTopMargin: (userConfig.notchMode === "notch") ? 0 : Math.max(0, userConfig.islandTopMargin)
     readonly property real capsuleBottomMargin: (userConfig.notchMode === "notch") ? 0 : Math.max(0, userConfig.islandTopMargin)
     readonly property real capsuleVerticalMargin: root.isBottom ? root.capsuleBottomMargin : root.capsuleTopMargin
+    readonly property real maxExpandedEnvelopeHeight: {
+        const baseH = (userConfig && userConfig.notchOpenHeight !== undefined) ? Number(userConfig.notchOpenHeight) : 190;
+        const maxPct = (userConfig && userConfig.dynamicResizeMaxPctFull !== undefined) ? Number(userConfig.dynamicResizeMaxPctFull) : 40;
+        const validBaseH = (isFinite(baseH) && baseH > 0) ? baseH : 190;
+        const validMaxPct = (isFinite(maxPct) && maxPct >= 0) ? maxPct : 40;
+        return Math.ceil(root.capsuleVerticalMargin + validBaseH * (1.0 + validMaxPct / 100.0) + 120);
+    }
     readonly property real capsuleWindowHeight: Math.ceil(
-        root.capsuleVerticalMargin + Math.max(userConfig ? userConfig.notchOpenHeight : 190, mainCapsule.targetHeight) + 12
+        root.capsuleVerticalMargin + Math.max(
+            root.maxExpandedEnvelopeHeight,
+            mainCapsule.targetHeight
+        ) + 12
     )
     readonly property real connectivityDetailWindowHeight: root.anyConnectivityDetailMounted
         ? Math.ceil(root.capsuleVerticalMargin + root.connectivityDetailHeight + 12)
@@ -2173,7 +2183,6 @@ PanelWindow {
                 targetExpandedPage = resolveExpandedTargetPage();
             }
             islandState = "expanded";
-            mainCapsule.displayedWidth = mainCapsule.baseTargetWidth;
             expandedByPlayerAutoOpen = !!autoOpened;
             if (autoOpened) restartAutoHideTimer();
             else stopAutoHideTimer();
@@ -2192,7 +2201,6 @@ PanelWindow {
             clearTransientCapsule();
             bluetoothExpandedDevice = device;
             islandState = "bluetooth_expanded";
-            mainCapsule.displayedWidth = mainCapsule.baseTargetWidth;
             expandedByPlayerAutoOpen = false;
             restartAutoHideTimer(bluetoothExpandedAutoHideInterval);
         }
@@ -2202,7 +2210,6 @@ PanelWindow {
             abortSideTransientMode();
             clearTransientCapsule();
             islandState = "control_center";
-            mainCapsule.displayedWidth = mainCapsule.baseTargetWidth;
             stopAutoHideTimer();
         }
 
@@ -2821,7 +2828,7 @@ PanelWindow {
 
                 Timer {
                     id: shrinkSettleTimer
-                    interval: 40
+                    interval: 150
                     repeat: false
                     onTriggered: {
                         dynamicResizeEngine.activeExtraWidth = dynamicResizeEngine.targetExtraWidth;
@@ -2841,14 +2848,14 @@ PanelWindow {
                     const targetW = targetExtraWidth;
                     const targetH = targetExtraHeight;
 
-                    const isGrowingW = targetW > activeExtraWidth;
-                    const isGrowingH = targetH > activeExtraHeight;
+                    const isGrowingW = targetW > activeExtraWidth + 3;
+                    const isGrowingH = targetH > activeExtraHeight + 3;
 
                     if (isGrowingW) activeExtraWidth = targetW;
                     if (isGrowingH) activeExtraHeight = targetH;
 
-                    const isShrinkingW = targetW < activeExtraWidth;
-                    const isShrinkingH = targetH < activeExtraHeight;
+                    const isShrinkingW = (targetW === 0 && activeExtraWidth > 0) || (targetW < activeExtraWidth - 3);
+                    const isShrinkingH = (targetH === 0 && activeExtraHeight > 0) || (targetH < activeExtraHeight - 3);
 
                     if (isShrinkingW || isShrinkingH) {
                         if (!shrinkSettleTimer.running) {
@@ -3107,7 +3114,7 @@ PanelWindow {
                     easing.type: Easing.OutCubic
                 }
             }
-            Behavior on radius { NumberAnimation { duration: mainCapsule.morphDuration; easing.type: Easing.OutQuint } }
+            Behavior on radius { NumberAnimation { duration: mainCapsule.morphDuration; easing.type: Easing.OutCubic } }
             Behavior on color { ColorAnimation { duration: 280; easing.type: Easing.InOutQuad } }
             Behavior on outlineWidth { NumberAnimation { duration: 260; easing.type: Easing.InOutQuad } }
             Behavior on outlineColor { ColorAnimation { duration: 260; easing.type: Easing.InOutQuad } }
@@ -3543,17 +3550,30 @@ PanelWindow {
             // Widget-based closed notch layer — renders Minimum widgets from widgetLayouts.minimum.
             Loader {
                 id: closedWidgetLoader
-                anchors.fill: parent
+                anchors.top: !root.isBottom ? parent.top : undefined
+                anchors.bottom: root.isBottom ? parent.bottom : undefined
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: (islandContainer.islandState === "normal" || islandContainer.islandState === "notification")
+                    ? mainCapsule.baseTargetWidth
+                    : (islandContainer.currentTrack !== ""
+                        ? Math.round((userConfig ? userConfig.notchClosedWidth : 185) + 2 * Math.max(0, (userConfig ? userConfig.notchClosedHeight : 32) - 12) + 20)
+                        : (userConfig ? userConfig.notchClosedWidth : 185))
+                height: (islandContainer.islandState === "normal" || islandContainer.islandState === "notification")
+                    ? mainCapsule.targetHeight
+                    : (userConfig ? userConfig.notchClosedHeight : 32)
+                property bool warm: false
                 active: !root.overviewVisible
                     && userConfig.notchMode !== "circle"
-                    && (islandContainer.islandState === "normal" || islandContainer.islandState === "notification")
-                    && Math.abs(islandContainer.swipeTransitionProgress) < 0.01
+                    && (warm || (islandContainer.islandState === "normal" || islandContainer.islandState === "notification"))
                 asynchronous: false
-                visible: active && islandContainer.islandState === "normal"
+                visible: opacity > 0.001
+                opacity: (islandContainer.islandState === "normal" && Math.abs(islandContainer.swipeTransitionProgress) < 0.01) ? 1.0 : 0.0
+                Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
                 z: 2
 
                 onActiveChanged: dynamicResizeEngine.updateRequestedSizes()
                 onLoaded: {
+                    warm = true;
                     if (item) {
                         if (islandContainer.widgetStagingActive && islandContainer.stagedSizeType === "minimum") {
                             item.isEditMode = islandContainer.widgetLibraryPreEditMode;
@@ -3747,26 +3767,63 @@ PanelWindow {
 
             Loader {
                 id: expandedPlayerLoader
-                anchors.fill: parent
-                active: islandContainer.expandedLayerVisible
+                anchors.top: !root.isBottom ? parent.top : undefined
+                anchors.bottom: root.isBottom ? parent.bottom : undefined
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: islandContainer.expandedLayerVisible
+                    ? mainCapsule.baseTargetWidth
+                    : (userConfig ? userConfig.notchOpenWidth : 640)
+                height: islandContainer.expandedLayerVisible
+                    ? mainCapsule.targetHeight
+                    : (userConfig ? userConfig.notchOpenHeight : 190)
+                property bool warm: false
+                active: islandContainer.expandedLayerVisible || warm
                 asynchronous: false
-                visible: active
+                visible: opacity > 0.001
+                opacity: islandContainer.expandedLayerVisible ? 1.0 : 0.0
+                Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
                 onActiveChanged: dynamicResizeEngine.updateRequestedSizes()
-                onLoaded: {
-                    if (islandContainer.openTimerPageWhenExpanded
-                            && item && item.openTimerPage) {
+
+                Timer {
+                    id: expandedPreloadTimer
+                    interval: 350
+                    running: true
+                    repeat: false
+                    onTriggered: expandedPlayerLoader.warm = true
+                }
+
+                function syncExpandedState() {
+                    if (!item) return;
+                    if (islandContainer.openTimerPageWhenExpanded && item.openTimerPage) {
                         item.openTimerPage();
                         islandContainer.openTimerPageWhenExpanded = false;
-                    } else if (item && item.showPage) {
+                    } else if (item.showPage) {
                         item.showPage(islandContainer.targetExpandedPage, true);
                     }
-                    if (islandContainer.widgetStagingActive && islandContainer.stagedSizeType === "full" && item) {
+                    if (islandContainer.widgetStagingActive && islandContainer.stagedSizeType === "full") {
                         if (islandContainer.widgetLibraryPreEditMode)
                             item.isEditMode = true;
                     }
                     root.focusExpandedPlayer();
                     dynamicResizeEngine.updateRequestedSizes();
                     islandFileDropArea.refreshDropTarget();
+                }
+
+                onLoaded: {
+                    if (islandContainer.expandedLayerVisible) {
+                        syncExpandedState();
+                    } else {
+                        dynamicResizeEngine.updateRequestedSizes();
+                    }
+                }
+
+                Connections {
+                    target: islandContainer
+                    function onExpandedLayerVisibleChanged() {
+                        if (islandContainer.expandedLayerVisible) {
+                            expandedPlayerLoader.syncExpandedState();
+                        }
+                    }
                 }
 
                 sourceComponent: Component {

@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Shapes
 
 Item {
     id: root
@@ -13,52 +14,72 @@ Item {
     readonly property real clampedTopCornerRadius: Math.max(0, Math.min(topCornerRadius, width / 2, height / 2))
     readonly property real clampedBottomCornerRadius: Math.max(0, Math.min(bottomCornerRadius, width / 2, height / 2))
 
-    onColorChanged: surface.requestPaint()
-    onBorderColorChanged: surface.requestPaint()
-    onBorderWidthChanged: surface.requestPaint()
-    onTopCornerRadiusChanged: surface.requestPaint()
-    onBottomCornerRadiusChanged: surface.requestPaint()
-    onWidthChanged: surface.requestPaint()
-    onHeightChanged: surface.requestPaint()
-
-    Canvas {
+    Shape {
         id: surface
-
         anchors.fill: parent
         z: -1
-        antialiasing: true
-        renderTarget: Canvas.FramebufferObject
-        renderStrategy: Canvas.Immediate
+        asynchronous: false
+        layer.enabled: true
+        layer.samples: 4
 
-        onPaint: {
-            const context = getContext("2d");
-            const topRadius = root.clampedTopCornerRadius;
-            const bottomRadius = root.clampedBottomCornerRadius;
-            const strokeWidth = Math.max(0, root.borderWidth);
-            const halfStroke = strokeWidth / 2;
-            const left = halfStroke;
-            const top = halfStroke;
-            const right = Math.max(left, width - halfStroke);
-            const bottom = Math.max(top, height - halfStroke);
+        readonly property real topRadius: root.clampedTopCornerRadius
+        readonly property real bottomRadius: root.clampedBottomCornerRadius
+        readonly property real strokeW: Math.max(0, root.borderWidth)
+        readonly property real halfStroke: strokeW / 2
+        readonly property real leftPos: halfStroke
+        readonly property real topPos: halfStroke
+        readonly property real rightPos: Math.max(leftPos, width - halfStroke)
+        readonly property real bottomPos: Math.max(topPos, height - halfStroke)
 
-            context.clearRect(0, 0, width, height);
-            context.beginPath();
-            context.moveTo(left, top);
-            context.quadraticCurveTo(left + topRadius, top, left + topRadius, top + topRadius);
-            context.lineTo(left + topRadius, bottom - bottomRadius);
-            context.quadraticCurveTo(left + topRadius, bottom, left + topRadius + bottomRadius, bottom);
-            context.lineTo(right - topRadius - bottomRadius, bottom);
-            context.quadraticCurveTo(right - topRadius, bottom, right - topRadius, bottom - bottomRadius);
-            context.lineTo(right - topRadius, top + topRadius);
-            context.quadraticCurveTo(right - topRadius, top, right, top);
-            context.closePath();
-            context.fillStyle = root.color;
-            context.fill();
+        ShapePath {
+            strokeWidth: surface.strokeW
+            strokeColor: surface.strokeW > 0 ? root.borderColor : "transparent"
+            fillColor: root.color
+            joinStyle: ShapePath.MiterJoin
+            capStyle: ShapePath.FlatCap
 
-            if (strokeWidth > 0) {
-                context.lineWidth = strokeWidth;
-                context.strokeStyle = root.borderColor;
-                context.stroke();
+            startX: surface.leftPos
+            startY: surface.topPos
+
+            PathQuad {
+                controlX: surface.leftPos + surface.topRadius
+                controlY: surface.topPos
+                x: surface.leftPos + surface.topRadius
+                y: surface.topPos + surface.topRadius
+            }
+            PathLine {
+                x: surface.leftPos + surface.topRadius
+                y: surface.bottomPos - surface.bottomRadius
+            }
+            PathQuad {
+                controlX: surface.leftPos + surface.topRadius
+                controlY: surface.bottomPos
+                x: surface.leftPos + surface.topRadius + surface.bottomRadius
+                y: surface.bottomPos
+            }
+            PathLine {
+                x: surface.rightPos - surface.topRadius - surface.bottomRadius
+                y: surface.bottomPos
+            }
+            PathQuad {
+                controlX: surface.rightPos - surface.topRadius
+                controlY: surface.bottomPos
+                x: surface.rightPos - surface.topRadius
+                y: surface.bottomPos - surface.bottomRadius
+            }
+            PathLine {
+                x: surface.rightPos - surface.topRadius
+                y: surface.topPos + surface.topRadius
+            }
+            PathQuad {
+                controlX: surface.rightPos - surface.topRadius
+                controlY: surface.topPos
+                x: surface.rightPos
+                y: surface.topPos
+            }
+            PathLine {
+                x: surface.leftPos
+                y: surface.topPos
             }
         }
     }
