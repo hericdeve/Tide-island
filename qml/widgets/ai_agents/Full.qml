@@ -11,6 +11,18 @@ Item {
     property bool isEditMode: false
     property bool agentSubmenuOpen: false
 
+    onVisibleChanged: {
+        if (!visible) {
+            agentSubmenuOpen = false;
+        }
+    }
+
+    onIsWaitingConsentChanged: {
+        if (isWaitingConsent) {
+            agentSubmenuOpen = false;
+        }
+    }
+
     readonly property string iconFontFamily: widgetContext ? widgetContext.iconFontFamily : "Sans Serif"
     readonly property string textFontFamily: widgetContext ? widgetContext.textFontFamily : "Sans Serif"
     readonly property int bodyFontSize: widgetContext ? widgetContext.bodyFontSize : 16
@@ -92,7 +104,7 @@ Item {
             return 0;
         }
 
-        const restingOutputH = Math.max(30, baseSlotHeight - 112);
+        const restingOutputH = Math.max(30, baseSlotHeight - ((modelFooter && modelFooter.visible) ? 112 : 94));
         const thinkingH = (root.state === "thinking" && AIAgentsBackend.thinkingProcess !== "")
             ? (thinkingTextMeasure.implicitHeight + 4) : 0;
         const totalTextH = thinkingH + bannerTextMeasure.implicitHeight;
@@ -344,8 +356,11 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     width: Math.max(40, parent.width - agentSelectorBtn.width - 6 - (actionsRow.width + 6))
                     spacing: 4
+                    clip: true
 
                     WidgetTextView {
+                        id: projectNameText
+                        width: Math.max(20, parent.width - (branchTag.visible ? branchTag.width + parent.spacing : 0))
                         text: AIAgentsBackend.projectName || AIAgentsBackend.providerDisplayName
                         role: "caption"
                         colorOverride: StyleTokens.textPrimary
@@ -354,6 +369,7 @@ Item {
                     }
                     // Branch tag
                     Rectangle {
+                        id: branchTag
                         visible: AIAgentsBackend.gitBranch !== ""
                         height: 14
                         width: branchLabel.implicitWidth + 8
@@ -379,13 +395,13 @@ Item {
                     }
                 }
 
-                // Action buttons (Context Radial Indicator + Output Mode Toggle + Demo Simulator + Terminal)
+                // Action buttons (Context Radial Indicator + Model Name + Output Mode Toggle + Demo Simulator + Terminal)
                 Row {
                     id: actionsRow
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: 5
 
-                    // Context Radial Indicator (to the left of output mode, no "Context" text)
+                    // Context Radial Indicator + Model Name (to the right of context)
                     Row {
                         id: contextIndicator
                         anchors.verticalCenter: parent.verticalCenter
@@ -412,6 +428,31 @@ Item {
                             text: Math.round(AIAgentsBackend.contextUsagePercent * 100) + "%"
                             role: "caption"
                             tabularFigures: true
+                            colorOverride: StyleTokens.textSecondary
+                            widgetContext: root.widgetContext
+                        }
+
+                        WidgetTextView {
+                            visible: modelNameLabel.visible
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "·"
+                            role: "caption"
+                            colorOverride: StyleTokens.textTertiary
+                            widgetContext: root.widgetContext
+                        }
+
+                        WidgetTextView {
+                            id: modelNameLabel
+                            anchors.verticalCenter: parent.verticalCenter
+                            visible: text !== "" && width > 0
+                            width: {
+                                if (root.width > 0 && root.width < 340) return 0;
+                                if (root.width > 0 && root.width < 420) return Math.min(75, implicitWidth);
+                                return Math.min(120, implicitWidth);
+                            }
+                            text: AIAgentsBackend.modelName || AIAgentsBackend.providerDisplayName
+                            role: "caption"
+                            overflowMode: "elide"
                             colorOverride: StyleTokens.textSecondary
                             widgetContext: root.widgetContext
                         }
@@ -533,7 +574,7 @@ Item {
                 id: activityBanner
                 anchors.top: topRow.bottom
                 anchors.topMargin: 4
-                anchors.bottom: modelFooter.top
+                anchors.bottom: (modelFooter && modelFooter.visible) ? modelFooter.top : promptBar.top
                 anchors.bottomMargin: 4
                 anchors.left: parent.left
                 anchors.right: parent.right
@@ -739,19 +780,20 @@ Item {
                 }
             }
 
-            // Model & Cost Footer
+            // Cost Footer (visible only when cost tracking is active)
             Row {
                 id: modelFooter
+                visible: AIAgentsBackend.estimatedCost > 0
                 anchors.bottom: promptBar.top
-                anchors.bottomMargin: 4
+                anchors.bottomMargin: visible ? 4 : 0
                 anchors.left: parent.left
                 anchors.right: parent.right
-                height: 14
+                height: visible ? 14 : 0
 
                 WidgetTextView {
                     id: costLabel
                     anchors.verticalCenter: parent.verticalCenter
-                    text: (AIAgentsBackend.estimatedCost > 0 ? "$" + AIAgentsBackend.estimatedCost.toFixed(2) + " · " : "") + (AIAgentsBackend.modelName || AIAgentsBackend.providerDisplayName)
+                    text: "Est. Cost: $" + AIAgentsBackend.estimatedCost.toFixed(2)
                     role: "caption"
                     tabularFigures: true
                     colorOverride: StyleTokens.textSecondary
@@ -803,12 +845,23 @@ Item {
                 anchors.topMargin: 4
                 anchors.left: parent.left
                 width: Math.min(parent.width, 240)
-                height: Math.min(320, submenuLayout.implicitHeight + 8)
+                readonly property real maxAvailableHeight: parent && parent.height > (topRow.y + topRow.height + 8)
+                    ? (parent.height - (topRow.y + topRow.height + 4) - 4)
+                    : 0
+                readonly property real desiredHeight: submenuLayout.implicitHeight + 28
+                height: Math.min(320, Math.min(maxAvailableHeight, desiredHeight))
                 radius: StyleTokens.radiusModule
                 color: StyleTokens.panel
                 border.width: 1
                 border.color: StyleTokens.inputBorder
                 clip: true
+
+                readonly property bool isOpen: root.agentSubmenuOpen
+                onIsOpenChanged: {
+                    if (isOpen) {
+                        submenuFlickable.contentY = 0;
+                    }
+                }
 
                 function getProviderGlyph(prov) {
                     if (prov === "claude") return "󰚩";
@@ -852,11 +905,67 @@ Item {
                     onClicked: {}
                 }
 
+                // Header (Pinned at top of popover)
+                Item {
+                    id: submenuHeader
+                    anchors.top: parent.top
+                    anchors.topMargin: 4
+                    anchors.left: parent.left
+                    anchors.leftMargin: 4
+                    anchors.right: parent.right
+                    anchors.rightMargin: 4
+                    height: 18
+
+                    WidgetTextView {
+                        anchors.left: parent.left
+                        anchors.leftMargin: 6
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "AGENTS & SESSIONS"
+                        role: "caption"
+                        colorOverride: StyleTokens.textTertiary
+                        widgetContext: root.widgetContext
+                    }
+
+                    Rectangle {
+                        anchors.right: parent.right
+                        anchors.rightMargin: 4
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 14
+                        height: 14
+                        radius: 7
+                        color: closeSubmenuMouse.containsMouse ? StyleTokens.moduleHover : "transparent"
+
+                        WidgetIconGlyph {
+                            anchors.centerIn: parent
+                            glyph: "󰅖"
+                            size: 8
+                            color: StyleTokens.textSecondary
+                            widgetContext: root.widgetContext
+                        }
+
+                        MouseArea {
+                            id: closeSubmenuMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.agentSubmenuOpen = false
+                        }
+                    }
+                }
+
                 Flickable {
                     id: submenuFlickable
-                    anchors.fill: parent
-                    anchors.margins: 4
+                    anchors.top: submenuHeader.bottom
+                    anchors.topMargin: 2
+                    anchors.bottom: parent.bottom
+                    anchors.bottomMargin: 4
+                    anchors.left: parent.left
+                    anchors.leftMargin: 4
+                    anchors.right: parent.right
+                    anchors.rightMargin: submenuScrollTrack.visible ? 8 : 4
+                    contentWidth: width
                     contentHeight: submenuLayout.implicitHeight
+                    flickableDirection: Flickable.VerticalFlick
                     boundsBehavior: Flickable.StopAtBounds
                     clip: true
 
@@ -864,47 +973,6 @@ Item {
                         id: submenuLayout
                         width: submenuFlickable.width
                         spacing: 3
-
-                        Item {
-                            width: parent.width
-                            height: 18
-
-                            WidgetTextView {
-                                anchors.left: parent.left
-                                anchors.leftMargin: 6
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: "AGENTS & SESSIONS"
-                                role: "caption"
-                                colorOverride: StyleTokens.textTertiary
-                                widgetContext: root.widgetContext
-                            }
-
-                            Rectangle {
-                                anchors.right: parent.right
-                                anchors.rightMargin: 4
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: 14
-                                height: 14
-                                radius: 7
-                                color: closeSubmenuMouse.containsMouse ? StyleTokens.moduleHover : "transparent"
-
-                                WidgetIconGlyph {
-                                    anchors.centerIn: parent
-                                    glyph: "󰅖"
-                                    size: 8
-                                    color: StyleTokens.textSecondary
-                                    widgetContext: root.widgetContext
-                                }
-
-                                MouseArea {
-                                    id: closeSubmenuMouse
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: root.agentSubmenuOpen = false
-                                }
-                            }
-                        }
 
                         // Active Sessions List
                         Column {
@@ -1180,6 +1248,65 @@ Item {
                                 }
                             }
                         }
+
+                        Item {
+                            width: parent.width
+                            height: 2
+                        }
+                    }
+                }
+
+                // Scrollbar track & thumb
+                Item {
+                    id: submenuScrollTrack
+                    visible: submenuFlickable.contentHeight > submenuFlickable.height
+                    anchors.top: submenuFlickable.top
+                    anchors.bottom: submenuFlickable.bottom
+                    anchors.right: parent.right
+                    anchors.rightMargin: 2
+                    width: 6
+
+                    Rectangle {
+                        id: submenuScrollThumb
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        width: 3
+                        radius: 1.5
+                        color: thumbMouse.containsMouse || thumbMouse.pressed ? "#80ffffff" : "#40ffffff"
+                        height: Math.max(10, submenuFlickable.height * (submenuFlickable.height / Math.max(1, submenuFlickable.contentHeight)))
+                        y: (submenuFlickable.contentY / Math.max(1, (submenuFlickable.contentHeight - submenuFlickable.height))) * (submenuFlickable.height - height)
+                    }
+
+                    MouseArea {
+                        id: thumbMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.ArrowCursor
+                        preventStealing: true
+                        onPositionChanged: (mouse) => {
+                            if (pressed) {
+                                const trackH = submenuScrollTrack.height - submenuScrollThumb.height;
+                                if (trackH > 0) {
+                                    const ratio = Math.max(0, Math.min(1.0, (mouse.y - submenuScrollThumb.height / 2) / trackH));
+                                    submenuFlickable.contentY = ratio * (submenuFlickable.contentHeight - submenuFlickable.height);
+                                }
+                            }
+                        }
+                        onPressed: (mouse) => {
+                            const trackH = submenuScrollTrack.height - submenuScrollThumb.height;
+                            if (trackH > 0) {
+                                const ratio = Math.max(0, Math.min(1.0, (mouse.y - submenuScrollThumb.height / 2) / trackH));
+                                submenuFlickable.contentY = ratio * (submenuFlickable.contentHeight - submenuFlickable.height);
+                            }
+                        }
+                    }
+                }
+
+                WheelHandler {
+                    target: submenuFlickable
+                    onWheel: (event) => {
+                        const delta = Math.abs(event.angleDelta.y) >= 120 ? (event.angleDelta.y > 0 ? 36 : -36) : (event.angleDelta.y * 0.5);
+                        const maxScroll = Math.max(0, submenuFlickable.contentHeight - submenuFlickable.height);
+                        submenuFlickable.contentY = Math.max(0, Math.min(maxScroll, submenuFlickable.contentY - delta));
                     }
                 }
             }
