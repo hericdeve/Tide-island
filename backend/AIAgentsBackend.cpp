@@ -413,11 +413,17 @@ void AIAgentsBackend::setDemoState(const QString &state)
     if (state == QLatin1String("waiting_consent")) {
         m_pendingConsentId = QStringLiteral("demo-consent-1");
         m_pendingConsentTool = QStringLiteral("Bash");
-        m_pendingConsentDetail = QStringLiteral("cmake --build build -j16");
+        m_pendingConsentDetail = QStringLiteral(
+            "cmake --build build -j16\n"
+            "ctest --test-dir build --output-on-failure\n"
+            "git diff --stat HEAD~1\n"
+            "python3 scripts/audit_widgets.py --verify-all"
+        );
         m_currentTool = QStringLiteral("Bash");
         m_toolAction = QStringLiteral("Running command");
-        m_toolDetail = QStringLiteral("cmake --build build -j16");
-        m_toolTarget = m_toolDetail;
+        m_toolDetail = m_pendingConsentDetail;
+        m_toolTarget = QStringLiteral("cmake --build build -j16");
+        m_thinking.clear();
         m_lastMessage = QStringLiteral("Awaiting confirmation to run build command.");
         m_preview = m_lastMessage;
     } else if (state == QLatin1String("thinking")) {
@@ -428,6 +434,11 @@ void AIAgentsBackend::setDemoState(const QString &state)
         m_toolAction.clear();
         m_toolDetail.clear();
         m_toolTarget.clear();
+        m_thinking = QStringLiteral(
+            "1. Inspecting DynamicIslandWindow layout dependencies\n"
+            "2. Measuring widget slot implicit bounds\n"
+            "3. Synthesizing fluid animation constraints"
+        );
         m_lastMessage = QStringLiteral("Analyzing architectural refactor and AST nodes across codebase...");
         m_preview = m_lastMessage;
     } else if (state == QLatin1String("running_tool")) {
@@ -438,6 +449,7 @@ void AIAgentsBackend::setDemoState(const QString &state)
         m_toolAction = QStringLiteral("Searching codebase");
         m_toolDetail = QStringLiteral("ControlCenterLayer");
         m_toolTarget = m_toolDetail;
+        m_thinking.clear();
         m_lastMessage = QStringLiteral("Searching for ControlCenterLayer occurrences across the codebase.");
         m_preview = m_lastMessage;
     } else if (state == QLatin1String("error")) {
@@ -448,6 +460,7 @@ void AIAgentsBackend::setDemoState(const QString &state)
         m_toolAction.clear();
         m_toolDetail.clear();
         m_toolTarget.clear();
+        m_thinking.clear();
         m_lastMessage = QStringLiteral("Process terminated unexpectedly with exit code 1");
         m_preview = m_lastMessage;
     } else if (state == QLatin1String("done")) {
@@ -458,6 +471,7 @@ void AIAgentsBackend::setDemoState(const QString &state)
         m_toolAction.clear();
         m_toolDetail.clear();
         m_toolTarget.clear();
+        m_thinking.clear();
         m_lastMessage = QStringLiteral("Refactoring complete: All specifications and tests passing.");
         m_preview = m_lastMessage;
     } else {
@@ -469,6 +483,7 @@ void AIAgentsBackend::setDemoState(const QString &state)
         m_toolAction.clear();
         m_toolDetail.clear();
         m_toolTarget.clear();
+        m_thinking.clear();
         m_lastMessage = QStringLiteral("Ready to assist with coding and execution.");
         m_preview = m_lastMessage;
     }

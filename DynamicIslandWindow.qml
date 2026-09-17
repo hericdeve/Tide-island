@@ -2848,8 +2848,8 @@ PanelWindow {
                     const targetW = targetExtraWidth;
                     const targetH = targetExtraHeight;
 
-                    const isGrowingW = targetW > activeExtraWidth + 3;
-                    const isGrowingH = targetH > activeExtraHeight + 3;
+                    const isGrowingW = targetW > (activeExtraWidth === 0 ? 0 : activeExtraWidth + 3);
+                    const isGrowingH = targetH > (activeExtraHeight === 0 ? 0 : activeExtraHeight + 3);
 
                     if (isGrowingW) activeExtraWidth = targetW;
                     if (isGrowingH) activeExtraHeight = targetH;
@@ -3554,13 +3554,15 @@ PanelWindow {
                 anchors.bottom: root.isBottom ? parent.bottom : undefined
                 anchors.horizontalCenter: parent.horizontalCenter
                 width: (islandContainer.islandState === "normal" || islandContainer.islandState === "notification")
-                    ? mainCapsule.baseTargetWidth
+                    ? Math.max(
+                        (islandContainer.currentTrack !== ""
+                            ? Math.round((userConfig ? userConfig.notchClosedWidth : 185) + 2 * Math.max(0, (userConfig ? userConfig.notchClosedHeight : 32) - 12) + 20)
+                            : (userConfig ? userConfig.notchClosedWidth : 185)),
+                        mainCapsule.displayedWidth)
                     : (islandContainer.currentTrack !== ""
                         ? Math.round((userConfig ? userConfig.notchClosedWidth : 185) + 2 * Math.max(0, (userConfig ? userConfig.notchClosedHeight : 32) - 12) + 20)
                         : (userConfig ? userConfig.notchClosedWidth : 185))
-                height: (islandContainer.islandState === "normal" || islandContainer.islandState === "notification")
-                    ? mainCapsule.targetHeight
-                    : (userConfig ? userConfig.notchClosedHeight : 32)
+                height: userConfig ? userConfig.notchClosedHeight : 32
                 property bool warm: false
                 active: !root.overviewVisible
                     && userConfig.notchMode !== "circle"
@@ -3771,10 +3773,10 @@ PanelWindow {
                 anchors.bottom: root.isBottom ? parent.bottom : undefined
                 anchors.horizontalCenter: parent.horizontalCenter
                 width: islandContainer.expandedLayerVisible
-                    ? mainCapsule.baseTargetWidth
+                    ? Math.max(userConfig ? userConfig.notchOpenWidth : 640, mainCapsule.displayedWidth)
                     : (userConfig ? userConfig.notchOpenWidth : 640)
                 height: islandContainer.expandedLayerVisible
-                    ? mainCapsule.targetHeight
+                    ? Math.max(userConfig ? userConfig.notchOpenHeight : 190, mainCapsule.height)
                     : (userConfig ? userConfig.notchOpenHeight : 190)
                 property bool warm: false
                 active: islandContainer.expandedLayerVisible || warm

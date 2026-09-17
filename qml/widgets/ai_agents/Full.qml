@@ -94,8 +94,8 @@ Item {
 
         if (root.isWaitingConsent) {
             const h = consentTextMeasure.implicitHeight;
-            const restingConsentH = Math.max(30, baseSlotHeight - 70);
-            if (h > restingConsentH + 10) {
+            const restingConsentH = Math.max(30, baseSlotHeight - 86);
+            if (h > restingConsentH) {
                 const neededH = h - restingConsentH;
                 const extraH = Math.min(maxAllowedExpansion, neededH);
                 targetContentHeight = baseSlotHeight + extraH;
@@ -105,11 +105,11 @@ Item {
             return;
         }
 
-        const restingOutputH = Math.max(30, baseSlotHeight - 108);
+        const restingOutputH = Math.max(30, baseSlotHeight - 112);
         const thinkingH = (root.state === "thinking" && AIAgentsBackend.thinkingProcess !== "")
             ? (thinkingTextMeasure.implicitHeight + 4) : 0;
         const totalTextH = thinkingH + bannerTextMeasure.implicitHeight;
-        if (totalTextH > restingOutputH + 10) {
+        if (totalTextH > restingOutputH) {
             const neededH = totalTextH - restingOutputH;
             const extraH = Math.min(maxAllowedExpansion, neededH);
             targetContentHeight = baseSlotHeight + extraH;
@@ -120,8 +120,37 @@ Item {
 
     onActiveOutputMessageChanged: resizeSettleTimer.restart()
     onIsWaitingConsentChanged: resizeSettleTimer.restart()
+    onStateChanged: resizeSettleTimer.restart()
     onWidthChanged: if (root.width > 100) resizeSettleTimer.restart()
     Component.onCompleted: resizeSettleTimer.restart()
+
+    Connections {
+        target: AIAgentsBackend
+        ignoreUnknownSignals: true
+        function onThinkingProcessChanged() { resizeSettleTimer.restart(); }
+        function onPendingConsentDetailChanged() { resizeSettleTimer.restart(); }
+        function onToolDetailChanged() { resizeSettleTimer.restart(); }
+        function onSessionStateChanged() { resizeSettleTimer.restart(); }
+        function onDemoModeChanged() { resizeSettleTimer.restart(); }
+    }
+
+    Connections {
+        target: bannerTextMeasure
+        ignoreUnknownSignals: true
+        function onImplicitHeightChanged() { resizeSettleTimer.restart(); }
+    }
+
+    Connections {
+        target: thinkingTextMeasure
+        ignoreUnknownSignals: true
+        function onImplicitHeightChanged() { resizeSettleTimer.restart(); }
+    }
+
+    Connections {
+        target: consentTextMeasure
+        ignoreUnknownSignals: true
+        function onImplicitHeightChanged() { resizeSettleTimer.restart(); }
+    }
 
     function toolIcon() {
         const t = (AIAgentsBackend.currentTool || "").toLowerCase();
@@ -312,7 +341,7 @@ Item {
                     height: 24
                     width: Math.min(145, selectorContentRow.implicitWidth + 14)
                     radius: StyleTokens.radiusButton
-                    color: root.agentSubmenuOpen ? StyleTokens.accent : (selectorMouse.containsMouse ? StyleTokens.buttonHover : StyleTokens.module)
+                    color: root.agentSubmenuOpen ? StyleTokens.accent : (selectorMouse.containsMouse ? StyleTokens.moduleHover : StyleTokens.module)
                     border.width: 1
                     border.color: root.agentSubmenuOpen
                         ? StyleTokens.accent
@@ -494,7 +523,7 @@ Item {
                         width: 20
                         height: 20
                         radius: StyleTokens.radiusButton
-                        color: demoBtnMouse.containsMouse ? StyleTokens.buttonHover : StyleTokens.module
+                        color: demoBtnMouse.containsMouse ? StyleTokens.moduleHover : StyleTokens.module
                         WidgetIconGlyph {
                             anchors.centerIn: parent
                             glyph: "󰍉"
@@ -528,7 +557,7 @@ Item {
                         width: 20
                         height: 20
                         radius: StyleTokens.radiusButton
-                        color: termBtnMouse.containsMouse ? StyleTokens.buttonHover : StyleTokens.module
+                        color: termBtnMouse.containsMouse ? StyleTokens.moduleHover : StyleTokens.module
                         WidgetIconGlyph {
                             anchors.centerIn: parent
                             glyph: "󰆍"
@@ -905,7 +934,7 @@ Item {
                                 width: 14
                                 height: 14
                                 radius: 7
-                                color: closeSubmenuMouse.containsMouse ? StyleTokens.buttonHover : "transparent"
+                                color: closeSubmenuMouse.containsMouse ? StyleTokens.moduleHover : "transparent"
 
                                 WidgetIconGlyph {
                                     anchors.centerIn: parent
@@ -957,7 +986,7 @@ Item {
                                     height: 38
                                     radius: StyleTokens.radiusButton
                                     color: sessionMouse.containsMouse
-                                        ? StyleTokens.buttonHover
+                                        ? StyleTokens.moduleHover
                                         : (sessionItem.isSelected ? StyleTokens.module : "transparent")
 
                                     Row {
@@ -1118,7 +1147,7 @@ Item {
                                 height: 28
                                 radius: StyleTokens.radiusButton
                                 color: itemMouse.containsMouse
-                                    ? StyleTokens.buttonHover
+                                    ? StyleTokens.moduleHover
                                     : (submenuItem.isSelected ? StyleTokens.module : "transparent")
 
                                 Row {

@@ -103,6 +103,7 @@ Item {
         const clamped = Math.max(0, Math.min(pageCount - 1, target));
         currentPage = clamped;
         pageProgress = clamped;
+        root.updateActivePageRequestedSizes();
     }
 
     NumberAnimation {
@@ -113,6 +114,7 @@ Item {
         easing.type: Easing.OutCubic
         onFinished: {
             root.currentPage = Math.max(0, Math.min(root.pageCount - 1, Math.round(root.pageProgress)));
+            root.updateActivePageRequestedSizes();
         }
     }
 

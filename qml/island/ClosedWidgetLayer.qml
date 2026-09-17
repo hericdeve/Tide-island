@@ -145,6 +145,7 @@ Item {
             if (userConfig) {
                 userConfig.setActivePage("minimum", root.currentPage);
             }
+            root.updateActivePageRequestedSizes();
         }
     }
 
