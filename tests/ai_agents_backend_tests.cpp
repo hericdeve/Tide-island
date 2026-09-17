@@ -26,6 +26,7 @@ private slots:
     void minimumShowsLastMessageToggle();
     void cleanFirstMeaningfulLineTests();
     void sessionListingAndSelection();
+    void antigravityTranscriptAndDynamicResizeState();
 };
 
 void AIAgentsBackendTests::initTestCase()
@@ -233,6 +234,27 @@ void AIAgentsBackendTests::sessionListingAndSelection()
         backend.selectSession(prov, sid);
         QCOMPARE(backend.activeSessionId(), sid);
         QCOMPARE(backend.activeProvider(), prov);
+    }
+}
+
+void AIAgentsBackendTests::antigravityTranscriptAndDynamicResizeState()
+{
+    AIAgentsBackend backend;
+    backend.refresh();
+
+    const QVariantList agySessions = backend.sessionsForProvider(QStringLiteral("agy"));
+    if (!agySessions.isEmpty()) {
+        const QVariantMap first = agySessions.first().toMap();
+        const QString sid = first.value(QStringLiteral("sessionId")).toString();
+        backend.selectSession(QStringLiteral("agy"), sid);
+
+        // Verify lastMessage is populated
+        QVERIFY(!backend.lastMessage().isEmpty());
+
+        // When session is idle or done, verify currentTool is empty (not reporting stale tools)
+        if (backend.sessionState() == QLatin1String("done") || backend.sessionState() == QLatin1String("idle")) {
+            QCOMPARE(backend.currentTool(), QString());
+        }
     }
 }
 

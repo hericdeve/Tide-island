@@ -137,7 +137,7 @@ Item {
         font.pixelSize: root.computedFontSize
         font.weight: root.computedFontWeight
         wrapMode: root.overflowMode === "wrap" ? Text.Wrap : Text.NoWrap
-        width: (root.overflowMode === "wrap" && root.width > 0 && root.width !== root.implicitWidth) ? root.width : undefined
+        width: (root.overflowMode === "wrap" && root.width > 0 && (root.measureOnly || root.width !== root.implicitWidth)) ? root.width : undefined
         maximumLineCount: root.maximumLineCount > 0 ? root.maximumLineCount : (root.overflowMode === "wrap" ? 0 : 1)
         font.features: root.tabularFigures ? { "tnum": 1 } : {}
         horizontalAlignment: root.horizontalAlignment

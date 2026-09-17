@@ -76,20 +76,9 @@ Item {
         return 0;
     }
 
-    property real targetContentHeight: 0
-    readonly property real requestedContentHeight: targetContentHeight
-
-    Timer {
-        id: resizeSettleTimer
-        interval: 100
-        repeat: false
-        onTriggered: root.updateTargetContentHeight()
-    }
-
-    function updateTargetContentHeight() {
+    readonly property real requestedContentHeight: {
         if (root.width <= 100) {
-            targetContentHeight = 0;
-            return;
+            return 0;
         }
 
         if (root.isWaitingConsent) {
@@ -98,11 +87,9 @@ Item {
             if (h > restingConsentH) {
                 const neededH = h - restingConsentH;
                 const extraH = Math.min(maxAllowedExpansion, neededH);
-                targetContentHeight = baseSlotHeight + extraH;
-                return;
+                return baseSlotHeight + extraH;
             }
-            targetContentHeight = 0;
-            return;
+            return 0;
         }
 
         const restingOutputH = Math.max(30, baseSlotHeight - 112);
@@ -112,44 +99,9 @@ Item {
         if (totalTextH > restingOutputH) {
             const neededH = totalTextH - restingOutputH;
             const extraH = Math.min(maxAllowedExpansion, neededH);
-            targetContentHeight = baseSlotHeight + extraH;
-            return;
+            return baseSlotHeight + extraH;
         }
-        targetContentHeight = 0;
-    }
-
-    onActiveOutputMessageChanged: resizeSettleTimer.restart()
-    onIsWaitingConsentChanged: resizeSettleTimer.restart()
-    onStateChanged: resizeSettleTimer.restart()
-    onWidthChanged: if (root.width > 100) resizeSettleTimer.restart()
-    Component.onCompleted: resizeSettleTimer.restart()
-
-    Connections {
-        target: AIAgentsBackend
-        ignoreUnknownSignals: true
-        function onThinkingProcessChanged() { resizeSettleTimer.restart(); }
-        function onPendingConsentDetailChanged() { resizeSettleTimer.restart(); }
-        function onToolDetailChanged() { resizeSettleTimer.restart(); }
-        function onSessionStateChanged() { resizeSettleTimer.restart(); }
-        function onDemoModeChanged() { resizeSettleTimer.restart(); }
-    }
-
-    Connections {
-        target: bannerTextMeasure
-        ignoreUnknownSignals: true
-        function onImplicitHeightChanged() { resizeSettleTimer.restart(); }
-    }
-
-    Connections {
-        target: thinkingTextMeasure
-        ignoreUnknownSignals: true
-        function onImplicitHeightChanged() { resizeSettleTimer.restart(); }
-    }
-
-    Connections {
-        target: consentTextMeasure
-        ignoreUnknownSignals: true
-        function onImplicitHeightChanged() { resizeSettleTimer.restart(); }
+        return 0;
     }
 
     function toolIcon() {

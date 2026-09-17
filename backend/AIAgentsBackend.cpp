@@ -112,19 +112,34 @@ static QString resolveAntigravityModel(const QString &convId)
 
 static void parseAntigravityTranscript(const QString &convId, QString &currentTool, QString &toolAction, QString &toolDetail, QString &toolTarget, QString &lastMessage, QString &thinking)
 {
-    const QString transcriptPath = QDir::homePath() + QStringLiteral("/.gemini/antigravity-cli/brain/") + convId + QStringLiteral("/.system_generated/logs/transcript.jsonl");
+    const QStringList candidatePaths = {
+        QDir::homePath() + QStringLiteral("/.gemini/antigravity/brain/") + convId + QStringLiteral("/.system_generated/logs/transcript.jsonl"),
+        QDir::homePath() + QStringLiteral("/.gemini/antigravity-cli/brain/") + convId + QStringLiteral("/.system_generated/logs/transcript.jsonl")
+    };
+    QString transcriptPath;
+    for (const QString &p : candidatePaths) {
+        if (QFile::exists(p)) {
+            transcriptPath = p;
+            break;
+        }
+    }
+    if (transcriptPath.isEmpty())
+        return;
+
     QFile file(transcriptPath);
-    if (!file.exists() || !file.open(QIODevice::ReadOnly | QIODevice::Text))
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
         return;
 
     const qint64 sz = file.size();
-    if (sz > 50000) {
-        file.seek(sz - 50000);
+    if (sz > 1048576) {
+        file.seek(sz - 1048576);
     }
     const QByteArray chunk = file.readAll();
     file.close();
 
     const QList<QByteArray> lines = chunk.split('\n');
+    bool isLatestPlannerStep = true;
+    int plannerStepCount = 0;
     for (int i = lines.size() - 1; i >= 0; --i) {
         const QByteArray line = lines.at(i).trimmed();
         if (line.isEmpty())
@@ -138,53 +153,57 @@ static void parseAntigravityTranscript(const QString &convId, QString &currentTo
         const QString type = obj.value(QStringLiteral("type")).toString();
 
         if (type == QLatin1String("PLANNER_RESPONSE")) {
+            plannerStepCount++;
             const QJsonArray toolCalls = obj.value(QStringLiteral("tool_calls")).toArray();
-            if (!toolCalls.isEmpty() && currentTool.isEmpty()) {
-                const QJsonObject tc = toolCalls.last().toObject();
-                const QString tName = tc.value(QStringLiteral("name")).toString();
-                const QJsonObject args = tc.value(QStringLiteral("args")).toObject();
+            if (isLatestPlannerStep) {
+                isLatestPlannerStep = false;
+                if (!toolCalls.isEmpty() && currentTool.isEmpty()) {
+                    const QJsonObject tc = toolCalls.last().toObject();
+                    const QString tName = tc.value(QStringLiteral("name")).toString();
+                    const QJsonObject args = tc.value(QStringLiteral("args")).toObject();
 
-                QString action = stripQuotes(args.value(QStringLiteral("toolAction")).toVariant().toString());
-                if (action.isEmpty())
-                    action = stripQuotes(args.value(QStringLiteral("toolSummary")).toVariant().toString());
+                    QString action = stripQuotes(args.value(QStringLiteral("toolAction")).toVariant().toString());
+                    if (action.isEmpty())
+                        action = stripQuotes(args.value(QStringLiteral("toolSummary")).toVariant().toString());
 
-                QString path = stripQuotes(args.value(QStringLiteral("AbsolutePath")).toVariant().toString());
-                if (path.isEmpty())
-                    path = stripQuotes(args.value(QStringLiteral("TargetFile")).toVariant().toString());
+                    QString path = stripQuotes(args.value(QStringLiteral("AbsolutePath")).toVariant().toString());
+                    if (path.isEmpty())
+                        path = stripQuotes(args.value(QStringLiteral("TargetFile")).toVariant().toString());
 
-                QString cmd = stripQuotes(args.value(QStringLiteral("CommandLine")).toVariant().toString());
-                QString query = stripQuotes(args.value(QStringLiteral("Query")).toVariant().toString());
-                QString desc = stripQuotes(args.value(QStringLiteral("Description")).toVariant().toString());
+                    QString cmd = stripQuotes(args.value(QStringLiteral("CommandLine")).toVariant().toString());
+                    QString query = stripQuotes(args.value(QStringLiteral("Query")).toVariant().toString());
+                    QString desc = stripQuotes(args.value(QStringLiteral("Description")).toVariant().toString());
 
-                currentTool = tName;
-                if (tName == QLatin1String("view_file")) {
-                    const QString fn = QFileInfo(path).fileName();
-                    toolAction = !action.isEmpty() ? action : QStringLiteral("Reading %1").arg(fn);
-                    const int sLine = args.value(QStringLiteral("StartLine")).toVariant().toInt();
-                    const int eLine = args.value(QStringLiteral("EndLine")).toVariant().toInt();
-                    if (sLine > 0 && eLine > 0) {
-                        toolDetail = QStringLiteral("%1 (lines %2-%3)").arg(fn).arg(sLine).arg(eLine);
-                    } else {
+                    currentTool = tName;
+                    if (tName == QLatin1String("view_file")) {
+                        const QString fn = QFileInfo(path).fileName();
+                        toolAction = !action.isEmpty() ? action : QStringLiteral("Reading %1").arg(fn);
+                        const int sLine = args.value(QStringLiteral("StartLine")).toVariant().toInt();
+                        const int eLine = args.value(QStringLiteral("EndLine")).toVariant().toInt();
+                        if (sLine > 0 && eLine > 0) {
+                            toolDetail = QStringLiteral("%1 (lines %2-%3)").arg(fn).arg(sLine).arg(eLine);
+                        } else {
+                            toolDetail = path;
+                        }
+                        toolTarget = path;
+                    } else if (tName == QLatin1String("run_command")) {
+                        toolAction = !action.isEmpty() ? action : QStringLiteral("Running command");
+                        toolDetail = cmd;
+                        toolTarget = cmd;
+                    } else if (tName == QLatin1String("replace_file_content") || tName == QLatin1String("write_to_file")) {
+                        const QString fn = QFileInfo(path).fileName();
+                        toolAction = !action.isEmpty() ? action : (!desc.isEmpty() ? desc : QStringLiteral("Editing %1").arg(fn));
                         toolDetail = path;
+                        toolTarget = path;
+                    } else if (tName == QLatin1String("grep_search") || tName == QLatin1String("find_by_name")) {
+                        toolAction = !action.isEmpty() ? action : QStringLiteral("Searching codebase");
+                        toolDetail = !query.isEmpty() ? query : args.value(QStringLiteral("Pattern")).toVariant().toString();
+                        toolTarget = toolDetail;
+                    } else {
+                        toolAction = !action.isEmpty() ? action : tName;
+                        toolDetail = !cmd.isEmpty() ? cmd : (!path.isEmpty() ? path : query);
+                        toolTarget = toolDetail;
                     }
-                    toolTarget = path;
-                } else if (tName == QLatin1String("run_command")) {
-                    toolAction = !action.isEmpty() ? action : QStringLiteral("Running command");
-                    toolDetail = cmd;
-                    toolTarget = cmd;
-                } else if (tName == QLatin1String("replace_file_content") || tName == QLatin1String("write_to_file")) {
-                    const QString fn = QFileInfo(path).fileName();
-                    toolAction = !action.isEmpty() ? action : (!desc.isEmpty() ? desc : QStringLiteral("Editing %1").arg(fn));
-                    toolDetail = path;
-                    toolTarget = path;
-                } else if (tName == QLatin1String("grep_search") || tName == QLatin1String("find_by_name")) {
-                    toolAction = !action.isEmpty() ? action : QStringLiteral("Searching codebase");
-                    toolDetail = !query.isEmpty() ? query : args.value(QStringLiteral("Pattern")).toVariant().toString();
-                    toolTarget = toolDetail;
-                } else {
-                    toolAction = !action.isEmpty() ? action : tName;
-                    toolDetail = !cmd.isEmpty() ? cmd : (!path.isEmpty() ? path : query);
-                    toolTarget = toolDetail;
                 }
             }
 
@@ -202,7 +221,7 @@ static void parseAntigravityTranscript(const QString &convId, QString &currentTo
                 }
             }
 
-            if (!currentTool.isEmpty() && !lastMessage.isEmpty())
+            if (!lastMessage.isEmpty() && (!thinking.isEmpty() || plannerStepCount >= 3))
                 break;
         }
     }
@@ -228,17 +247,32 @@ AIAgentsBackend::AIAgentsBackend(QObject *parent)
     if (QFile::exists(opencodeDb))
         m_watcher.addPath(opencodeDb);
 
-    const QString agyPresence = QDir::homePath() + QStringLiteral("/.gemini/antigravity-cli/presence");
-    if (QDir(agyPresence).exists())
-        m_watcher.addPath(agyPresence);
+    const QStringList agyPresenceDirs = {
+        QDir::homePath() + QStringLiteral("/.gemini/antigravity/presence"),
+        QDir::homePath() + QStringLiteral("/.gemini/antigravity-cli/presence")
+    };
+    for (const QString &dir : agyPresenceDirs) {
+        if (QDir(dir).exists())
+            m_watcher.addPath(dir);
+    }
 
-    const QString agySummaries = QDir::homePath() + QStringLiteral("/.gemini/antigravity-cli/conversation_summaries.db");
-    if (QFile::exists(agySummaries))
-        m_watcher.addPath(agySummaries);
+    const QStringList agySummariesDbs = {
+        QDir::homePath() + QStringLiteral("/.gemini/antigravity/conversation_summaries.db"),
+        QDir::homePath() + QStringLiteral("/.gemini/antigravity-cli/conversation_summaries.db")
+    };
+    for (const QString &db : agySummariesDbs) {
+        if (QFile::exists(db))
+            m_watcher.addPath(db);
+    }
 
-    const QString agySettings = QDir::homePath() + QStringLiteral("/.gemini/antigravity-cli/settings.json");
-    if (QFile::exists(agySettings))
-        m_watcher.addPath(agySettings);
+    const QStringList agySettingsFiles = {
+        QDir::homePath() + QStringLiteral("/.gemini/antigravity/settings.json"),
+        QDir::homePath() + QStringLiteral("/.gemini/antigravity-cli/settings.json")
+    };
+    for (const QString &st : agySettingsFiles) {
+        if (QFile::exists(st))
+            m_watcher.addPath(st);
+    }
 
     checkClaudeHookInstallation();
     pollStatus();
@@ -855,16 +889,24 @@ void AIAgentsBackend::updateAntigravityState()
 {
     m_antigravitySessions.clear();
 
-    const QString presenceDir = QDir::homePath() + QStringLiteral("/.gemini/antigravity-cli/presence");
-    const QDir pDir(presenceDir);
+    const QStringList presenceDirs = {
+        QDir::homePath() + QStringLiteral("/.gemini/antigravity/presence"),
+        QDir::homePath() + QStringLiteral("/.gemini/antigravity-cli/presence")
+    };
     QStringList activeConvIds;
 
-    if (pDir.exists()) {
-        const QFileInfoList locks = pDir.entryInfoList({QStringLiteral("*.lock")}, QDir::Files);
-        for (const QFileInfo &lockInfo : locks) {
-            if (isFileFlockActive(lockInfo.absoluteFilePath())) {
-                const QString fn = lockInfo.fileName();
-                activeConvIds.append(fn.left(fn.lastIndexOf(QLatin1Char('.'))));
+    for (const QString &presenceDir : presenceDirs) {
+        const QDir pDir(presenceDir);
+        if (pDir.exists()) {
+            const QFileInfoList locks = pDir.entryInfoList({QStringLiteral("*.lock")}, QDir::Files);
+            for (const QFileInfo &lockInfo : locks) {
+                if (isFileFlockActive(lockInfo.absoluteFilePath())) {
+                    const QString fn = lockInfo.fileName();
+                    const QString cid = fn.left(fn.lastIndexOf(QLatin1Char('.')));
+                    if (!activeConvIds.contains(cid)) {
+                        activeConvIds.append(cid);
+                    }
+                }
             }
         }
     }
@@ -878,8 +920,20 @@ void AIAgentsBackend::updateAntigravityState()
     }
     m_antigravityState.running = agyRunning;
 
-    const QString summariesDb = QDir::homePath() + QStringLiteral("/.gemini/antigravity-cli/conversation_summaries.db");
-    if (!QFile::exists(summariesDb))
+    const QStringList dbCandidates = {
+        QDir::homePath() + QStringLiteral("/.gemini/antigravity/conversation_summaries.db"),
+        QDir::homePath() + QStringLiteral("/.gemini/antigravity-cli/conversation_summaries.db")
+    };
+    QString summariesDb;
+    QDateTime latestDbTime;
+    for (const QString &cand : dbCandidates) {
+        const QFileInfo fi(cand);
+        if (fi.exists() && (!latestDbTime.isValid() || fi.lastModified() > latestDbTime)) {
+            latestDbTime = fi.lastModified();
+            summariesDb = cand;
+        }
+    }
+    if (summariesDb.isEmpty())
         return;
 
     QString query;
