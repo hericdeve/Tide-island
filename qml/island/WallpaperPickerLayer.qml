@@ -597,15 +597,29 @@ FocusScope {
                 height: 34
                 anchors.right: parent.right
                 radius: 10
-                color: Qt.rgba(1, 1, 1, searchBar.expanded ? 0.06 : (iconMouse.containsMouse ? 0.10 : 0.06))
-                border.width: searchInput.activeFocus ? 1 : 0
-                border.color: "#60a5fa"
+                color: Qt.rgba(1, 1, 1, searchBar.expanded ? (searchInput.activeFocus ? 0.12 : 0.08) : (iconMouse.containsMouse ? 0.10 : 0.06))
+                border.width: searchInput.activeFocus ? 1.5 : (searchBar.expanded ? 1 : 0)
+                border.color: searchInput.activeFocus ? "#0a84ff" : Qt.rgba(1, 1, 1, 0.12)
 
                 Behavior on width {
                     NumberAnimation {
                         duration: 180
                         easing.type: Easing.OutCubic
                     }
+                }
+                Behavior on color { ColorAnimation { duration: 120 } }
+                Behavior on border.color { ColorAnimation { duration: 120 } }
+
+                // Top Specular Glass Reflection
+                Rectangle {
+                    anchors.top: parent.top
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.margins: 1
+                    height: 1
+                    radius: 9
+                    visible: searchBar.expanded
+                    color: Qt.rgba(1, 1, 1, 0.18)
                 }
             }
 
@@ -621,7 +635,9 @@ FocusScope {
                     text: "\uf002"
                     font.family: root.iconFontFamily
                     font.pixelSize: 12
-                    color: Qt.rgba(1, 1, 1, searchBar.expanded ? 0.55 : 0.35)
+                    color: searchInput.activeFocus ? "#389fff" : Qt.rgba(1, 1, 1, searchBar.expanded ? 0.65 : 0.40)
+
+                    Behavior on color { ColorAnimation { duration: 120 } }
                 }
 
                 MouseArea {
@@ -643,6 +659,8 @@ FocusScope {
                 anchors.rightMargin: 6
                 anchors.verticalCenter: parent.verticalCenter
                 color: "white"
+                selectionColor: Qt.rgba(0.04, 0.52, 1.0, 0.45)
+                selectedTextColor: "white"
                 font.pixelSize: 12
                 font.family: root.textFontFamily
                 clip: true
@@ -667,28 +685,42 @@ FocusScope {
                 text: "Search wallpapers…"
                 font.pixelSize: 12
                 font.family: root.textFontFamily
-                color: Qt.rgba(1, 1, 1, 0.28)
+                color: Qt.rgba(1, 1, 1, 0.32)
                 anchors.left: searchInput.left
                 anchors.verticalCenter: parent.verticalCenter
             }
 
-            Rectangle {
+            Item {
                 id: clearButton
                 visible: searchBar.expanded && searchInput.text !== ""
                 width: 20
                 height: 20
-                radius: 10
-                color: clearMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : "transparent"
                 anchors.right: iconButton.left
                 anchors.rightMargin: 4
                 anchors.verticalCenter: parent.verticalCenter
 
-                Text {
+                Rectangle {
+                    id: clearCircle
                     anchors.centerIn: parent
-                    text: "\uf00d"
-                    font.family: root.iconFontFamily
-                    font.pixelSize: 10
-                    color: Qt.rgba(1, 1, 1, 0.5)
+                    width: 16
+                    height: 16
+                    radius: 8
+                    color: clearMouse.pressed
+                        ? Qt.rgba(1, 1, 1, 0.28)
+                        : (clearMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.20) : Qt.rgba(1, 1, 1, 0.12))
+                    scale: clearMouse.pressed ? 0.90 : (clearMouse.containsMouse ? 1.08 : 1.0)
+
+                    Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
+                    Behavior on color { ColorAnimation { duration: 100 } }
+
+                    Text {
+                        anchors.centerIn: parent
+                        anchors.verticalCenterOffset: -0.5
+                        text: "✕"
+                        color: "#d1d1d6"
+                        font.pixelSize: 7
+                        font.weight: Font.Bold
+                    }
                 }
 
                 MouseArea {

@@ -5,6 +5,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Widgets
+import IslandBackend
 import "../common/ApplicationSearch.js" as ApplicationSearch
 
 FocusScope {
@@ -486,27 +487,88 @@ FocusScope {
             width: parent.width
             height: 46
 
+            // macOS Signature Focus Halo / Glow
+            Rectangle {
+                id: searchFocusHalo
+                anchors.centerIn: searchField
+                width: searchField.width + 5
+                height: searchField.height + 5
+                radius: searchField.radius + 2.5
+                color: "transparent"
+                border.width: 2
+                border.color: (searchInput.activeFocus)
+                    ? (StyleTokens.isDark ? Qt.rgba(0.04, 0.52, 1.0, 0.35) : Qt.rgba(0.04, 0.52, 1.0, 0.25))
+                    : "transparent"
+                opacity: searchInput.activeFocus ? 1.0 : 0.0
+
+                Behavior on opacity { NumberAnimation { duration: 150 } }
+                Behavior on border.color { ColorAnimation { duration: 150 } }
+            }
+
             Rectangle {
                 id: searchField
                 anchors.horizontalCenter: parent.horizontalCenter
                 width: Math.min(650, parent.width - 120)
                 height: parent.height
-                radius: 17
-                color: searchInput.activeFocus ? "#17181c" : "#111216"
-                border.width: 1
-                border.color: searchInput.activeFocus ? "#3d3f47" : "#292a30"
+                radius: 14
+                color: {
+                    if (StyleTokens.isDark) {
+                        return searchInput.activeFocus
+                            ? Qt.rgba(0.16, 0.16, 0.18, 0.85)
+                            : (searchFieldHover.containsMouse ? Qt.rgba(0.12, 0.12, 0.14, 0.75) : Qt.rgba(0.09, 0.09, 0.11, 0.70));
+                    } else {
+                        return searchInput.activeFocus
+                            ? Qt.rgba(1, 1, 1, 0.95)
+                            : (searchFieldHover.containsMouse ? Qt.rgba(1, 1, 1, 0.85) : Qt.rgba(0.96, 0.96, 0.98, 0.80));
+                    }
+                }
+                border.width: searchInput.activeFocus ? 1.5 : 1.0
+                border.color: searchInput.activeFocus
+                    ? (StyleTokens.isDark ? "#0a84ff" : "#007aff")
+                    : (StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(0, 0, 0, 0.12))
 
                 Behavior on color { ColorAnimation { duration: 140 } }
                 Behavior on border.color { ColorAnimation { duration: 140 } }
+                Behavior on border.width { NumberAnimation { duration: 100 } }
 
+                // Top Specular Glass Reflection
+                Rectangle {
+                    anchors.top: parent.top
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.margins: 1
+                    height: 1
+                    radius: searchField.radius - 1
+                    color: StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.75)
+                }
+
+                // Search Icon
                 Text {
+                    id: searchIcon
                     anchors.left: parent.left
                     anchors.leftMargin: 16
                     anchors.verticalCenter: parent.verticalCenter
                     text: "\uf002"
-                    color: searchInput.activeFocus ? "#d1d1d6" : "#8e8e93"
+                    color: (searchInput.activeFocus || root.query !== "")
+                        ? (StyleTokens.isDark ? "#389fff" : "#007aff")
+                        : (StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.45) : Qt.rgba(0, 0, 0, 0.40))
                     font.family: root.iconFontFamily
                     font.pixelSize: 15
+
+                    Behavior on color { ColorAnimation { duration: 120 } }
+                }
+
+                // Placeholder Text
+                Text {
+                    anchors.left: parent.left
+                    anchors.leftMargin: 45
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: searchInput.text === ""
+                    text: "Search applications and actions…"
+                    color: StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.35) : Qt.rgba(0, 0, 0, 0.35)
+                    font.family: root.textFontFamily
+                    font.pixelSize: 15
+                    font.weight: Font.Normal
                 }
 
                 TextInput {
@@ -514,11 +576,11 @@ FocusScope {
                     anchors.left: parent.left
                     anchors.leftMargin: 45
                     anchors.right: parent.right
-                    anchors.rightMargin: root.query === "" ? 16 : 42
+                    anchors.rightMargin: (root.query !== "" ? 42 : (shortcutBadge.visible ? shortcutBadge.width + 22 : 16))
                     anchors.verticalCenter: parent.verticalCenter
-                    color: "#f5f5f7"
-                    selectionColor: "#0a84ff"
-                    selectedTextColor: "#ffffff"
+                    color: StyleTokens.isDark ? "#ffffff" : "#1d1d1f"
+                    selectionColor: StyleTokens.isDark ? Qt.rgba(0.04, 0.52, 1.0, 0.45) : Qt.rgba(0.04, 0.52, 1.0, 0.35)
+                    selectedTextColor: StyleTokens.isDark ? "#ffffff" : "#1d1d1f"
                     font.family: root.textFontFamily
                     font.pixelSize: 15
                     clip: true
@@ -556,22 +618,65 @@ FocusScope {
                     }
                 }
 
+                // Esc Shortcut Badge (visible when query is empty)
                 Rectangle {
+                    id: shortcutBadge
+                    anchors.right: parent.right
+                    anchors.rightMargin: 12
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: root.query === ""
+                    height: 20
+                    width: shortcutText.implicitWidth + 12
+                    radius: 5
+                    color: StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(0, 0, 0, 0.06)
+                    border.width: 0.5
+                    border.color: StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(0, 0, 0, 0.08)
+
+                    Text {
+                        id: shortcutText
+                        anchors.centerIn: parent
+                        text: "esc"
+                        font.family: root.textFontFamily
+                        font.pixelSize: 10
+                        font.weight: Font.Medium
+                        color: StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.45) : Qt.rgba(0, 0, 0, 0.45)
+                    }
+                }
+
+                // macOS Circular Clear Button
+                Item {
+                    id: clearSearchBtn
                     anchors.right: parent.right
                     anchors.rightMargin: 11
                     anchors.verticalCenter: parent.verticalCenter
                     visible: root.query !== ""
                     width: 24
                     height: 24
-                    radius: 12
-                    color: clearSearchArea.containsMouse ? "#34353b" : "#24252a"
 
-                    Text {
+                    Rectangle {
+                        id: clearCircle
                         anchors.centerIn: parent
-                        text: "\uf00d"
-                        color: "#a5a6ac"
-                        font.family: root.iconFontFamily
-                        font.pixelSize: 10
+                        width: 18
+                        height: 18
+                        radius: 9
+                        color: clearSearchArea.pressed
+                            ? (StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.28) : Qt.rgba(0, 0, 0, 0.24))
+                            : (clearSearchArea.containsMouse
+                                ? (StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.20) : Qt.rgba(0, 0, 0, 0.15))
+                                : (StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(0, 0, 0, 0.08)))
+                        scale: clearSearchArea.pressed ? 0.90 : (clearSearchArea.containsMouse ? 1.08 : 1.0)
+
+                        Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
+                        Behavior on color { ColorAnimation { duration: 100 } }
+
+                        Text {
+                            anchors.centerIn: parent
+                            anchors.verticalCenterOffset: -0.5
+                            text: "✕"
+                            color: StyleTokens.isDark ? "#d1d1d6" : "#48484a"
+                            font.pixelSize: 8
+                            font.weight: Font.Bold
+                        }
                     }
 
                     MouseArea {
@@ -587,8 +692,10 @@ FocusScope {
                 }
 
                 MouseArea {
+                    id: searchFieldHover
                     anchors.fill: parent
                     z: -1
+                    hoverEnabled: true
                     onClicked: searchInput.forceActiveFocus()
                 }
             }

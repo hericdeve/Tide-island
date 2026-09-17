@@ -32,6 +32,17 @@ Rectangle {
         ColorAnimation { duration: StyleTokens.durationFast }
     }
 
+    // Top Specular Glass Reflection
+    Rectangle {
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.margins: 1
+        height: 1
+        radius: Math.max(0, root.radius - 1)
+        color: StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(1, 1, 1, 0.65)
+    }
+
     Row {
         anchors.fill: parent
         anchors.leftMargin: 10
@@ -45,6 +56,8 @@ Rectangle {
             font.family: root.iconFont
             font.pixelSize: Math.round(13 * root.bodyFontSize / 16.0)
             color: inputField.activeFocus ? StyleTokens.accent : StyleTokens.textTertiary
+
+            Behavior on color { ColorAnimation { duration: 120 } }
         }
 
         TextInput {
@@ -83,6 +96,7 @@ Rectangle {
             }
         }
 
+        // macOS Circular Clear Button
         Item {
             id: clearBtn
             anchors.verticalCenter: parent.verticalCenter
@@ -90,12 +104,30 @@ Rectangle {
             height: 18
             visible: root.showClearButton && inputField.text.length > 0
 
-            Text {
+            Rectangle {
+                id: clearCircle
                 anchors.centerIn: parent
-                text: "󰅖"
-                font.family: root.iconFont
-                font.pixelSize: 11
-                color: clearMouse.containsMouse ? StyleTokens.textPrimary : StyleTokens.textTertiary
+                width: 15
+                height: 15
+                radius: 7.5
+                color: clearMouse.pressed
+                    ? (StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.28) : Qt.rgba(0, 0, 0, 0.24))
+                    : (clearMouse.containsMouse
+                        ? (StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.20) : Qt.rgba(0, 0, 0, 0.15))
+                        : (StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(0, 0, 0, 0.08)))
+                scale: clearMouse.pressed ? 0.90 : (clearMouse.containsMouse ? 1.08 : 1.0)
+
+                Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
+                Behavior on color { ColorAnimation { duration: 100 } }
+
+                Text {
+                    anchors.centerIn: parent
+                    anchors.verticalCenterOffset: -0.5
+                    text: "✕"
+                    color: StyleTokens.isDark ? "#d1d1d6" : "#48484a"
+                    font.pixelSize: 7
+                    font.weight: Font.Bold
+                }
             }
 
             MouseArea {
