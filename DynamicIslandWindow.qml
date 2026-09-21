@@ -1233,6 +1233,14 @@ PanelWindow {
             function onFileSent(filePath) {
                 FileShelf.removeFilePath(filePath);
             }
+
+            function onFileReceived(filePath) {
+                FileShelf.addUrls([filePath]);
+                if (islandContainer.islandState !== "expanded" && islandContainer.islandState !== "file_shelf") {
+                    const fileName = String(filePath).split("/").pop();
+                    root.showNotification("LocalSend", "File received", fileName);
+                }
+            }
         }
 
         IslandMprisController {

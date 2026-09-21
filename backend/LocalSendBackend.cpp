@@ -1,8 +1,14 @@
 #include "LocalSendBackend.h"
 
+#include <QDateTime>
 #include <QDir>
 #include <QDirIterator>
+#include <QFile>
 #include <QFileInfo>
+#include <QFileSystemWatcher>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QRegularExpression>
 #include <QSocketNotifier>
 #include <QStandardPaths>
@@ -20,6 +26,9 @@
 LocalSendBackend::LocalSendBackend(QObject *parent)
     : QAbstractListModel(parent)
 {
+    m_destinationDirectory = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
+    setupGuiHistoryWatcher();
+
     connect(&m_process, &QProcess::started, this, [this]() {
         setAvailable(true);
         setError({});
@@ -29,6 +38,7 @@ LocalSendBackend::LocalSendBackend(QObject *parent)
             setAvailable(false);
             setBusy(false);
             cleanupMasterFd();
+            resetIncomingState();
             setError(QStringLiteral("localsend-cli is not available"));
             setStatus(QStringLiteral("Unavailable"));
         }
@@ -37,6 +47,7 @@ LocalSendBackend::LocalSendBackend(QObject *parent)
             [this](int exitCode, QProcess::ExitStatus) {
                 setBusy(false);
                 setWaitingForAcceptance(false);
+                resetIncomingState();
                 cleanupMasterFd();
                 if (exitCode == 0 && !m_pendingFile.isEmpty()) {
                     const QString sentFile = m_pendingFile;
@@ -123,6 +134,14 @@ QString LocalSendBackend::error() const { return m_error; }
 QString LocalSendBackend::pendingFile() const { return m_pendingFile; }
 int LocalSendBackend::transferProgress() const { return m_transferProgress; }
 bool LocalSendBackend::waitingForAcceptance() const { return m_waitingForAcceptance; }
+bool LocalSendBackend::receivingActive() const { return m_receivingActive; }
+bool LocalSendBackend::waitingForReceiveAcceptance() const { return m_waitingForReceiveAcceptance; }
+QString LocalSendBackend::incomingSender() const { return m_incomingSender; }
+int LocalSendBackend::incomingFileCount() const { return m_incomingFileCount; }
+QString LocalSendBackend::incomingTotalSize() const { return m_incomingTotalSize; }
+QStringList LocalSendBackend::incomingFileNames() const { return m_incomingFileNames; }
+int LocalSendBackend::receiveProgress() const { return m_receiveProgress; }
+QString LocalSendBackend::destinationDirectory() const { return m_destinationDirectory; }
 
 QVariantList LocalSendBackend::devices() const
 {
@@ -284,6 +303,7 @@ void LocalSendBackend::cancel()
     stopProcess();
     setBusy(false);
     setWaitingForAcceptance(false);
+    resetIncomingState();
     setStatus(QStringLiteral("Cancelled"));
     setTransferProgress(-1);
 }
@@ -299,6 +319,7 @@ void LocalSendBackend::stop()
     stopProcess();
     setBusy(false);
     setWaitingForAcceptance(false);
+    resetIncomingState();
     if (!m_devices.isEmpty()) {
         beginResetModel();
         m_devices.clear();
@@ -308,6 +329,31 @@ void LocalSendBackend::stop()
     }
     setStatus(QStringLiteral("Offline"));
     setTransferProgress(-1);
+}
+
+void LocalSendBackend::acceptIncomingTransfer(bool pair)
+{
+    if (!m_waitingForReceiveAcceptance)
+        return;
+
+    if (m_masterFd >= 0) {
+        const char cmd = pair ? 'p' : 'y';
+        ::write(m_masterFd, &cmd, 1);
+    }
+    setWaitingForReceiveAcceptance(false);
+    setStatus(QStringLiteral("Receiving files..."));
+}
+
+void LocalSendBackend::declineIncomingTransfer()
+{
+    if (!m_waitingForReceiveAcceptance)
+        return;
+
+    if (m_masterFd >= 0) {
+        ::write(m_masterFd, "n", 1);
+    }
+    resetIncomingState();
+    setStatus(QStringLiteral("Declined"));
 }
 
 void LocalSendBackend::startProcess(const QStringList &arguments)
@@ -501,6 +547,111 @@ void LocalSendBackend::parseOutput(const QByteArray &output)
         }
     }
 
+    // Detect destination directory if reported by localsend-cli startup banner
+    static const QRegularExpression destRegex(QStringLiteral("Destination:\\s*([^\r\n]+)"));
+    auto destMatch = destRegex.match(normalizedOutput);
+    if (destMatch.hasMatch()) {
+        const QString dest = destMatch.captured(1).trimmed();
+        if (!dest.isEmpty() && QDir(dest).exists()) {
+            setDestinationDirectory(dest);
+        }
+    }
+
+    // Detect incoming transfer request (R <Sender> ... Accept? Y/N/P)
+    static const QRegularExpression incomingReqRegex(
+        QStringLiteral("R\\s+([^\r\n:]+)\\s*\r?\n\\s*Files\\s*\\((\\d+)(?:,\\s*([^)]+))?\\):([\\s\\S]*?)(?:Accept\\?\\s*Y/N/P|$)"));
+    auto incomingReqMatch = incomingReqRegex.match(normalizedOutput);
+    if (incomingReqMatch.hasMatch() && normalizedOutput.contains(QStringLiteral("Accept? Y/N/P"), Qt::CaseInsensitive)) {
+        const QString sender = incomingReqMatch.captured(1).trimmed();
+        const int fileCount = incomingReqMatch.captured(2).toInt();
+        const QString totalSize = incomingReqMatch.captured(3).trimmed();
+        const QString filesBlock = incomingReqMatch.captured(4);
+
+        QStringList filenames;
+        static const QRegularExpression fileLineRegex(QStringLiteral("^\\s*([^\r\n(]+?)\\s*\\([^)]+\\)\\s*$"), QRegularExpression::MultilineOption);
+        auto fileLineMatch = fileLineRegex.globalMatch(filesBlock);
+        while (fileLineMatch.hasNext()) {
+            const QString fn = fileLineMatch.next().captured(1).trimmed();
+            if (!fn.isEmpty()) {
+                filenames.append(fn);
+            }
+        }
+
+        setReceivingActive(true);
+        setWaitingForReceiveAcceptance(true);
+        setIncomingSender(sender);
+        setIncomingFileCount(fileCount > 0 ? fileCount : filenames.size());
+        setIncomingTotalSize(totalSize);
+        setIncomingFileNames(filenames);
+        setStatus(QStringLiteral("Incoming transfer from %1").arg(sender));
+    }
+
+    // Detect when incoming transfer was accepted by us
+    if (normalizedOutput.contains(QStringLiteral("You accepted"), Qt::CaseInsensitive) && m_receivingActive) {
+        setWaitingForReceiveAcceptance(false);
+        setStatus(QStringLiteral("Receiving files from %1...").arg(m_incomingSender.isEmpty() ? QStringLiteral("device") : m_incomingSender));
+    }
+
+    // Detect incoming transfer completion: R <Sender>: Received <N> file(s) (<size>, took <duration>)
+    static const QRegularExpression receivedRegex(
+        QStringLiteral("R\\s+([^:\r\n]+):\\s*Received\\s+(\\d+)\\s+file[s]?\\s*\\(([^)]+)\\)"));
+    auto receivedMatch = receivedRegex.match(normalizedOutput);
+    if (receivedMatch.hasMatch()) {
+        const QString sender = receivedMatch.captured(1).trimmed();
+        const int count = receivedMatch.captured(2).toInt();
+
+        const QString destDir = m_destinationDirectory.isEmpty()
+            ? QStandardPaths::writableLocation(QStandardPaths::DownloadLocation)
+            : m_destinationDirectory;
+
+        QStringList resolvedFiles;
+        if (!m_incomingFileNames.isEmpty()) {
+            for (const QString &fn : m_incomingFileNames) {
+                const QString fullPath = QDir(destDir).filePath(fn);
+                if (QFile::exists(fullPath)) {
+                    resolvedFiles.append(fullPath);
+                }
+            }
+        }
+
+        // Fallback: scan recently modified files in destDir if specific names were not resolved
+        if (resolvedFiles.isEmpty()) {
+            QDir dir(destDir);
+            const QFileInfoList list = dir.entryInfoList(QDir::Files, QDir::Time);
+            const QDateTime cutoff = QDateTime::currentDateTime().addSecs(-15);
+            for (const QFileInfo &info : list) {
+                if (info.lastModified() >= cutoff) {
+                    resolvedFiles.append(info.absoluteFilePath());
+                    if (resolvedFiles.size() >= count)
+                        break;
+                }
+            }
+        }
+
+        for (const QString &resolved : resolvedFiles) {
+            emit fileReceived(resolved);
+        }
+
+        setStatus(QStringLiteral("Received %1 file%2").arg(count).arg(count > 1 ? QStringLiteral("s") : QString()));
+        setReceivingActive(false);
+        setWaitingForReceiveAcceptance(false);
+        setReceiveProgress(-1);
+    }
+
+    // Detect incoming cancellation/abort by sender or decline
+    if (normalizedOutput.contains(QStringLiteral("Aborted by sender"), Qt::CaseInsensitive)
+        || normalizedOutput.contains(QStringLiteral("all files were declined"), Qt::CaseInsensitive)
+        || normalizedOutput.contains(QStringLiteral("You declined"), Qt::CaseInsensitive)) {
+        if (m_receivingActive || m_waitingForReceiveAcceptance) {
+            if (normalizedOutput.contains(QStringLiteral("You declined"), Qt::CaseInsensitive)) {
+                setStatus(QStringLiteral("Declined"));
+            } else {
+                setStatus(QStringLiteral("Cancelled by sender"));
+            }
+            resetIncomingState();
+        }
+    }
+
     if (normalizedOutput.contains(QStringLiteral("No network interface"), Qt::CaseInsensitive)) {
         setError(QStringLiteral("No network interface found for LocalSend"));
         setStatus(QStringLiteral("Offline"));
@@ -634,4 +785,170 @@ void LocalSendBackend::setWaitingForAcceptance(bool value)
         return;
     m_waitingForAcceptance = value;
     emit waitingForAcceptanceChanged();
+}
+
+void LocalSendBackend::setReceivingActive(bool value)
+{
+    if (m_receivingActive == value)
+        return;
+    m_receivingActive = value;
+    emit receivingActiveChanged();
+}
+
+void LocalSendBackend::setWaitingForReceiveAcceptance(bool value)
+{
+    if (m_waitingForReceiveAcceptance == value)
+        return;
+    m_waitingForReceiveAcceptance = value;
+    emit waitingForReceiveAcceptanceChanged();
+}
+
+void LocalSendBackend::setIncomingSender(const QString &value)
+{
+    if (m_incomingSender == value)
+        return;
+    m_incomingSender = value;
+    emit incomingSenderChanged();
+}
+
+void LocalSendBackend::setIncomingFileCount(int value)
+{
+    if (m_incomingFileCount == value)
+        return;
+    m_incomingFileCount = value;
+    emit incomingFileCountChanged();
+}
+
+void LocalSendBackend::setIncomingTotalSize(const QString &value)
+{
+    if (m_incomingTotalSize == value)
+        return;
+    m_incomingTotalSize = value;
+    emit incomingTotalSizeChanged();
+}
+
+void LocalSendBackend::setIncomingFileNames(const QStringList &value)
+{
+    if (m_incomingFileNames == value)
+        return;
+    m_incomingFileNames = value;
+    emit incomingFileNamesChanged();
+}
+
+void LocalSendBackend::setReceiveProgress(int value)
+{
+    if (m_receiveProgress == value)
+        return;
+    m_receiveProgress = value;
+    emit receiveProgressChanged();
+}
+
+void LocalSendBackend::setDestinationDirectory(const QString &value)
+{
+    if (m_destinationDirectory == value)
+        return;
+    m_destinationDirectory = value;
+    emit destinationDirectoryChanged();
+}
+
+void LocalSendBackend::resetIncomingState()
+{
+    setReceivingActive(false);
+    setWaitingForReceiveAcceptance(false);
+    setIncomingSender({});
+    setIncomingFileCount(0);
+    setIncomingTotalSize({});
+    setIncomingFileNames({});
+    setReceiveProgress(-1);
+}
+
+void LocalSendBackend::setupGuiHistoryWatcher()
+{
+    const QString home = QDir::homePath();
+    m_guiHistoryFilePath = home + QStringLiteral("/.local/share/org.localsend.localsend_app/shared_preferences.json");
+
+    const QFileInfo fileInfo(m_guiHistoryFilePath);
+    if (!fileInfo.dir().exists()) {
+        return;
+    }
+
+    m_guiHistoryWatcher = new QFileSystemWatcher(this);
+    if (fileInfo.exists()) {
+        m_guiHistoryWatcher->addPath(m_guiHistoryFilePath);
+    }
+    m_guiHistoryWatcher->addPath(fileInfo.dir().absolutePath());
+
+    // Record the latest existing history ID so historical transfers aren't imported on startup
+    QFile file(m_guiHistoryFilePath);
+    if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        const QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+        if (doc.isObject()) {
+            const QJsonArray history = doc.object().value(QStringLiteral("flutter.ls_receive_history")).toArray();
+            if (!history.isEmpty()) {
+                const QJsonDocument firstEntry = QJsonDocument::fromJson(history.at(0).toString().toUtf8());
+                if (firstEntry.isObject()) {
+                    m_lastProcessedHistoryId = firstEntry.object().value(QStringLiteral("id")).toString();
+                }
+            }
+        }
+    }
+
+    connect(m_guiHistoryWatcher, &QFileSystemWatcher::fileChanged, this, [this](const QString &) {
+        if (m_guiHistoryWatcher && !m_guiHistoryWatcher->files().contains(m_guiHistoryFilePath) && QFile::exists(m_guiHistoryFilePath)) {
+            m_guiHistoryWatcher->addPath(m_guiHistoryFilePath);
+        }
+        checkGuiHistoryUpdates();
+    });
+
+    connect(m_guiHistoryWatcher, &QFileSystemWatcher::directoryChanged, this, [this](const QString &) {
+        if (m_guiHistoryWatcher && !m_guiHistoryWatcher->files().contains(m_guiHistoryFilePath) && QFile::exists(m_guiHistoryFilePath)) {
+            m_guiHistoryWatcher->addPath(m_guiHistoryFilePath);
+        }
+        checkGuiHistoryUpdates();
+    });
+}
+
+void LocalSendBackend::checkGuiHistoryUpdates()
+{
+    QFile file(m_guiHistoryFilePath);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+        return;
+
+    const QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+    if (!doc.isObject())
+        return;
+
+    const QJsonArray history = doc.object().value(QStringLiteral("flutter.ls_receive_history")).toArray();
+    if (history.isEmpty())
+        return;
+
+    QString newestId;
+    QStringList newReceivedPaths;
+
+    for (int i = 0; i < history.size(); ++i) {
+        const QJsonDocument entryDoc = QJsonDocument::fromJson(history.at(i).toString().toUtf8());
+        if (!entryDoc.isObject())
+            continue;
+
+        const QJsonObject entryObj = entryDoc.object();
+        const QString entryId = entryObj.value(QStringLiteral("id")).toString();
+        if (i == 0)
+            newestId = entryId;
+
+        if (entryId == m_lastProcessedHistoryId)
+            break;
+
+        const QString filePath = entryObj.value(QStringLiteral("path")).toString();
+        if (!filePath.isEmpty() && QFile::exists(filePath)) {
+            newReceivedPaths.prepend(filePath);
+        }
+    }
+
+    if (!newestId.isEmpty())
+        m_lastProcessedHistoryId = newestId;
+
+    for (const QString &path : newReceivedPaths) {
+        setStatus(QStringLiteral("Received file"));
+        emit fileReceived(path);
+    }
 }

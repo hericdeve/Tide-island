@@ -31,7 +31,7 @@ FocusScope {
     property bool dynamicResizeToastOpen: false
     property int batteryCapacity: -1
     property bool isCharging: false
-    readonly property int extraHeight: LocalSend.waitingForAcceptance ? 38 : 0
+    readonly property int extraHeight: (LocalSend.waitingForAcceptance || LocalSend.waitingForReceiveAcceptance || LocalSend.receivingActive) ? 52 : 0
 
     property bool reorderActive: false
     property bool reorderCommitting: false
@@ -144,6 +144,10 @@ FocusScope {
 
         function onFileSent(filePath) {
             root.removeByFilePath(filePath);
+        }
+
+        function onFileReceived(filePath) {
+            FileShelf.addUrls([filePath]);
         }
 
         function onStatusChanged() {
@@ -999,6 +1003,157 @@ FocusScope {
                         font.pixelSize: 10
                         font.weight: Font.DemiBold
                         anchors.verticalCenter: parent.verticalCenter
+                    }
+                }
+            }
+
+            // Incoming Transfer Notice / Action Banner
+            Rectangle {
+                id: incomingTransferNotice
+                width: parent.width
+                implicitHeight: incomingCol.implicitHeight + 16
+                radius: StyleTokens.radiusPrompt
+                color: StyleTokens.accentSoft
+                border.width: 1
+                border.color: StyleTokens.accent
+                visible: LocalSend.receivingActive || LocalSend.waitingForReceiveAcceptance
+
+                Column {
+                    id: incomingCol
+                    anchors.top: parent.top
+                    anchors.topMargin: 8
+                    anchors.left: parent.left
+                    anchors.leftMargin: 10
+                    anchors.right: parent.right
+                    anchors.rightMargin: 10
+                    spacing: 6
+
+                    Row {
+                        width: parent.width
+                        spacing: 8
+
+                        Text {
+                            text: "󰇚"
+                            color: StyleTokens.textOnSecondary
+                            font.family: root.iconFontFamily
+                            font.pixelSize: 14
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+
+                        Column {
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: Math.max(0, parent.width - 24)
+                            spacing: 1
+
+                            Text {
+                                text: "Incoming from " + (LocalSend.incomingSender || "device")
+                                color: StyleTokens.textOnSecondary
+                                font.family: root.textFontFamily
+                                font.pixelSize: 11
+                                font.weight: Font.DemiBold
+                                elide: Text.ElideRight
+                                width: parent.width
+                            }
+
+                            Text {
+                                text: (LocalSend.incomingFileCount > 0
+                                        ? (LocalSend.incomingFileCount + " file" + (LocalSend.incomingFileCount > 1 ? "s" : ""))
+                                        : "Files")
+                                      + (LocalSend.incomingTotalSize ? " (" + LocalSend.incomingTotalSize + ")" : "")
+                                      + (LocalSend.incomingFileNames.length > 0 ? ": " + LocalSend.incomingFileNames[0] : "")
+                                color: StyleTokens.textOnSecondary
+                                opacity: 0.85
+                                font.family: root.textFontFamily
+                                font.pixelSize: 9
+                                elide: Text.ElideRight
+                                width: parent.width
+                            }
+                        }
+                    }
+
+                    // Action buttons when waiting for user acceptance
+                    Row {
+                        visible: LocalSend.waitingForReceiveAcceptance
+                        width: parent.width
+                        spacing: 8
+
+                        Rectangle {
+                            height: 26
+                            width: Math.max(0, (parent.width - 8) / 2)
+                            radius: StyleTokens.radiusButton
+                            color: acceptMouse.containsMouse ? StyleTokens.accentHover : StyleTokens.accent
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: "Accept"
+                                color: StyleTokens.textOnButtonFill
+                                font.family: root.textFontFamily
+                                font.pixelSize: 11
+                                font.weight: Font.DemiBold
+                            }
+
+                            MouseArea {
+                                id: acceptMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: LocalSend.acceptIncomingTransfer(false)
+                            }
+                        }
+
+                        Rectangle {
+                            height: 26
+                            width: Math.max(0, (parent.width - 8) / 2)
+                            radius: StyleTokens.radiusButton
+                            color: declineMouse.containsMouse ? StyleTokens.dangerHover : StyleTokens.subtleFill
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: "Decline"
+                                color: StyleTokens.danger
+                                font.family: root.textFontFamily
+                                font.pixelSize: 11
+                                font.weight: Font.DemiBold
+                            }
+
+                            MouseArea {
+                                id: declineMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: LocalSend.declineIncomingTransfer()
+                            }
+                        }
+                    }
+
+                    // Incoming download progress
+                    Column {
+                        visible: LocalSend.receivingActive && !LocalSend.waitingForReceiveAcceptance
+                        width: parent.width
+                        spacing: 3
+
+                        Rectangle {
+                            width: parent.width
+                            height: 4
+                            radius: 2
+                            color: StyleTokens.track
+
+                            Rectangle {
+                                height: parent.height
+                                radius: 2
+                                color: StyleTokens.accent
+                                width: Math.max(0, parent.width * Math.min(1.0, (LocalSend.receiveProgress >= 0 ? LocalSend.receiveProgress : 100) / 100.0))
+                            }
+                        }
+
+                        Text {
+                            text: LocalSend.receiveProgress >= 0
+                                ? ("Receiving (" + LocalSend.receiveProgress + "%)")
+                                : "Receiving..."
+                            color: StyleTokens.textOnSecondary
+                            font.family: root.textFontFamily
+                            font.pixelSize: 9
+                        }
                     }
                 }
             }

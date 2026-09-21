@@ -22,6 +22,10 @@ private slots:
     void resolveTransferFilesEmptyFolder();
     void sendEmptyFolderSetsFriendlyError();
     void sendNonExistentPathSetsError();
+    void parseIncomingTransferRequest();
+    void incomingTransferAcceptAndReceived();
+    void incomingTransferDeclineAndAbort();
+    void guiHistoryWatcherIntegration();
 };
 
 void LocalSendBackendTests::initialProperties()
@@ -193,6 +197,142 @@ void LocalSendBackendTests::sendNonExistentPathSetsError()
     QCOMPARE(backend.status(), QStringLiteral("Send failed"));
     QVERIFY(backend.error().contains(QStringLiteral("does not exist")));
     QCOMPARE(backend.busy(), false);
+}
+
+void LocalSendBackendTests::parseIncomingTransferRequest()
+{
+    LocalSendBackend backend;
+    QSignalSpy receivingSpy(&backend, &LocalSendBackend::receivingActiveChanged);
+    QSignalSpy waitingSpy(&backend, &LocalSendBackend::waitingForReceiveAcceptanceChanged);
+    QSignalSpy senderSpy(&backend, &LocalSendBackend::incomingSenderChanged);
+
+    const char *incomingChunk =
+        "Ready to accept requests.\r\n"
+        "R Pixel 7\r\n"
+        "  \r\n"
+        "  Files (2, 45 KB):\r\n"
+        "    report.pdf (30 KB)\r\n"
+        "    image.png (15 KB)\r\n"
+        "  \r\n"
+        "  Accept? Y/N/P (P = accept and pair)\r\n";
+
+    backend.parseOutput(incomingChunk);
+
+    QCOMPARE(backend.receivingActive(), true);
+    QCOMPARE(backend.waitingForReceiveAcceptance(), true);
+    QCOMPARE(backend.incomingSender(), QStringLiteral("Pixel 7"));
+    QCOMPARE(backend.incomingFileCount(), 2);
+    QCOMPARE(backend.incomingTotalSize(), QStringLiteral("45 KB"));
+    QCOMPARE(backend.incomingFileNames(), (QStringList{QStringLiteral("report.pdf"), QStringLiteral("image.png")}));
+    QVERIFY(receivingSpy.count() >= 1);
+    QVERIFY(waitingSpy.count() >= 1);
+    QVERIFY(senderSpy.count() >= 1);
+}
+
+void LocalSendBackendTests::incomingTransferAcceptAndReceived()
+{
+    QTemporaryDir tempDir;
+    QVERIFY(tempDir.isValid());
+
+    const QString testFile = tempDir.filePath(QStringLiteral("hello.txt"));
+    QFile f(testFile);
+    QVERIFY(f.open(QIODevice::WriteOnly));
+    f.write("test data");
+    f.close();
+
+    LocalSendBackend backend;
+    backend.m_destinationDirectory = tempDir.path();
+
+    QSignalSpy receivedSpy(&backend, &LocalSendBackend::fileReceived);
+
+    const char *incomingChunk =
+        "R Galaxy Tab\r\n"
+        "  Files (1, 9 B):\r\n"
+        "    hello.txt (9 B)\r\n"
+        "  Accept? Y/N/P (P = accept and pair)\r\n";
+
+    backend.parseOutput(incomingChunk);
+    QCOMPARE(backend.waitingForReceiveAcceptance(), true);
+
+    backend.parseOutput("R Galaxy Tab: You accepted\r\n");
+    QCOMPARE(backend.waitingForReceiveAcceptance(), false);
+    QCOMPARE(backend.receivingActive(), true);
+
+    backend.parseOutput("R Galaxy Tab: Received 1 file (9 B, took 0s)\r\n");
+    QCOMPARE(receivedSpy.count(), 1);
+    QCOMPARE(receivedSpy.at(0).at(0).toString(), testFile);
+    QCOMPARE(backend.receivingActive(), false);
+    QCOMPARE(backend.status(), QStringLiteral("Received 1 file"));
+}
+
+void LocalSendBackendTests::incomingTransferDeclineAndAbort()
+{
+    LocalSendBackend backend;
+
+    const char *incomingChunk =
+        "R Friend\r\n"
+        "  Files (1, 1 MB):\r\n"
+        "    clip.mp4 (1 MB)\r\n"
+        "  Accept? Y/N/P (P = accept and pair)\r\n";
+
+    backend.parseOutput(incomingChunk);
+    QCOMPARE(backend.waitingForReceiveAcceptance(), true);
+
+    // Decline test
+    backend.declineIncomingTransfer();
+    QCOMPARE(backend.receivingActive(), false);
+    QCOMPARE(backend.waitingForReceiveAcceptance(), false);
+    QCOMPARE(backend.status(), QStringLiteral("Declined"));
+
+    // Sender abort test
+    backend.parseOutput(incomingChunk);
+    QCOMPARE(backend.receivingActive(), true);
+    backend.parseOutput("R Friend: Aborted by sender\r\n");
+    QCOMPARE(backend.receivingActive(), false);
+    QCOMPARE(backend.waitingForReceiveAcceptance(), false);
+    QCOMPARE(backend.status(), QStringLiteral("Cancelled by sender"));
+}
+
+void LocalSendBackendTests::guiHistoryWatcherIntegration()
+{
+    QTemporaryDir tempDir;
+    QVERIFY(tempDir.isValid());
+
+    const QString receivedPath = tempDir.filePath(QStringLiteral("gui_received.png"));
+    QFile rf(receivedPath);
+    QVERIFY(rf.open(QIODevice::WriteOnly));
+    rf.write("png data");
+    rf.close();
+
+    const QString jsonPath = tempDir.filePath(QStringLiteral("shared_preferences.json"));
+
+    LocalSendBackend backend;
+    backend.m_guiHistoryFilePath = jsonPath;
+    backend.m_lastProcessedHistoryId = QStringLiteral("initial_old_id");
+
+    QSignalSpy receivedSpy(&backend, &LocalSendBackend::fileReceived);
+
+    // Write a new entry to the json
+    QFile jf(jsonPath);
+    QVERIFY(jf.open(QIODevice::WriteOnly | QIODevice::Text));
+    const QString jsonContent = QStringLiteral(
+        "{\"flutter.ls_receive_history\":["
+        "\"{\\\"id\\\":\\\"new_unique_id_99\\\",\\\"fileName\\\":\\\"gui_received.png\\\",\\\"path\\\":\\\"%1\\\",\\\"isMessage\\\":false}\""
+        "]}"
+    ).arg(receivedPath);
+    jf.write(jsonContent.toUtf8());
+    jf.close();
+
+    backend.checkGuiHistoryUpdates();
+
+    QCOMPARE(receivedSpy.count(), 1);
+    QCOMPARE(receivedSpy.at(0).at(0).toString(), receivedPath);
+    QCOMPARE(backend.m_lastProcessedHistoryId, QStringLiteral("new_unique_id_99"));
+
+    // A second check without new changes should NOT emit duplicate
+    receivedSpy.clear();
+    backend.checkGuiHistoryUpdates();
+    QCOMPARE(receivedSpy.count(), 0);
 }
 
 QTEST_GUILESS_MAIN(LocalSendBackendTests)
