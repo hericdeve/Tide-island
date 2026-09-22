@@ -393,47 +393,6 @@ Item {
                     }
                 }
 
-                // Target mode selector pills
-                Row {
-                    anchors.centerIn: parent
-                    spacing: 4
-
-                    Repeater {
-                        model: [
-                            { id: "expanded", label: "Expanded" },
-                            { id: "minimum", label: "Closed" },
-                            { id: "circle", label: "Circle" }
-                        ]
-
-                        Rectangle {
-                            readonly property bool isSelected: root.targetMode === modelData.id
-                            width: modeText.implicitWidth + 14
-                            height: 20
-                            radius: 10
-                            color: isSelected ? StyleTokens.accent : (modeMouse.containsMouse ? StyleTokens.moduleHover : StyleTokens.transparent)
-                            border.width: 1
-                            border.color: isSelected ? StyleTokens.accent : StyleTokens.track
-
-                            Text {
-                                id: modeText
-                                anchors.centerIn: parent
-                                text: modelData.label
-                                font.family: root.textFontFamily
-                                font.pixelSize: 10
-                                font.weight: parent.isSelected ? Font.Bold : Font.Normal
-                                color: parent.isSelected ? StyleTokens.textOnAccent : (modeMouse.containsMouse ? StyleTokens.textOnHover : StyleTokens.textSecondary)
-                            }
-
-                            MouseArea {
-                                id: modeMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: root.targetMode = modelData.id
-                            }
-                        }
-                    }
-                }
 
                 // Minimal close button
                 Rectangle {
