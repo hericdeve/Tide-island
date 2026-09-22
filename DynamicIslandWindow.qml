@@ -4360,28 +4360,37 @@ PanelWindow {
             z: 6
             visible: islandContainer.fileShelfBubbleWanted
             opacity: root.autoHideProgress * root.animatedCircleOpacity
-            scale: 0.96 + root.autoHideProgress * 0.04
+            scale: fileShelfBubbleMouseArea.pressed ? 0.92 : (fileShelfBubbleMouseArea.containsMouse ? 1.08 : (0.96 + root.autoHideProgress * 0.04))
             transformOrigin: Item.Center
 
             Behavior on opacity {
                 NumberAnimation { duration: StyleTokens.durationFast }
             }
+            Behavior on scale {
+                NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
+            }
 
             Rectangle {
                 anchors.fill: parent
                 radius: width / 2
-                color: StyleTokens.black
+                color: (userConfig && userConfig.islandBackgroundOpacity !== undefined)
+                    ? Qt.rgba(StyleTokens.panel.r, StyleTokens.panel.g, StyleTokens.panel.b, userConfig.islandBackgroundOpacity / 100.0)
+                    : StyleTokens.panel
                 border.width: 1
                 border.color: StyleTokens.inputBorder
 
+                Behavior on color { ColorAnimation { duration: 180 } }
+                Behavior on border.color { ColorAnimation { duration: 180 } }
+
                 Text {
                     anchors.centerIn: parent
-                    anchors.horizontalCenterOffset: -1
-                    text: "\uf08d"
+                    anchors.horizontalCenterOffset: -0.5
+                    text: "󰤱"
                     color: StyleTokens.textPrimary
                     font.family: root.iconFontFamily
-                    font.pixelSize: 13
-                    rotation: -18
+                    font.pixelSize: 15
+
+                    Behavior on color { ColorAnimation { duration: 180 } }
                 }
 
                 Rectangle {
@@ -4394,13 +4403,17 @@ PanelWindow {
                     radius: height / 2
                     color: StyleTokens.accent
                     border.width: 2
-                    border.color: StyleTokens.black
+                    border.color: (userConfig && userConfig.islandBackgroundOpacity !== undefined)
+                        ? Qt.rgba(StyleTokens.panel.r, StyleTokens.panel.g, StyleTokens.panel.b, userConfig.islandBackgroundOpacity / 100.0)
+                        : StyleTokens.panel
+
+                    Behavior on border.color { ColorAnimation { duration: 180 } }
 
                     Text {
                         id: countText
                         anchors.centerIn: parent
                         text: FileShelf.count > 99 ? "99+" : String(FileShelf.count)
-                        color: StyleTokens.white
+                        color: StyleTokens.textOnAccent
                         font.family: root.textFontFamily
                         font.pixelSize: 9
                         font.weight: Font.DemiBold
@@ -4587,7 +4600,11 @@ PanelWindow {
                 anchors.fill: parent
                 anchors.margins: 2
                 radius: width / 2
-                color: StyleTokens.black
+                color: (userConfig && userConfig.islandBackgroundOpacity !== undefined)
+                    ? Qt.rgba(StyleTokens.panel.r, StyleTokens.panel.g, StyleTokens.panel.b, userConfig.islandBackgroundOpacity / 100.0)
+                    : StyleTokens.panel
+
+                Behavior on color { ColorAnimation { duration: 180 } }
             }
 
             Canvas {
@@ -4618,7 +4635,7 @@ PanelWindow {
                     ctx.lineWidth = lineWidth;
 
                     ctx.beginPath();
-                    ctx.strokeStyle = "#303036";
+                    ctx.strokeStyle = StyleTokens.isDark ? "#303036" : "#d1d1d6";
                     ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
                     ctx.stroke();
 
@@ -4649,12 +4666,14 @@ PanelWindow {
                 anchors.centerIn: parent
                 anchors.horizontalCenterOffset: -1
                 text: "󰔛"
-                color: "white"
+                color: StyleTokens.textPrimary
                 font.pixelSize: root.iconFontSize - 1
                 font.family: root.iconFontFamily
                 font.weight: Font.DemiBold
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
+
+                Behavior on color { ColorAnimation { duration: 180 } }
             }
 
             MouseArea {

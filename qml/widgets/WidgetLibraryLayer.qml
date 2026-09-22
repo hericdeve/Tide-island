@@ -317,17 +317,21 @@ Item {
         }
     }
 
-    // Pure black background matching notch app
+    // Theme-responsive background matching notch
     Rectangle {
         id: bg
         anchors.fill: parent
         radius: 26
-        color: "#000000"
+        color: (userConfig && userConfig.islandBackgroundOpacity !== undefined)
+            ? Qt.rgba(StyleTokens.panel.r, StyleTokens.panel.g, StyleTokens.panel.b, userConfig.islandBackgroundOpacity / 100.0)
+            : StyleTokens.panel
         border.width: 1
-        border.color: "#242426"
+        border.color: StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(0, 0, 0, 0.10)
         clip: true
         opacity: 1.0
 
+        Behavior on color { ColorAnimation { duration: 180 } }
+        Behavior on border.color { ColorAnimation { duration: 180 } }
         Behavior on opacity {
             NumberAnimation { duration: 180; easing.type: Easing.OutQuad }
         }
@@ -357,7 +361,9 @@ Item {
                             width: dotIndex === root.currentIndex ? 14 : 4
                             height: 4
                             radius: 2
-                            color: dotIndex === root.currentIndex ? "#ffffff" : (dotMouse.containsMouse ? "#636366" : "#38383a")
+                            color: dotIndex === root.currentIndex
+                                ? StyleTokens.textPrimary
+                                : (dotMouse.containsMouse ? StyleTokens.textSecondary : StyleTokens.textTertiary)
 
                             Behavior on width {
                                 NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
@@ -383,7 +389,7 @@ Item {
                         font.family: root.textFontFamily
                         font.pixelSize: 10
                         font.weight: Font.Medium
-                        color: "#66666a"
+                        color: StyleTokens.textTertiary
                     }
                 }
 
@@ -436,14 +442,16 @@ Item {
                     width: 22
                     height: 22
                     radius: 11
-                    color: closeMouse.containsMouse ? "#222225" : "transparent"
+                    color: closeMouse.containsMouse ? StyleTokens.moduleHover : "transparent"
+
+                    Behavior on color { ColorAnimation { duration: 120 } }
 
                     Text {
                         anchors.centerIn: parent
                         text: "󰅖"
                         font.family: root.iconFontFamily
                         font.pixelSize: 12
-                        color: closeMouse.containsMouse ? "white" : "#77777c"
+                        color: closeMouse.containsMouse ? StyleTokens.textPrimary : StyleTokens.textSecondary
                     }
 
                     MouseArea {
@@ -467,10 +475,12 @@ Item {
                 anchors.rightMargin: 16
                 height: 74
                 radius: 14
-                color: "#0d0d0f"
+                color: StyleTokens.module
                 border.width: 1
-                border.color: "#1e1e22"
+                border.color: StyleTokens.inputBorder
 
+                Behavior on color { ColorAnimation { duration: 180 } }
+                Behavior on border.color { ColorAnimation { duration: 180 } }
                 Behavior on anchors.topMargin { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
 
                 // Touch / Mouse Drag to swipe left/right
@@ -520,16 +530,21 @@ Item {
                         width: 26
                         height: 26
                         radius: 13
-                        color: prevMouse.containsMouse ? "#25252a" : "#161619"
+                        color: prevMouse.pressed
+                            ? StyleTokens.secondaryButton
+                            : (prevMouse.containsMouse ? StyleTokens.moduleHover : (StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(0, 0, 0, 0.05)))
                         border.width: 1
-                        border.color: "#28282d"
+                        border.color: StyleTokens.inputBorder
+
+                        Behavior on color { ColorAnimation { duration: 120 } }
+                        Behavior on border.color { ColorAnimation { duration: 120 } }
 
                         Text {
                             anchors.centerIn: parent
                             text: "󰅁"
                             font.family: root.iconFontFamily
                             font.pixelSize: 13
-                            color: "white"
+                            color: StyleTokens.textPrimary
                         }
 
                         MouseArea {
@@ -560,7 +575,7 @@ Item {
                                 font.family: root.textFontFamily
                                 font.pixelSize: 14
                                 font.weight: Font.Bold
-                                color: "white"
+                                color: StyleTokens.textPrimary
                             }
 
                             Text {
@@ -568,7 +583,7 @@ Item {
                                 text: root.currentWidget ? root.currentWidget.description : ""
                                 font.family: root.textFontFamily
                                 font.pixelSize: 11
-                                color: "#88888e"
+                                color: StyleTokens.textSecondary
                                 wrapMode: Text.WordWrap
                                 maximumLineCount: 2
                                 elide: Text.ElideRight
@@ -583,11 +598,16 @@ Item {
                         height: 34
                         radius: 17
                         color: root.canAddInTargetMode
-                            ? (addMouse.pressed ? "#3dffffff" : (addMouse.containsMouse ? "#29ffffff" : "#1affffff"))
-                            : "#0affffff"
+                            ? (addMouse.pressed ? StyleTokens.accentPressed : (addMouse.containsMouse ? StyleTokens.accentSoft : StyleTokens.accent))
+                            : (StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(0, 0, 0, 0.05))
                         border.width: 1
-                        border.color: root.canAddInTargetMode ? (addMouse.containsMouse ? "#40ffffff" : "#1fffffff") : "#0fffffff"
-                        opacity: root.canAddInTargetMode ? 1.0 : 0.35
+                        border.color: root.canAddInTargetMode
+                            ? (addMouse.containsMouse ? StyleTokens.accentSoft : StyleTokens.accent)
+                            : StyleTokens.inputBorder
+                        opacity: root.canAddInTargetMode ? 1.0 : 0.40
+
+                        Behavior on color { ColorAnimation { duration: 120 } }
+                        Behavior on border.color { ColorAnimation { duration: 120 } }
 
                         Text {
                             anchors.centerIn: parent
@@ -595,7 +615,7 @@ Item {
                             font.family: root.iconFontFamily
                             font.pixelSize: 16
                             font.weight: Font.Bold
-                            color: root.canAddInTargetMode ? "white" : (root.isCurrentAddedInTargetMode ? "#77777c" : "#555")
+                            color: root.canAddInTargetMode ? StyleTokens.textOnAccent : StyleTokens.textDisabled
                         }
 
                         MouseArea {
@@ -625,16 +645,21 @@ Item {
                         width: 26
                         height: 26
                         radius: 13
-                        color: nextMouse.containsMouse ? "#25252a" : "#161619"
+                        color: nextMouse.pressed
+                            ? StyleTokens.secondaryButton
+                            : (nextMouse.containsMouse ? StyleTokens.moduleHover : (StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(0, 0, 0, 0.05)))
                         border.width: 1
-                        border.color: "#28282d"
+                        border.color: StyleTokens.inputBorder
+
+                        Behavior on color { ColorAnimation { duration: 120 } }
+                        Behavior on border.color { ColorAnimation { duration: 120 } }
 
                         Text {
                             anchors.centerIn: parent
                             text: "󰅂"
                             font.family: root.iconFontFamily
                             font.pixelSize: 13
-                            color: "white"
+                            color: StyleTokens.textPrimary
                         }
 
                         MouseArea {
@@ -733,14 +758,18 @@ Item {
                             width: previewDelegate.modelData.cardWidth
                             height: previewDelegate.modelData.cardHeight
                             radius: previewDelegate.modelData.cardRadius
-                            color: "#08080a"
+                            color: StyleTokens.cardFillActive
                             border.width: 1
-                            border.color: previewDelegate.isAlreadyAdded ? "#10ffffff" : (cardMouse.containsMouse ? "#40ffffff" : "#14ffffff")
+                            border.color: previewDelegate.isAlreadyAdded
+                                ? (StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(0, 0, 0, 0.06))
+                                : (cardMouse.containsMouse ? StyleTokens.accent : StyleTokens.inputBorder)
                             opacity: previewDelegate.isAlreadyAdded ? 0.38 : 1.0
                             scale: cardMouse.dragging ? 1.04 : 1.0
                             clip: true
                             z: cardMouse.dragging ? 100 : 1
 
+                            Behavior on color { ColorAnimation { duration: 180 } }
+                            Behavior on border.color { ColorAnimation { duration: 180 } }
                             Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutQuad } }
 
                             property real dragOffsetX: 0
@@ -931,9 +960,9 @@ Item {
                                 anchors.rightMargin: 8
                                 height: 20
                                 radius: 10
-                                color: "#e618181a"
+                                color: StyleTokens.isDark ? Qt.rgba(0.12, 0.12, 0.14, 0.92) : Qt.rgba(0.92, 0.92, 0.94, 0.92)
                                 border.width: 1
-                                border.color: "#2effffff"
+                                border.color: StyleTokens.inputBorder
                                 z: 50
 
                                 Row {
@@ -948,7 +977,7 @@ Item {
                                         font.family: root.iconFontFamily
                                         font.pixelSize: 11
                                         font.weight: Font.Bold
-                                        color: "#99999e"
+                                        color: StyleTokens.textSecondary
                                     }
 
                                     Text {
@@ -957,7 +986,7 @@ Item {
                                         font.family: root.textFontFamily
                                         font.pixelSize: 10
                                         font.weight: Font.DemiBold
-                                        color: "#99999e"
+                                        color: StyleTokens.textSecondary
                                     }
                                 }
                             }
@@ -971,9 +1000,9 @@ Item {
                                 anchors.rightMargin: 10
                                 height: 20
                                 radius: 10
-                                color: "#e618181a"
+                                color: StyleTokens.isDark ? Qt.rgba(0.12, 0.12, 0.14, 0.92) : Qt.rgba(0.92, 0.92, 0.94, 0.92)
                                 border.width: 1
-                                border.color: "#2effffff"
+                                border.color: StyleTokens.inputBorder
                                 z: 50
 
                                 Row {
@@ -988,7 +1017,7 @@ Item {
                                         font.family: root.iconFontFamily
                                         font.pixelSize: 11
                                         font.weight: Font.Bold
-                                        color: "#99999e"
+                                        color: StyleTokens.textSecondary
                                     }
 
                                     Text {
@@ -997,7 +1026,7 @@ Item {
                                         font.family: root.textFontFamily
                                         font.pixelSize: 10
                                         font.weight: Font.DemiBold
-                                        color: "#99999e"
+                                        color: StyleTokens.textSecondary
                                     }
                                 }
                             }
@@ -1010,9 +1039,9 @@ Item {
                                 width: 28
                                 height: 28
                                 radius: 14
-                                color: "#e618181a"
+                                color: StyleTokens.isDark ? Qt.rgba(0.12, 0.12, 0.14, 0.92) : Qt.rgba(0.92, 0.92, 0.94, 0.92)
                                 border.width: 1
-                                border.color: "#2effffff"
+                                border.color: StyleTokens.inputBorder
                                 z: 50
 
                                 Text {
@@ -1021,7 +1050,7 @@ Item {
                                     font.family: root.iconFontFamily
                                     font.pixelSize: 14
                                     font.weight: Font.Bold
-                                    color: "#99999e"
+                                    color: StyleTokens.textSecondary
                                 }
                             }
                         }
@@ -1043,9 +1072,9 @@ Item {
             visible: height > 0
             clip: true
             radius: 16
-            color: isHovered ? "#14ffffff" : "#08ffffff"
+            color: isHovered ? (StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(0, 0, 0, 0.08)) : (StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.05) : Qt.rgba(0, 0, 0, 0.03))
             border.width: 1.5
-            border.color: isHovered ? "#47ffffff" : "#1affffff"
+            border.color: isHovered ? StyleTokens.accent : StyleTokens.inputBorder
             opacity: root.isDraggingWidget ? 1.0 : 0.0
             property bool isHovered: false
             z: 10

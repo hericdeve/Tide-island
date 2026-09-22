@@ -793,7 +793,7 @@ FocusScope {
                     width: Math.min(22, Math.max(16, Math.round(parent.width * 0.22)))
                     height: width
                     radius: width / 2
-                    color: "white"
+                    color: StyleTokens.isDark ? "#ffffff" : "#242426"
                     opacity: (fileArea.containsMouse || deleteArea.containsMouse)
                         && !fileDrag.active && !root.reorderActive ? 1 : 0
                     visible: opacity > 0
@@ -816,7 +816,7 @@ FocusScope {
                             width: parent.width
                             height: 2
                             radius: 1
-                            color: "#242424"
+                            color: StyleTokens.isDark ? "#242424" : "#ffffff"
                         }
 
                         Rectangle {
@@ -824,7 +824,7 @@ FocusScope {
                             width: 2
                             height: parent.height
                             radius: 1
-                            color: "#242424"
+                            color: StyleTokens.isDark ? "#242424" : "#ffffff"
                         }
                     }
 
