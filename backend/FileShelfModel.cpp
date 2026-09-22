@@ -528,6 +528,10 @@ int FileShelfModel::pasteFromClipboard()
     if (!mimeData)
         return 0;
 
+    const bool hasFilePayload = (mimeData->hasUrls() && !mimeData->urls().isEmpty())
+        || mimeData->hasFormat(QStringLiteral("text/uri-list"))
+        || mimeData->hasFormat(QStringLiteral("x-special/gnome-copied-files"));
+
     if (mimeData->hasUrls()) {
         int added = 0;
         for (const QUrl &url : mimeData->urls()) {
@@ -550,10 +554,21 @@ int FileShelfModel::pasteFromClipboard()
             return added;
     }
 
+    if (hasFilePayload)
+        return 0;
+
     if (mimeData->hasText()) {
-        const QString text = clipboard->text();
-        if (!text.trimmed().isEmpty())
+        const QString text = clipboard->text().trimmed();
+        if (!text.isEmpty()) {
+            if (text.startsWith(QLatin1String("file://")) || (text.startsWith(QLatin1Char('/')) && !text.contains(QLatin1Char('\n')))) {
+                const QUrl url = QUrl::fromUserInput(text, QDir::currentPath(), QUrl::AssumeLocalFile);
+                if (url.isValid() && url.isLocalFile() && QFileInfo::exists(url.toLocalFile())) {
+                    return addUrl(url) ? 1 : 0;
+                }
+                return 0;
+            }
             return addTextSnippet(text);
+        }
     }
 
     return 0;

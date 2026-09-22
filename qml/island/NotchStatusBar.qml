@@ -30,6 +30,7 @@ Item {
     signal settingsRequested()
     signal closeRequested()
     signal movePageRequested(int fromIndex, int toIndex)
+    signal clearShelfRequested()
 
     height: 24
 
@@ -85,6 +86,112 @@ Item {
                             onClicked: root.pageSelected(dotIndex)
                         }
                     }
+                }
+            }
+        }
+
+        // Clear File Shelf button (shown only on shelf page when shelf has files)
+        Item {
+            id: clearShelfBtn
+            readonly property bool shouldShow: root.fileShelfActive && FileShelf.count > 0
+            readonly property real targetWidth: clearRow.implicitWidth + 16
+            width: shouldShow ? targetWidth : 0
+            height: 20
+            opacity: shouldShow ? 1.0 : 0.0
+            scale: shouldShow ? 1.0 : 0.82
+            transformOrigin: Item.Center
+            visible: width > 0 || opacity > 0.001
+            anchors.verticalCenter: parent.verticalCenter
+
+            Behavior on width { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
+            Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+            Behavior on scale {
+                NumberAnimation {
+                    duration: 240
+                    easing.type: clearShelfBtn.shouldShow ? Easing.OutBack : Easing.InCubic
+                    easing.overshoot: 1.2
+                }
+            }
+
+            Rectangle {
+                id: clearShelfCapsule
+                anchors.fill: parent
+                radius: 10
+                clip: true
+                color: clearMouse.pressed
+                    ? (StyleTokens.isDark ? Qt.rgba(1, 0.25, 0.25, 0.35) : Qt.rgba(1, 0.25, 0.25, 0.25))
+                    : (clearMouse.containsMouse
+                        ? (StyleTokens.isDark ? Qt.rgba(1, 0.25, 0.25, 0.20) : Qt.rgba(1, 0.25, 0.25, 0.12))
+                        : (StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(0, 0, 0, 0.06)))
+                border.width: 1
+                border.color: clearMouse.containsMouse
+                    ? (StyleTokens.isDark ? Qt.rgba(1, 0.3, 0.3, 0.45) : Qt.rgba(1, 0.3, 0.3, 0.35))
+                    : (StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(0, 0, 0, 0.08))
+
+                Behavior on color { ColorAnimation { duration: 120 } }
+                Behavior on border.color { ColorAnimation { duration: 120 } }
+
+                Row {
+                    id: clearRow
+                    anchors.centerIn: parent
+                    spacing: 4
+
+                    Text {
+                        text: "\uf1f8"
+                        font.family: root.iconFontFamily
+                        font.pixelSize: 10
+                        color: clearMouse.containsMouse ? StyleTokens.danger : StyleTokens.textSecondary
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+
+                    Text {
+                        text: "Clear"
+                        font.family: root.textFontFamily
+                        font.pixelSize: 10
+                        font.weight: Font.Medium
+                        color: clearMouse.containsMouse ? StyleTokens.danger : StyleTokens.textSecondary
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                }
+
+                MouseArea {
+                    id: clearMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        root.clearShelfRequested();
+                        FileShelf.clear();
+                    }
+                }
+            }
+
+            // Tooltip badge showing "Clear shelf" on hover
+            Rectangle {
+                id: clearTooltipBadge
+                visible: opacity > 0.001
+                opacity: clearMouse.containsMouse && clearShelfBtn.shouldShow ? 1.0 : 0.0
+                anchors.top: parent.bottom
+                anchors.topMargin: 5
+                anchors.horizontalCenter: parent.horizontalCenter
+                height: 20
+                width: clearTooltipText.implicitWidth + 14
+                radius: 6
+                color: StyleTokens.isDark ? Qt.rgba(0.12, 0.12, 0.14, 0.94) : Qt.rgba(0.96, 0.96, 0.97, 0.95)
+                border.width: 0.5
+                border.color: StyleTokens.isDark ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(0, 0, 0, 0.14)
+                z: 100
+
+                Behavior on opacity { NumberAnimation { duration: 120 } }
+
+                Text {
+                    id: clearTooltipText
+                    anchors.centerIn: parent
+                    text: FileShelf.count > 1 ? ("Clear " + FileShelf.count + " items") : "Clear shelf"
+                    color: StyleTokens.isDark ? "#ffffff" : "#1d1d1f"
+                    font.family: root.textFontFamily
+                    font.pixelSize: 10
+                    font.weight: Font.Medium
                 }
             }
         }

@@ -926,6 +926,7 @@ PanelWindow {
         const formats = dragEvent.formats || [];
         return formats.indexOf("text/uri-list") >= 0
             || formats.indexOf("x-special/gnome-copied-files") >= 0
+            || formats.indexOf("application/x-tide-island-shelf-item") >= 0
             || formats.indexOf("text/plain") >= 0
             || formats.indexOf("text/plain;charset=utf-8") >= 0
             || formats.indexOf("UTF8_STRING") >= 0;
@@ -935,15 +936,29 @@ PanelWindow {
         if (!dropEvent)
             return 0;
 
+        const formats = dropEvent.formats || [];
+
+        // If the drag originated internally from Tide Island's own file shelf, do not re-add or create text file
+        if (formats.indexOf("application/x-tide-island-shelf-item") >= 0)
+            return 0;
+
+        const hasFilePayload = Boolean(dropEvent.hasUrls && dropEvent.urls && dropEvent.urls.length > 0)
+            || formats.indexOf("text/uri-list") >= 0
+            || formats.indexOf("x-special/gnome-copied-files") >= 0;
+
         let added = 0;
         if (dropEvent.hasUrls)
             added += FileShelf.addUrls(dropEvent.urls);
 
-        const formats = dropEvent.formats || [];
         if (added === 0 && formats.indexOf("text/uri-list") >= 0)
             added += FileShelf.addUriList(dropEvent.getDataAsString("text/uri-list"));
         if (added === 0 && formats.indexOf("x-special/gnome-copied-files") >= 0)
             added += FileShelf.addUriList(dropEvent.getDataAsString("x-special/gnome-copied-files"));
+
+        // If the drop carried files or file URIs, never fall through to creating a text snippet file
+        if (hasFilePayload)
+            return added;
+
         if (added === 0) {
             let text = "";
             if (formats.indexOf("text/plain;charset=utf-8") >= 0)
@@ -955,8 +970,17 @@ PanelWindow {
             else if (dropEvent.hasText && dropEvent.text)
                 text = dropEvent.text;
 
-            if (text && text.trim().length > 0)
-                added += FileShelf.addTextSnippet(text);
+            const trimmed = text ? text.trim() : "";
+            if (trimmed.length > 0) {
+                // If the plain text is a file URL or path, try adding as file; do not create text file
+                if (trimmed.startsWith("file://") || (trimmed.startsWith("/") && !trimmed.includes("\n"))) {
+                    const fileAdded = FileShelf.addUrls([trimmed]);
+                    if (fileAdded > 0)
+                        return fileAdded;
+                    return 0;
+                }
+                added += FileShelf.addTextSnippet(trimmed);
+            }
         }
         return added;
     }
@@ -4256,10 +4280,16 @@ PanelWindow {
                         shelf.updateExternalDropPoint(null);
 
                     const added = root.addFilesFromDrop(drop);
-                    if (added === 0 && drop.hasUrls) {
+                    if (added === 0) {
                         const targetShelf = (expanded && expanded.currentPage === 0) ? expanded : shelf;
-                        if (targetShelf && targetShelf.selectByUrls)
-                            targetShelf.selectByUrls(drop.urls);
+                        if (targetShelf && targetShelf.selectByUrls) {
+                            if (drop.hasUrls && drop.urls)
+                                targetShelf.selectByUrls(drop.urls);
+                            else if (drop.formats && drop.formats.indexOf("application/x-tide-island-shelf-item") >= 0)
+                                targetShelf.selectByUrls([drop.getDataAsString("application/x-tide-island-shelf-item")]);
+                            else if (drop.formats && drop.formats.indexOf("text/uri-list") >= 0)
+                                targetShelf.selectByUrls([drop.getDataAsString("text/uri-list")]);
+                        }
                     }
 
                     drop.accept(Qt.CopyAction);

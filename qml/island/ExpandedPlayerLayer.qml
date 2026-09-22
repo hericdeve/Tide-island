@@ -276,6 +276,7 @@ Item {
                 onEditModeToggleRequested: root.isEditMode = !root.isEditMode
                 onDynamicResizeToggleRequested: root.dynamicResizeToastOpen = !root.dynamicResizeToastOpen
                 onSettingsRequested: SystemServices.openConfigApp()
+                onClearShelfRequested: FileShelf.clear()
                 onCloseRequested: root.closeRequested()
                 onMovePageRequested: (fromIdx, toIdx) => {
                     if (userConfig) {

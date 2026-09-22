@@ -214,6 +214,15 @@ FocusScope {
         grabKeyboardFocus();
     }
 
+    function clearShelf() {
+        if (FileShelf.count === 0 || reorderActive)
+            return;
+
+        FileShelf.clear();
+        selectedIndex = -1;
+        grabKeyboardFocus();
+    }
+
     function moveSelection(offset) {
         if (FileShelf.count <= 0)
             return;
@@ -238,7 +247,8 @@ FocusScope {
         return {
             "text/uri-list": url + "\r\n",
             "text/plain": textPayload,
-            "x-special/gnome-copied-files": "copy\n" + url + "\n"
+            "x-special/gnome-copied-files": "copy\n" + url + "\n",
+            "application/x-tide-island-shelf-item": url
         };
     }
 
@@ -484,7 +494,11 @@ FocusScope {
             break;
         case Qt.Key_Delete:
         case Qt.Key_Backspace:
-            root.removeCurrent();
+            if ((event.modifiers & Qt.ControlModifier) || (event.modifiers & Qt.ShiftModifier)) {
+                root.clearShelf();
+            } else {
+                root.removeCurrent();
+            }
             event.accepted = true;
             break;
         case Qt.Key_Return:
@@ -539,6 +553,7 @@ FocusScope {
         onEditModeToggleRequested: root.editModeToggleRequested()
         onDynamicResizeToggleRequested: root.dynamicResizeToastOpen = !root.dynamicResizeToastOpen
         onSettingsRequested: SystemServices.openConfigApp()
+        onClearShelfRequested: root.clearShelf()
         onCloseRequested: root.closeRequested()
     }
 
